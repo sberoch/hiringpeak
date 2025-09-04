@@ -1,0 +1,17 @@
+{
+  "name": "@workspace/shared",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc"
+  },
+  "exports": {
+    "./utils": "./src/utils.ts",
+    "./enums": "./src/enums.ts",
+    "./models/*": "./src/models/*.ts"
+  },
+  "devDependencies": {
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "latest"
+  }
+}

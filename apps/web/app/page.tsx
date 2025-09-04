@@ -1,6 +1,7 @@
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
+import { normalizeString } from "@workspace/shared/utils";
 
 export default function Page() {
   return (
@@ -10,6 +11,7 @@ export default function Page() {
         <Button size="sm">Button</Button>
         <Input placeholder="Input" />
         <Label>Label</Label>
+        <p>{normalizeString("áéíóúñÁÉÍÓÚÑ")}</p>
       </div>
     </div>
   );
