@@ -1,0 +1,17 @@
+name: example-app
+
+services:
+  postgres:
+    restart: always
+    container_name: example-postgres
+    image: postgres:15.1
+    ports:
+      - "${DB_PORT}:5432"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - ./data:/var/lib/postgresql/data
