@@ -108,6 +108,13 @@ export class UserService {
     return user;
   }
 
+  async updateLastLogin(id: number) {
+    const updatedData: Partial<User> = {
+      lastLogin: new Date(),
+    };
+    await this.db.update(users).set(updatedData).where(eq(users.id, id));
+  }
+
   /**
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries

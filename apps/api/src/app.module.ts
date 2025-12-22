@@ -10,6 +10,20 @@ import { LoggerMiddleware } from './common/logger/logger.middleware';
 import { JwtAuthGuard } from './auth/jwt/jwt.guard';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { AreaModule } from './area/area.module';
+import { IndustryModule } from './industry/industry.module';
+import { SeniorityModule } from './seniority/seniority.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { VacancyStatusModule } from './vacancystatus/vacancystatus.module';
+import { CandidateVacancyStatusModule } from './candidatevacancystatus/candidatevacancystatus.module';
+import { CandidateSourceModule } from './candidatesource/candidatesource.module';
+import { CandidateFileModule } from './candidatefile/candidatefile.module';
+import { CandidateModule } from './candidate/candidate.module';
+import { CommentModule } from './comment/comment.module';
+import { BlacklistModule } from './blacklist/blacklist.module';
+import { VacancyModule } from './vacancy/vacancy.module';
+import { CandidateVacancyModule } from './candidatevacancy/candidatevacancy.module';
+import { CompanyModule } from './company/company.module';
 
 @Module({
   imports: [
@@ -24,6 +38,20 @@ import { ZodValidationPipe } from 'nestjs-zod';
     DrizzleModule,
     UserModule,
     AuthModule,
+    CandidateModule,
+    VacancyModule,
+    CandidateVacancyModule,
+    CompanyModule,
+    AreaModule,
+    IndustryModule,
+    SeniorityModule,
+    VacancyStatusModule,
+    CandidateVacancyStatusModule,
+    CandidateSourceModule,
+    CandidateFileModule,
+    CommentModule,
+    BlacklistModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

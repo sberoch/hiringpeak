@@ -20,6 +20,10 @@
     "./schemas": {
       "types": "./dist/schemas/schema.d.ts",
       "default": "./dist/schemas/schema.js"
+    },
+    "./dtos": {
+      "types": "./dist/dtos/index.d.ts",
+      "default": "./dist/dtos/index.js"
     }
   },
   "dependencies": {

@@ -13,7 +13,7 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
     if (user && (await checkPassword(password, user.password)) && user.active) {
-      await this.usersService.update(user.id, { lastLogin: new Date() });
+      await this.usersService.updateLastLogin(user.id);
       const result = excludePassword(user);
       return result;
     }
