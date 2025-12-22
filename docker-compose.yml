@@ -1,10 +1,10 @@
-name: example-app
+name: hiringpeak-app
 
 services:
   postgres:
     restart: always
-    container_name: example-postgres
-    image: postgres:15.1
+    container_name: hiringpeak-postgres
+    image: postgres:16-alpine
     ports:
       - "${DB_PORT}:5432"
     env_file:

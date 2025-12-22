@@ -9,13 +9,8 @@ import {
 } from 'class-validator';
 import { UserRole } from '@workspace/shared/enums';
 import { Transform } from 'class-transformer';
-import {
-  UserQueryParams as UserQueryParamsType,
-  UpdateUserDto as UpdateUserDtoType,
-  CreateUserDto as CreateUserDtoType,
-} from '@workspace/shared/models/user';
 
-export class CreateUserDto implements CreateUserDtoType {
+export class CreateUserDto {
   @ApiProperty({ example: 'test@gmail.com' })
   @IsNotEmpty()
   @IsEmail()
@@ -38,17 +33,11 @@ export class CreateUserDto implements CreateUserDtoType {
   active?: boolean;
 }
 
-export class UpdateUserDto
-  extends PartialType(CreateUserDto)
-  implements UpdateUserDtoType
-{
+export class UpdateUserDto extends PartialType(CreateUserDto) {
   lastLogin?: Date;
 }
 
-export class UserQueryParams
-  extends PaginationParams
-  implements UserQueryParamsType
-{
+export class UserQueryParams extends PaginationParams {
   @ApiProperty({ required: false })
   @IsOptional()
   email?: string;

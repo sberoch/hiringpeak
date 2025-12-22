@@ -6,7 +6,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import { UserRole } from '@workspace/shared/enums';
+import { UserRole } from '../enums.js';
 import * as bcrypt from 'bcryptjs';
 
 export const roleEnum = pgEnum(
@@ -45,3 +45,6 @@ export function excludePassword(user: any): any {
   const { password, ...result } = user;
   return result;
 }
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;

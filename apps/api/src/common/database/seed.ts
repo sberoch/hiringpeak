@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { seed } from 'drizzle-seed';
 import { UserRole } from '@workspace/shared/enums';
-import { hashPassword, users } from './schemas/schema';
+import { hashPassword, users } from '@workspace/shared/schemas';
 
 config();
 

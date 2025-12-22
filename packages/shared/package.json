@@ -1,15 +1,32 @@
 {
   "name": "@workspace/shared",
-  "type": "module",
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc"
   },
   "exports": {
-    "./utils": "./src/utils.ts",
-    "./enums": "./src/enums.ts",
-    "./models/*": "./src/models/*.ts",
-    "./types/*": "./src/types/*.ts"
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "default": "./dist/utils.js"
+    },
+    "./enums": {
+      "types": "./dist/enums.d.ts",
+      "default": "./dist/enums.js"
+    },
+    "./types/*": {
+      "types": "./dist/types/*.d.ts",
+      "default": "./dist/types/*.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas/schema.d.ts",
+      "default": "./dist/schemas/schema.js"
+    }
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "drizzle-orm": "^0.40.0",
+    "drizzle-zod": "^0.8.3",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",

@@ -83,6 +83,9 @@ importers:
       nestjs-cls:
         specifier: ^5.4.2
         version: 5.4.3(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      nestjs-zod:
+        specifier: ^5.0.1
+        version: 5.0.1(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@11.2.0(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6)(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2))(rxjs@7.8.2)(zod@4.2.1)
       passport:
         specifier: ^0.7.0
         version: 0.7.0
@@ -273,13 +276,26 @@ importers:
         version: 8.39.0(eslint@9.32.0(jiti@2.5.1))(typescript@5.9.2)
 
   packages/shared:
+    dependencies:
+      bcryptjs:
+        specifier: ^3.0.2
+        version: 3.0.2
+      drizzle-orm:
+        specifier: ^0.40.0
+        version: 0.40.1(@types/pg@8.15.5)(gel@2.1.1)(pg@8.16.3)
+      drizzle-zod:
+        specifier: ^0.8.3
+        version: 0.8.3(drizzle-orm@0.40.1(@types/pg@8.15.5)(gel@2.1.1)(pg@8.16.3))(zod@4.2.1)
+      zod:
+        specifier: ^4.2.1
+        version: 4.2.1
     devDependencies:
       '@workspace/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       typescript:
         specifier: latest
-        version: 5.9.2
+        version: 5.9.3
 
   packages/typescript-config: {}
 
@@ -3868,6 +3884,12 @@ packages:
       drizzle-orm:
         optional: true
 
+  drizzle-zod@0.8.3:
+    resolution: {integrity: sha512-66yVOuvGhKJnTdiqj1/Xaaz9/qzOdRJADpDa68enqS6g3t0kpNkwNYjUuaeXgZfO/UWuIM9HIhSlJ6C5ZraMww==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.0'
+      zod: ^3.25.0 || ^4.0.0
+
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -5254,6 +5276,17 @@ packages:
       reflect-metadata: '*'
       rxjs: '>= 7'
 
+  nestjs-zod@5.0.1:
+    resolution: {integrity: sha512-IjK99tpK+04UobLJJA5tlHv94Ml3wNWiRr7pRVDFJ62Jy/c/aYhMQa90WKiy7qUcmIDMWyPHQpHQN/MehESOmw==}
+    peerDependencies:
+      '@nestjs/common': ^10.0.0 || ^11.0.0
+      '@nestjs/swagger': ^7.4.2 || ^8.0.0 || ^11.0.0
+      rxjs: ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@nestjs/swagger':
+        optional: true
+
   netmask@2.0.2:
     resolution: {integrity: sha512-dBpDMdxv9Irdq66304OLfEmQ9tbNRFnFTuZiLo+bD+r332bBmMJ8GBLXklIXXgxd3+v9+KUnZaUR5PJMa75Gsg==}
     engines: {node: '>= 0.4.0'}
@@ -6426,6 +6459,11 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   uglify-js@3.19.3:
     resolution: {integrity: sha512-v3Xu+yuwBXisp6QYTcH4UbH+xYJXqnq2m/LtQVWKWzYc1iehYnLixoQDN9FH6/j9/oybfd6W9Ghwkl8+UMKTKQ==}
     engines: {node: '>=0.8.0'}
@@ -6656,6 +6694,9 @@ packages:
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+  zod@4.2.1:
+    resolution: {integrity: sha512-0wZ1IRqGGhMP76gLqz8EyfBXKk0J2qo2+H3fi4mcUP/KtTocoX08nmIAHl1Z2kJIZbZee8KOpBCSNPRgauucjw==}
 
 snapshots:
 
@@ -10056,6 +10097,11 @@ snapshots:
     optionalDependencies:
       drizzle-orm: 0.40.1(@types/pg@8.15.5)(gel@2.1.1)(pg@8.16.3)
 
+  drizzle-zod@0.8.3(drizzle-orm@0.40.1(@types/pg@8.15.5)(gel@2.1.1)(pg@8.16.3))(zod@4.2.1):
+    dependencies:
+      drizzle-orm: 0.40.1(@types/pg@8.15.5)(gel@2.1.1)(pg@8.16.3)
+      zod: 4.2.1
+
   dunder-proto@1.0.1:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -11820,6 +11866,15 @@ snapshots:
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
 
+  nestjs-zod@5.0.1(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@11.2.0(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6)(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2))(rxjs@7.8.2)(zod@4.2.1):
+    dependencies:
+      '@nestjs/common': 11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      deepmerge: 4.3.1
+      rxjs: 7.8.2
+      zod: 4.2.1
+    optionalDependencies:
+      '@nestjs/swagger': 11.2.0(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6)(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)
+
   netmask@2.0.2: {}
 
   next-themes@0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
@@ -13140,6 +13195,8 @@ snapshots:
 
   typescript@5.9.2: {}
 
+  typescript@5.9.3: {}
+
   uglify-js@3.19.3:
     optional: true
 
@@ -13410,3 +13467,5 @@ snapshots:
   yoctocolors-cjs@2.1.3: {}
 
   zod@3.25.76: {}
+
+  zod@4.2.1: {}

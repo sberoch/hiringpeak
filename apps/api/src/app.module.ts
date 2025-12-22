@@ -8,7 +8,8 @@ import { DrizzleModule } from './common/database/drizzle.module';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerMiddleware } from './common/logger/logger.middleware';
 import { JwtAuthGuard } from './auth/jwt/jwt.guard';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 @Module({
   imports: [
@@ -29,6 +30,10 @@ import { APP_GUARD } from '@nestjs/core';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_PIPE,
+      useClass: ZodValidationPipe,
     },
   ],
 })

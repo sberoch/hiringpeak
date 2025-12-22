@@ -9,7 +9,8 @@ import {
   users,
   hashPassword,
   excludePassword,
-} from '../common/database/schemas/user.schema';
+  User,
+} from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -17,12 +18,7 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
-import {
-  User,
-  CreateUserDto,
-  UpdateUserDto,
-  UserQueryParams,
-} from '@workspace/shared/models/user';
+import { CreateUserDto, UpdateUserDto, UserQueryParams } from './user.dto';
 import { UserRole } from '@workspace/shared/enums';
 
 @Injectable()

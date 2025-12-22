@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
-import {
-  checkPassword,
-  excludePassword,
-} from '../common/database/schemas/user.schema';
+import { checkPassword, excludePassword } from '@workspace/shared/schemas';
 
 @Injectable()
 export class AuthService {

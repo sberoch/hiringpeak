@@ -1,13 +1,13 @@
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ZodValidationPipe, cleanupOpenApiDoc } from 'nestjs-zod';
 import Helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(new ZodValidationPipe());
   app.use(Helmet());
   app.setGlobalPrefix('/api/v1');
 
@@ -18,7 +18,7 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('docs', app, cleanupOpenApiDoc(document));
 
   app.enableCors();
   await app.listen(process.env.SERVER_PORT || '5000');
