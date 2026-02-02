@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#445cb4"/>
+      <stop offset="100%" stop-color="#1f2b5a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1200" fill="url(#bg)"/>
+  <circle cx="1200" cy="200" r="140" fill="#5c74d6" opacity="0.4"/>
+  <circle cx="300" cy="900" r="200" fill="#2a3a7a" opacity="0.35"/>
+  <text x="100" y="200" font-size="48" fill="#ffffff" font-family="Arial, sans-serif" opacity="0.7">
+    PRATT FIT
+  </text>
+</svg>
