@@ -1,18 +1,18 @@
-import { integer, numeric, pgTable, serial, text } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
-import { seniorities } from './seniority.schema.js';
-import { areas } from './area.schema.js';
-import { industries } from './industry.schema.js';
+import { integer, numeric, pgTable, serial, text } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { seniorities } from "./seniority.schema";
+import { areas } from "./area.schema";
+import { industries } from "./industry.schema";
 
-export const vacancyFilters = pgTable('vacancy_filters', {
-  id: serial('id').primaryKey(),
-  minStars: numeric('min_stars'),
-  gender: text('gender'),
-  minAge: integer('min_age'),
-  maxAge: integer('max_age'),
-  countries: text('countries').array(),
-  provinces: text('provinces').array(),
-  languages: text('languages').array(),
+export const vacancyFilters = pgTable("vacancy_filters", {
+  id: serial("id").primaryKey(),
+  minStars: numeric("min_stars"),
+  gender: text("gender"),
+  minAge: integer("min_age"),
+  maxAge: integer("max_age"),
+  countries: text("countries").array(),
+  provinces: text("provinces").array(),
+  languages: text("languages").array(),
 });
 
 export const vacancyFiltersRelations = relations(
@@ -21,20 +21,20 @@ export const vacancyFiltersRelations = relations(
     seniorityIds: many(vacancyFiltersSeniorities),
     areaIds: many(vacancyFiltersAreas),
     industryIds: many(vacancyFiltersIndustries),
-  }),
+  })
 );
 
 export const vacancyFiltersSeniorities = pgTable(
-  'vacancy_filters_seniorities',
+  "vacancy_filters_seniorities",
   {
-    id: serial('id').primaryKey(),
-    vacancyFiltersId: integer('vacancy_filters_id')
-      .references(() => vacancyFilters.id, { onDelete: 'cascade' })
+    id: serial("id").primaryKey(),
+    vacancyFiltersId: integer("vacancy_filters_id")
+      .references(() => vacancyFilters.id, { onDelete: "cascade" })
       .notNull(),
-    seniorityId: integer('seniority_id')
-      .references(() => seniorities.id, { onDelete: 'cascade' })
+    seniorityId: integer("seniority_id")
+      .references(() => seniorities.id, { onDelete: "cascade" })
       .notNull(),
-  },
+  }
 );
 
 export const vacancyFiltersSenioritiesRelations = relations(
@@ -48,16 +48,16 @@ export const vacancyFiltersSenioritiesRelations = relations(
       fields: [vacancyFiltersSeniorities.seniorityId],
       references: [seniorities.id],
     }),
-  }),
+  })
 );
 
-export const vacancyFiltersAreas = pgTable('vacancy_filters_areas', {
-  id: serial('id').primaryKey(),
-  vacancyFiltersId: integer('vacancy_filters_id')
-    .references(() => vacancyFilters.id, { onDelete: 'cascade' })
+export const vacancyFiltersAreas = pgTable("vacancy_filters_areas", {
+  id: serial("id").primaryKey(),
+  vacancyFiltersId: integer("vacancy_filters_id")
+    .references(() => vacancyFilters.id, { onDelete: "cascade" })
     .notNull(),
-  areaId: integer('area_id')
-    .references(() => areas.id, { onDelete: 'cascade' })
+  areaId: integer("area_id")
+    .references(() => areas.id, { onDelete: "cascade" })
     .notNull(),
 });
 
@@ -72,16 +72,16 @@ export const vacancyFiltersAreasRelations = relations(
       fields: [vacancyFiltersAreas.areaId],
       references: [areas.id],
     }),
-  }),
+  })
 );
 
-export const vacancyFiltersIndustries = pgTable('vacancy_filters_industries', {
-  id: serial('id').primaryKey(),
-  vacancyFiltersId: integer('vacancy_filters_id')
-    .references(() => vacancyFilters.id, { onDelete: 'cascade' })
+export const vacancyFiltersIndustries = pgTable("vacancy_filters_industries", {
+  id: serial("id").primaryKey(),
+  vacancyFiltersId: integer("vacancy_filters_id")
+    .references(() => vacancyFilters.id, { onDelete: "cascade" })
     .notNull(),
-  industryId: integer('industry_id')
-    .references(() => industries.id, { onDelete: 'cascade' })
+  industryId: integer("industry_id")
+    .references(() => industries.id, { onDelete: "cascade" })
     .notNull(),
 });
 
@@ -96,7 +96,7 @@ export const vacancyFiltersIndustriesRelations = relations(
       fields: [vacancyFiltersIndustries.industryId],
       references: [industries.id],
     }),
-  }),
+  })
 );
 
 export type VacancyFiltersSeniority =

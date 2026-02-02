@@ -1,17 +1,16 @@
 name: hiringpeak-app
-
 services:
   postgres:
-    restart: always
+    restart: unless-stopped
     container_name: hiringpeak-postgres
     image: postgres:16-alpine
     ports:
-      - "${DB_PORT}:5432"
+      - "5432:5432"
     env_file:
       - ./apps/api/.env
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: hiringpeak
     volumes:
       - ./data:/var/lib/postgresql/data

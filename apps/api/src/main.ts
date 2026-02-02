@@ -22,6 +22,7 @@ async function bootstrap() {
 
   app.enableCors();
   await app.listen(process.env.SERVER_PORT || '5000');
+  console.log(`Server is running on port ${process.env.SERVER_PORT || '5000'}`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

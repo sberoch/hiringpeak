@@ -1,21 +1,21 @@
-import { integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
-import { candidates } from './candidate.schema.js';
-import { relations } from 'drizzle-orm';
-import { users } from './user.schema.js';
+import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { candidates } from "./candidate.schema";
+import { relations } from "drizzle-orm";
+import { users } from "./user.schema";
 
-export const blacklists = pgTable('blacklists', {
-  id: serial('id').primaryKey(),
-  candidateId: integer('candidate_id')
+export const blacklists = pgTable("blacklists", {
+  id: serial("id").primaryKey(),
+  candidateId: integer("candidate_id")
     .notNull()
     .references(() => candidates.id, {
-      onDelete: 'cascade',
+      onDelete: "cascade",
     }),
-  reason: text('reason').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  userId: integer('user_id')
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  userId: integer("user_id")
     .notNull()
     .references(() => users.id, {
-      onDelete: 'cascade',
+      onDelete: "cascade",
     }),
 });
 

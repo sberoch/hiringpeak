@@ -5,25 +5,25 @@ import {
   serial,
   text,
   timestamp,
-} from 'drizzle-orm/pg-core';
-import { UserRole } from '../enums.js';
-import * as bcrypt from 'bcryptjs';
+} from "drizzle-orm/pg-core";
+import { UserRole } from "../enums";
+import * as bcrypt from "bcryptjs";
 
 export const roleEnum = pgEnum(
-  'role',
-  Object.values(UserRole) as [string, ...string[]],
+  "role",
+  Object.values(UserRole) as [string, ...string[]]
 );
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  password: text('password').notNull(),
-  name: text('name').notNull(),
-  active: boolean('active').default(true),
-  role: roleEnum('role').notNull(),
-  lastLogin: timestamp('last_login'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  active: boolean("active").default(true),
+  role: roleEnum("role").notNull(),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export async function hashPassword(password: string): Promise<string> {
@@ -36,7 +36,7 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function checkPassword(
   plainPassword: string,
-  hashedPassword: string,
+  hashedPassword: string
 ): Promise<boolean> {
   return await bcrypt.compare(plainPassword, hashedPassword);
 }
