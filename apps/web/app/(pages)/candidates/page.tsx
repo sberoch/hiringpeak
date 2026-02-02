@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function CandidatesNextPage() {
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto ">
       <CandidatesPage />
     </div>
   );

@@ -140,6 +140,7 @@ export function VacancyFilters({
 
             <div>
               <Select
+
                 value={filters.status?.name ?? ""}
                 onValueChange={(status) =>
                   onFiltersChange({
