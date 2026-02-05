@@ -31,6 +31,7 @@ import countries from "@/public/assets/countries.json";
 import languages from "@/public/assets/languages.json";
 import provinces from "@/public/assets/provinces.json";
 import type { CandidateFilters as CandidateFiltersType } from "@workspace/shared/types/candidate";
+import { cn } from "@/lib/utils";
 
 interface CandidateFiltersProps {
   filters: CandidateFiltersType;
@@ -73,15 +74,15 @@ export function CandidateFilters({
   }, [filters.countries]);
 
   return (
-    <Card>
-      <CardHeader className="pb-0 pt-4 px-4 relative">
+    <Card className={cn(isCollapsed && "gap-0")}>
+      <CardHeader className={cn("pb-0 gap-0 relative flex flex-row items-center w-full justify-between", !isCollapsed && "pt-4 px-4")}>
         <CardTitle className="text-lg font-medium">
           <span className="mr-2">🔍</span> Filtros y Búsqueda
         </CardTitle>
         <Button
           variant="ghost"
           size="sm"
-          className="absolute top-2 right-2 h-8 w-8 p-0"
+          className=""
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? (
@@ -409,7 +410,7 @@ export function CandidateFilters({
           </div>
         </CardContent>
       ) : (
-        <div className="p-2" />
+        <div className="p-0" />
       )}
     </Card>
   );

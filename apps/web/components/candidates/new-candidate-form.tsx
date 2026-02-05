@@ -15,7 +15,7 @@ import {
   candidateFormSchema,
   type CandidateFormSchema,
 } from "@/components/candidates/new-candidate.schema";
-import { AREA_API_KEY, getAllAreas } from "@/lib/api/area";
+import { AREAS_API_KEY, getAllAreas } from "@/lib/api/area";
 import {
   CANDIDATE_API_KEY,
   checkCandidateExists,
@@ -30,7 +30,7 @@ import {
   getAllCandidateSources,
 } from "@/lib/api/candidate-source";
 import { COMMENT_API_KEY, createComment } from "@/lib/api/comment";
-import { getAllIndustries, INDUSTRY_API_KEY } from "@/lib/api/industry";
+import { getAllIndustries, INDUSTRIES_API_KEY } from "@/lib/api/industry";
 import { getAllSeniorities, SENIORITY_API_KEY } from "@/lib/api/seniority";
 import {
   createCandidateVacancy,
@@ -96,7 +96,7 @@ export default function NewCandidateForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [image, setImage] = useState<File | null>(null);
+  const [image, setImage] = useState<File | undefined | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [files, setFiles] = useState<File[] | null>(null);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
@@ -138,12 +138,12 @@ export default function NewCandidateForm() {
   }, [searchParams]);
 
   const { data: areas } = useQuery({
-    queryKey: [AREA_API_KEY, { limit: 1e9, page: 1 }],
+    queryKey: [AREAS_API_KEY, { limit: 1e9, page: 1 }],
     queryFn: () => getAllAreas({ limit: 1e9, page: 1 }),
   });
 
   const { data: industries } = useQuery({
-    queryKey: [INDUSTRY_API_KEY, { limit: 1e9, page: 1 }],
+    queryKey: [INDUSTRIES_API_KEY, { limit: 1e9, page: 1 }],
     queryFn: () => getAllIndustries({ limit: 1e9, page: 1 }),
   });
 
@@ -401,6 +401,7 @@ export default function NewCandidateForm() {
                       if (files && files.length > 0) {
                         try {
                           const file = files[0];
+                          if (!file) return;
                           const uploadedFile = await uploadFile(
                             file,
                             generateCandidateImagePath(file.name)

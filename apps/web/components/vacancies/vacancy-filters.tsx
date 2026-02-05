@@ -98,15 +98,15 @@ export function VacancyFilters({
   });
 
   return (
-    <Card>
-      <CardHeader className="pb-0 pt-4 px-4 relative">
+    <Card className={cn(isCollapsed && "gap-0")}>
+      <CardHeader className={cn("pb-0 gap-0 relative flex flex-row items-center w-full justify-between", !isCollapsed && "pt-4 px-4")}>
         <CardTitle className="text-lg font-medium">
           <span className="mr-2">🔍</span> Filtros y Búsqueda
         </CardTitle>
         <Button
           variant="ghost"
           size="sm"
-          className="absolute top-2 right-2 h-8 w-8 p-0"
+          className=""
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? (
@@ -118,7 +118,7 @@ export function VacancyFilters({
       </CardHeader>
       {!isCollapsed ? (
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 lg:gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 lg:gap-4">
             <div>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -435,7 +435,7 @@ export function VacancyFilters({
                 variant="outline"
                 size="sm"
                 onClick={resetFilters}
-                className="flex items-center h-10"
+                className="flex items-center"
               >
                 <RotateCcw className="h-4 w-4" />
                 Limpiar
@@ -444,7 +444,7 @@ export function VacancyFilters({
           </div>
         </CardContent>
       ) : (
-        <div className="p-2" />
+        <div className="p-0" />
       )}
     </Card>
   );
