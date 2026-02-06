@@ -7,7 +7,7 @@ export const CreateUserSchema = z.object({
   password: z.string().min(8),
   name: z.string().min(1),
   role: z
-    .enum([UserRole.ADMIN, UserRole.BASIC] as const)
+    .enum([UserRole.ADMIN, UserRole.MANAGER, UserRole.BASIC] as const)
     .default(UserRole.BASIC),
   active: z.boolean().optional(),
 });
@@ -20,8 +20,12 @@ export const UserQueryParamsSchema = PaginationParamsSchema.extend({
   active: z
     .union([z.boolean(), z.string().transform((v) => v === "true")])
     .optional(),
-  role: z.enum([UserRole.ADMIN, UserRole.BASIC] as const).optional(),
-  excludeRole: z.enum([UserRole.ADMIN, UserRole.BASIC] as const).optional(),
+  role: z
+    .enum([UserRole.ADMIN, UserRole.MANAGER, UserRole.BASIC] as const)
+    .optional(),
+  excludeRole: z
+    .enum([UserRole.ADMIN, UserRole.MANAGER, UserRole.BASIC] as const)
+    .optional(),
 });
 
 export type CreateUserDto = z.infer<typeof CreateUserSchema>;

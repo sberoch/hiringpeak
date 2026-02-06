@@ -1,0 +1,431 @@
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Briefcase,
+  ClipboardList,
+  Edit,
+  Mail,
+  MapPin,
+  MinusCircle,
+  Phone,
+  PlusCircle,
+  Trash,
+} from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { Card } from "@workspace/ui/components/card";
+import { Separator } from "@workspace/ui/components/separator";
+import type { Candidate } from "@workspace/shared/types/candidate";
+import { UserRoleEnum } from "@workspace/shared/types/user";
+import { CANDIDATE_API_KEY, updateCandidate } from "@/lib/api/candidate";
+import { RBACAuthzGuard } from "@/components/auth/rbac-authz-guard";
+import { AddToVacancyDialog } from "../add-to-vacancy-dialog";
+import { BlacklistCandidateDialog } from "../blacklist-candidate-dialog";
+import { DeleteCandidateDialog } from "../delete-candidate-dialog";
+import { CandidateStars } from "../candidate-stars";
+
+interface CandidateDetailHeaderProps {
+  candidate: Candidate;
+}
+
+export const CandidateDetailHeader = ({
+  candidate,
+}: CandidateDetailHeaderProps) => {
+  const router = useRouter();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isBlacklistDialogOpen, setIsBlacklistDialogOpen] = useState(false);
+  const [isAddToVacancyDialogOpen, setIsAddToVacancyDialogOpen] =
+    useState(false);
+  const queryClient = useQueryClient();
+  const [stars, setStars] = useState(+candidate.stars);
+
+  const { mutate: updateStars } = useMutation<
+    Candidate,
+    Error,
+    number,
+    { previousCandidate: Candidate | undefined }
+  >({
+    mutationFn: async (newStars: number) => {
+      return updateCandidate(candidate.id, {
+        name: candidate.name,
+        dateOfBirth: candidate.dateOfBirth,
+        gender: candidate.gender,
+        sourceId: candidate.source?.id,
+        seniorityIds: candidate.seniorities.map((seniority) => seniority.id),
+        areaIds: candidate.areas.map((area) => area.id),
+        industryIds: candidate.industries.map((industry) => industry.id),
+        stars: newStars,
+      });
+    },
+    onMutate: async (newStars) => {
+      await queryClient.cancelQueries({
+        queryKey: [CANDIDATE_API_KEY, candidate.id],
+      });
+      const previousCandidate = queryClient.getQueryData<Candidate>([
+        CANDIDATE_API_KEY,
+        candidate.id,
+      ]);
+      queryClient.setQueryData<Candidate>(
+        [CANDIDATE_API_KEY, candidate.id],
+        (old) => (old ? { ...old, stars: newStars } : old)
+      );
+      return { previousCandidate };
+    },
+    onError: (_err, _newStars, context) => {
+      if (context?.previousCandidate) {
+        queryClient.setQueryData(
+          [CANDIDATE_API_KEY, candidate.id],
+          context.previousCandidate
+        );
+      }
+    },
+    onSettled: () => {
+      queryClient.refetchQueries({
+        queryKey: [CANDIDATE_API_KEY, candidate.id],
+      });
+      queryClient.refetchQueries({
+        queryKey: [CANDIDATE_API_KEY],
+      });
+    },
+  });
+
+  const incrementStars = () => {
+    if (stars < 5) {
+      const newStars = Math.min(stars + 1, 5);
+      setStars(newStars);
+      updateStars(newStars);
+    }
+  };
+
+  const decrementStars = () => {
+    if (stars > 0) {
+      const newStars = Math.max(stars - 1, 0);
+      setStars(newStars);
+      updateStars(newStars);
+    }
+  };
+
+  const calculateAge = (dateOfBirth: string) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age -= 1;
+    }
+
+    return age;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2 w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 w-full lg:w-fit"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Button>
+          <Link
+            href={`/candidates/${candidate.id}/edit`}
+            className="w-full lg:w-fit"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 w-full lg:w-fit"
+            >
+              <Edit className="h-4 w-4" />
+              Editar candidato
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 w-full lg:w-fit"
+            onClick={() => setIsAddToVacancyDialogOpen(true)}
+          >
+            <Briefcase className="h-4 w-4" />
+            Agregar a vacante
+          </Button>
+          {!candidate.blacklist ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 text-amber-600 w-full lg:w-fit"
+              onClick={() => setIsBlacklistDialogOpen(true)}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Añadir a blacklist
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 text-amber-600 w-full lg:w-fit"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Eliminar de blacklist
+            </Button>
+          )}
+          <RBACAuthzGuard visibleTo={[UserRoleEnum.ADMIN]}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 text-red-600 w-full lg:w-fit"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash className="h-4 w-4" />
+              Eliminar candidato
+            </Button>
+          </RBACAuthzGuard>
+        </div>
+        <Card className="p-4 w-full">
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="relative w-full lg:w-1/6 flex-shrink-0">
+              <div className="aspect-square overflow-hidden rounded-lg">
+                <Image
+                  src={candidate.image || "/images/placeholder.svg"}
+                  alt={candidate.name}
+                  width={200}
+                  height={200}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {candidate.blacklist && (
+                <Badge variant="destructive" className="absolute top-2 right-2">
+                  Blacklist
+                </Badge>
+              )}
+              {Boolean(candidate.isInCompanyViaPratt && !candidate.blacklist) && (
+                <Badge
+                  variant="secondary"
+                  className="absolute text-white top-2 right-2 bg-green-500/90"
+                >
+                  via Pratt
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex-1 space-y-3 w-full lg:w-1/2">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {candidate.name}
+                  </h2>
+                  {candidate.linkedin && (
+                    <Link
+                      href={candidate.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:scale-110 transition-transform"
+                    >
+                      <Image
+                        src="/images/linkedin.svg"
+                        alt="LinkedIn"
+                        width={24}
+                        height={24}
+                        className="inline-block"
+                      />
+                    </Link>
+                  )}
+                </div>
+                {candidate.shortDescription && (
+                  <p className="text-sm text-gray-600">
+                    {candidate.shortDescription}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+                  {candidate.countries && candidate.countries.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      <span>{candidate.countries.map((c) => c).join(", ")}</span>
+                    </div>
+                  )}
+                  {candidate.dateOfBirth && (
+                    <span>{calculateAge(candidate.dateOfBirth)} años</span>
+                  )}
+                </div>
+                {candidate.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-3 w-3 text-gray-400" />
+                    <a
+                      className="hover:underline text-blue-600"
+                      href={`mailto:${candidate.email}`}
+                    >
+                      {candidate.email}
+                    </a>
+                  </div>
+                )}
+                {candidate.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-3 w-3 text-gray-400" />
+                    <span>{candidate.phone}</span>
+                  </div>
+                )}
+                <Separator className="!my-4 w-[300px]" />
+                <div className="flex flex-col gap-4">
+                  {candidate.languages && candidate.languages.length > 0 && (
+                    <div className="text-sm flex items-center gap-2">
+                      <span className="text-xs text-gray-500 block w-1/5 lg:w-[10%]">
+                        Idiomas
+                      </span>
+                      <div className="flex flex-wrap gap-1 w-4/5 lg:w-[90%]">
+                        {candidate.languages.map((language) => (
+                          <Badge
+                            key={language}
+                            variant="outline"
+                            className="text-xs h-5"
+                          >
+                            {language}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {candidate.provinces && candidate.provinces.length > 0 && (
+                    <div className="text-sm flex items-center gap-2">
+                      <span className="text-xs text-gray-500 block w-1/5 lg:w-[10%]">
+                        Provincias
+                      </span>
+                      <div className="flex flex-wrap gap-1 w-4/5 lg:w-[90%]">
+                        {candidate.provinces.map((province) => (
+                          <Badge
+                            key={province}
+                            variant="outline"
+                            className="text-xs h-5"
+                          >
+                            {province}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4 text-sm w-full lg:w-1/3">
+              {candidate.seniorities && candidate.seniorities.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="text-gray-500 text-xs w-1/5">Seniority</div>
+                  <div className="flex flex-wrap gap-1 mt-1 w-4/5">
+                    {candidate.seniorities.map((seniority) => (
+                      <Badge
+                        key={seniority.id}
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        {seniority.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {candidate.areas && candidate.areas.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="text-gray-500 text-xs w-1/5">Áreas</div>
+                  <div className="flex flex-wrap gap-1 mt-1 w-4/5">
+                    {candidate.areas.map((area) => (
+                      <Badge
+                        key={area.id}
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        {area.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {candidate.industries && candidate.industries.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="text-gray-500 text-xs w-1/5">Industrias</div>
+                  <div className="flex flex-wrap gap-1 mt-1 w-4/5">
+                    {candidate.industries.map((industry) => (
+                      <Badge
+                        key={industry.id}
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        {industry.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {candidate.source && (
+                <div className="flex items-center gap-2">
+                  <div className="text-gray-500 text-xs w-1/5">Fuente</div>
+                  <div className="flex flex-wrap gap-1 mt-1 w-4/5">
+                    <Badge variant="outline" className="text-xs">
+                      {candidate.source.name}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <div className="text-gray-500 text-xs w-1/5">Calificación</div>
+                <div className="flex items-center gap-4 w-4/5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={decrementStars}
+                    disabled={stars <= 0}
+                  >
+                    <MinusCircle className="h-4 w-4" />
+                  </Button>
+
+                  <CandidateStars stars={stars} />
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={incrementStars}
+                    disabled={stars >= 5}
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <DeleteCandidateDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        candidate={candidate}
+      />
+
+      <BlacklistCandidateDialog
+        isOpen={isBlacklistDialogOpen}
+        onClose={() => setIsBlacklistDialogOpen(false)}
+        candidate={candidate}
+      />
+
+      <AddToVacancyDialog
+        open={isAddToVacancyDialogOpen}
+        onOpenChange={setIsAddToVacancyDialogOpen}
+        candidateId={candidate.id}
+        candidateName={candidate.name}
+      />
+    </div>
+  );
+};
