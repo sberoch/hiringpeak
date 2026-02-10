@@ -26,6 +26,7 @@ import { CandidateVacancyModule } from './candidatevacancy/candidatevacancy.modu
 import { CompanyModule } from './company/company.module';
 import { OrganizationModule } from './organization/organization.module';
 import { OnboardModule } from './onboard/onboard.module';
+import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { OnboardModule } from './onboard/onboard.module';
       middleware: { mount: true },
     }),
     DrizzleModule,
+    FeatureFlagModule,
     UserModule,
     AuthModule,
     CandidateModule,

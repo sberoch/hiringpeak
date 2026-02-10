@@ -1,5 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { OAuth2Client } from 'google-auth-library';
 import { UserService } from '../user/user.service';
 import { checkPassword, excludePassword } from '@workspace/shared/schemas';
 import { UserRole } from '@workspace/shared/enums';
@@ -93,5 +94,46 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     return this.login(user);
+  }
+
+  /**
+   * Verify Google id_token, find user by email, apply web-origin rules, return JWT.
+   * No user creation; user must exist with organizationId and role in WEB_ROLES.
+   */
+  async loginWithGoogle(idToken: string) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      this.logger.warn('GOOGLE_CLIENT_ID not set');
+      throw new UnauthorizedException();
+    }
+    const client = new OAuth2Client(clientId);
+    let ticket;
+    try {
+      ticket = await client.verifyIdToken({ idToken, audience: clientId });
+    } catch (err) {
+      this.logger.warn('Google id_token verification failed', err);
+      throw new UnauthorizedException();
+    }
+    const payload = ticket.getPayload();
+    if (!payload?.email) {
+      throw new UnauthorizedException();
+    }
+    const email = payload.email;
+    let user: any;
+    try {
+      user = await this.usersService.findOneByEmail(email);
+    } catch {
+      throw new UnauthorizedException();
+    }
+    if (!user?.active) {
+      throw new UnauthorizedException();
+    }
+    const organizationId = user.organizationId ?? null;
+    const role = user.role as string;
+    if (organizationId == null || !WEB_ROLES.includes(role)) {
+      throw new UnauthorizedException();
+    }
+    await this.usersService.updateLastLogin(user.id);
+    return this.login(excludePassword(user));
   }
 }
