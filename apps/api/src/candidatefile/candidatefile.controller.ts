@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { CandidateFileService } from './candidatefile.service';
 import {
   CreateCandidateFileDto,
@@ -22,13 +24,17 @@ import {
   CandidateFileQueryParams,
 } from './candidatefile.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @ApiTags('CandidateFiles')
 @Controller('candidatefile')
 export class CandidateFileController {
-  constructor(private readonly candidateFileService: CandidateFileService) {}
+  constructor(
+    private readonly candidateFileService: CandidateFileService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -45,7 +51,9 @@ export class CandidateFileController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createCandidateFileDto: CreateCandidateFileDto) {
-    return this.candidateFileService.create(createCandidateFileDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.candidateFileService.create({ ...createCandidateFileDto, organizationId });
   }
 
   @ApiOkResponse()
@@ -54,7 +62,9 @@ export class CandidateFileController {
     @Param('id') id: string,
     @Body() updateCandidateFileDto: UpdateCandidateFileDto,
   ) {
-    return this.candidateFileService.update(+id, updateCandidateFileDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.candidateFileService.update(+id, { ...updateCandidateFileDto, organizationId });
   }
 
   @ApiOkResponse()

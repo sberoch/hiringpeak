@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { CandidateSourceService } from './candidatesource.service';
 import {
   CreateCandidateSourceDto,
@@ -24,6 +26,7 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { UserRole } from '@workspace/shared/enums';
 import { Roles } from '../auth/roles/roles.decorator';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
@@ -32,6 +35,7 @@ import { Roles } from '../auth/roles/roles.decorator';
 export class CandidateSourceController {
   constructor(
     private readonly candidateSourceService: CandidateSourceService,
+    private readonly cls: ClsService<CurrentUserStore>,
   ) {}
 
   @ApiOkResponse()
@@ -50,7 +54,13 @@ export class CandidateSourceController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createCandidateSourceDto: CreateCandidateSourceDto) {
-    return this.candidateSourceService.create(createCandidateSourceDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null)
+      throw new BadRequestException('Organization context required');
+    return this.candidateSourceService.create({
+      ...createCandidateSourceDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)
@@ -60,7 +70,13 @@ export class CandidateSourceController {
     @Param('id') id: string,
     @Body() updateCandidateSourceDto: UpdateCandidateSourceDto,
   ) {
-    return this.candidateSourceService.update(+id, updateCandidateSourceDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null)
+      throw new BadRequestException('Organization context required');
+    return this.candidateSourceService.update(+id, {
+      ...updateCandidateSourceDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)

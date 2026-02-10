@@ -2,15 +2,30 @@ import { z } from "zod";
 import { UserRole } from "../enums.js";
 import { PaginationParamsSchema } from "./pagination.dto.js";
 
-export const CreateUserSchema = z.object({
-  email: z.email(),
-  password: z.string().min(8),
-  name: z.string().min(1),
-  role: z
-    .enum([UserRole.ADMIN, UserRole.MANAGER, UserRole.BASIC] as const)
-    .default(UserRole.BASIC),
-  active: z.boolean().optional(),
-});
+export const CreateUserSchema = z
+  .object({
+    organizationId: z.number().optional(),
+    email: z.email(),
+    password: z.string().min(8),
+    name: z.string().min(1),
+    role: z
+      .enum([
+        UserRole.ADMIN,
+        UserRole.MANAGER,
+        UserRole.BASIC,
+        UserRole.SYSTEM_ADMIN,
+      ] as const)
+      .default(UserRole.BASIC),
+    active: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.organizationId === undefined && data.role !== UserRole.SYSTEM_ADMIN,
+    {
+      message: "Organization ID is required for non system admin users",
+      path: ["organizationId"],
+    },
+  );
 
 export const UpdateUserSchema = CreateUserSchema.partial();
 

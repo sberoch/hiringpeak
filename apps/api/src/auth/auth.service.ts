@@ -1,10 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { checkPassword, excludePassword } from '@workspace/shared/schemas';
+import { UserRole } from '@workspace/shared/enums';
+import type { LoginDto } from '@workspace/shared/dtos';
+import type { AuthTokenData } from '@workspace/shared/types/auth';
+
+const WEB_ROLES: string[] = [UserRole.ADMIN, UserRole.MANAGER, UserRole.BASIC];
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     private usersService: UserService,
     private jwtService: JwtService,
@@ -20,16 +26,72 @@ export class AuthService {
     return null;
   }
 
+  /**
+   * Validates user and origin: web requires org user (ADMIN/MANAGER/BASIC with organizationId);
+   * backoffice requires SYSTEM_ADMIN with no org.
+   */
+  async validateUserWithOrigin(
+    email: string,
+    password: string,
+    origin: 'web' | 'backoffice',
+  ): Promise<any> {
+    let user: any;
+    try {
+      user = await this.usersService.findOneByEmail(email);
+    } catch {
+      return null;
+    }
+    if (
+      !user ||
+      !(await checkPassword(password, user.password)) ||
+      !user.active
+    ) {
+      return null;
+    }
+    const organizationId = user.organizationId ?? null;
+    const role = user.role as string;
+
+    if (origin === 'web') {
+      if (organizationId == null || !WEB_ROLES.includes(role)) {
+        return null;
+      }
+    } else if (origin === 'backoffice') {
+      if (role !== UserRole.SYSTEM_ADMIN || organizationId != null) {
+        return null;
+      }
+    } else {
+      return null;
+    }
+
+    await this.usersService.updateLastLogin(user.id);
+    return excludePassword(user);
+  }
+
   async login(user: any) {
-    const payload = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
+    const payload: Omit<AuthTokenData, 'iat'> = {
+      active: Boolean(user.active),
+      id: Number(user.id),
+      email: user.email ?? undefined,
       role: user.role,
-      active: user.active,
+      name: user.name,
+      organizationId: user.organizationId ?? null,
     };
     return {
       access_token: this.jwtService.sign(payload),
     };
+  }
+
+  async loginWithOrigin(loginDto: LoginDto) {
+    const { email, password, origin } = loginDto;
+    this.logger.log(`loginDto: ${JSON.stringify(loginDto)}`);
+    const user = await this.validateUserWithOrigin(
+      email,
+      password,
+      origin ?? 'web',
+    );
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.login(user);
   }
 }

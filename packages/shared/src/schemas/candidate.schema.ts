@@ -7,6 +7,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -17,35 +18,51 @@ import { industries } from "./industry.schema";
 import { seniorities } from "./seniority.schema";
 import { blacklists } from "./blacklist.schema";
 import { comments } from "./comment.schema";
+import { organizations } from "./organization.schema";
 
-export const candidates = pgTable("candidates", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  image: text("image"),
-  dateOfBirth: date("date_of_birth"),
-  gender: text("gender"),
-  shortDescription: text("short_description"),
-  email: text("email").notNull(),
-  linkedin: text("linkedin"),
-  address: text("address"),
-  phone: text("phone"),
-  deleted: boolean("deleted").default(false),
-  sourceId: integer("source_id").references(() => candidateSources.id, {
-    onDelete: "cascade",
-  }),
-  stars: numeric("stars"),
-  isInCompanyViaPratt: boolean("is_in_company_via_pratt"),
-  countries: text("countries").array().default([]),
-  provinces: text("provinces").array().default([]),
-  languages: text("languages").array().default([]),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const candidates = pgTable(
+  "candidates",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    image: text("image"),
+    dateOfBirth: date("date_of_birth"),
+    gender: text("gender"),
+    shortDescription: text("short_description"),
+    email: text("email").notNull(),
+    linkedin: text("linkedin"),
+    address: text("address"),
+    phone: text("phone"),
+    deleted: boolean("deleted").default(false),
+    sourceId: integer("source_id").references(() => candidateSources.id, {
+      onDelete: "cascade",
+    }),
+    stars: numeric("stars"),
+    isInCompanyViaPratt: boolean("is_in_company_via_pratt"),
+    countries: text("countries").array().default([]),
+    provinces: text("provinces").array().default([]),
+    languages: text("languages").array().default([]),
+    organizationId: integer("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "cascade",
+      }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    nameOrgUnique: unique().on(table.name, table.organizationId),
+  })
+);
 
 export const candidatesRelations = relations(candidates, ({ one, many }) => ({
   source: one(candidateSources, {
     fields: [candidates.sourceId],
     references: [candidateSources.id],
+  }),
+  organization: one(organizations, {
+    fields: [candidates.organizationId],
+    references: [organizations.id],
   }),
   candidateAreas: many(candidateAreas),
   candidateIndustries: many(candidateIndustries),

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { VacancyService } from './vacancy.service';
 import {
   CreateVacancyDto,
@@ -22,13 +24,17 @@ import {
   VacancyQueryParams,
 } from './vacancy.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @ApiTags('Vacancies')
 @Controller('vacancy')
 export class VacancyController {
-  constructor(private readonly vacancyService: VacancyService) {}
+  constructor(
+    private readonly vacancyService: VacancyService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -45,7 +51,14 @@ export class VacancyController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createVacancyDto: CreateVacancyDto) {
-    return this.vacancyService.create(createVacancyDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) {
+      throw new BadRequestException('Organization context required');
+    }
+    return this.vacancyService.create({
+      ...createVacancyDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
@@ -54,7 +67,14 @@ export class VacancyController {
     @Param('id') id: string,
     @Body() updateVacancyDto: UpdateVacancyDto,
   ) {
-    return this.vacancyService.update(+id, updateVacancyDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) {
+      throw new BadRequestException('Organization context required');
+    }
+    return this.vacancyService.update(+id, {
+      ...updateVacancyDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()

@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { type User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { match } from "path-to-regexp";
 
@@ -7,7 +7,7 @@ import { PAGE_AUTHORIZATION_ACCESS } from "@/lib/consts";
 import { parseJwt } from "@/lib/utils";
 import type { AuthLogin } from "@workspace/shared/types/auth";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const nextAuth = NextAuth({
   debug: process.env.NODE_ENV === "development",
   trustHost: true,
   secret: process.env.AUTH_SECRET,
@@ -47,18 +47,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          console.log("credentials", credentials);
           const { data } = await api.post<AuthLogin>("/auth/login", {
             email: credentials?.email,
             password: credentials?.password,
+            origin: "web",
           });
-          console.log("data", data);
           if (data.access_token) {
+            const payload = parseJwt(data.access_token);
+            const email =
+              (typeof payload.email === "string" ? payload.email : null) ??
+              (typeof credentials?.email === "string" ? credentials.email : null) ??
+              "";
             return {
+              id: String(payload.id),
+              name: payload.name,
+              email,
+              image: null,
               token: data.access_token,
-            };
+            } as User & { token: string };
           }
-
           return null;
         } catch (err) {
           console.error(
@@ -75,8 +82,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.accessToken = user.token;
+      if (user && "token" in user) {
+        token.accessToken = user.token as string;
       }
       return token;
     },
@@ -90,6 +97,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/login",
   },
 });
+
+export const { handlers, signIn, signOut, auth } = nextAuth;
 
 export function hasAccessToRoute(route: string, token?: string): boolean {
   if (!token) return false;

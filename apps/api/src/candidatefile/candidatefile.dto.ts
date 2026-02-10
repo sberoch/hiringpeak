@@ -5,6 +5,7 @@ import {
   CandidateFileQueryParamsSchema,
 } from '@workspace/shared/dtos';
 
+/** Request DTOs (controller): no organizationId */
 export class CreateCandidateFileDto extends createZodDto(
   CreateCandidateFileSchema,
 ) {}
@@ -14,3 +15,11 @@ export class UpdateCandidateFileDto extends createZodDto(
 export class CandidateFileQueryParams extends createZodDto(
   CandidateFileQueryParamsSchema,
 ) {}
+
+/** Service DTOs: organizationId injected by controller */
+export type CreateCandidateFileServiceDto = CreateCandidateFileDto & {
+  organizationId: number;
+};
+export type UpdateCandidateFileServiceDto = UpdateCandidateFileDto & {
+  organizationId: number;
+};

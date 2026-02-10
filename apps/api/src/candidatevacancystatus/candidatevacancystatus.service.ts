@@ -30,9 +30,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateCandidateVacancyStatusDto,
+  CreateCandidateVacancyStatusServiceDto,
   CandidateVacancyStatusQueryParams,
-  UpdateCandidateVacancyStatusDto,
+  UpdateCandidateVacancyStatusServiceDto,
 } from './candidatevacancystatus.dto';
 
 @Injectable()
@@ -74,41 +74,48 @@ export class CandidateVacancyStatusService {
     return candidateVacancyStatus;
   }
 
-  async create(
-    createCandidateVacancyStatusDto: CreateCandidateVacancyStatusDto,
-  ) {
-    const sort = createCandidateVacancyStatusDto.sort ?? 0;
+  async create(dto: CreateCandidateVacancyStatusServiceDto) {
+    const sort = dto.sort ?? 0;
+    const { organizationId } = dto;
 
     return await this.db.transaction(async (tx) => {
       await tx
         .update(candidateVacancyStatuses)
         .set({ sort: sql`${candidateVacancyStatuses.sort} + 1` })
-        .where(gte(candidateVacancyStatuses.sort, sort));
+        .where(
+          and(
+            eq(candidateVacancyStatuses.organizationId, organizationId),
+            gte(candidateVacancyStatuses.sort, sort),
+          ),
+        );
 
-      if (createCandidateVacancyStatusDto.isInitial === true) {
+      if (dto.isInitial === true) {
         await tx
           .update(candidateVacancyStatuses)
           .set({ isInitial: false })
-          .where(eq(candidateVacancyStatuses.isInitial, true));
+          .where(
+            and(
+              eq(candidateVacancyStatuses.organizationId, organizationId),
+              eq(candidateVacancyStatuses.isInitial, true),
+            ),
+          );
       }
 
       const [candidateVacancyStatus] = await tx
         .insert(candidateVacancyStatuses)
-        .values({ ...createCandidateVacancyStatusDto, sort })
+        .values({ ...dto, sort })
         .returning();
 
       return candidateVacancyStatus;
     });
   }
 
-  async update(
-    id: number,
-    updateCandidateVacancyStatusDto: UpdateCandidateVacancyStatusDto,
-  ) {
+  async update(id: number, dto: UpdateCandidateVacancyStatusServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     return await this.db.transaction(async (tx) => {
       const currentStatus = await this.findOne(id);
 
-      const newSort = updateCandidateVacancyStatusDto.sort;
+      const newSort = dto.sort;
 
       if (newSort !== undefined && newSort !== currentStatus.sort) {
         if (newSort > currentStatus.sort) {
@@ -117,6 +124,7 @@ export class CandidateVacancyStatusService {
             .set({ sort: sql`${candidateVacancyStatuses.sort} - 1` })
             .where(
               and(
+                eq(candidateVacancyStatuses.organizationId, organizationId),
                 gt(candidateVacancyStatuses.sort, currentStatus.sort),
                 lte(candidateVacancyStatuses.sort, newSort),
               ),
@@ -127,6 +135,7 @@ export class CandidateVacancyStatusService {
             .set({ sort: sql`${candidateVacancyStatuses.sort} + 1` })
             .where(
               and(
+                eq(candidateVacancyStatuses.organizationId, organizationId),
                 gte(candidateVacancyStatuses.sort, newSort),
                 lt(candidateVacancyStatuses.sort, currentStatus.sort),
               ),
@@ -134,12 +143,13 @@ export class CandidateVacancyStatusService {
         }
       }
 
-      if (updateCandidateVacancyStatusDto.isInitial === true) {
+      if (dto.isInitial === true) {
         await tx
           .update(candidateVacancyStatuses)
           .set({ isInitial: false })
           .where(
             and(
+              eq(candidateVacancyStatuses.organizationId, organizationId),
               not(eq(candidateVacancyStatuses.id, id)),
               eq(candidateVacancyStatuses.isInitial, true),
             ),
@@ -148,8 +158,13 @@ export class CandidateVacancyStatusService {
 
       const [updated] = await tx
         .update(candidateVacancyStatuses)
-        .set(updateCandidateVacancyStatusDto)
-        .where(eq(candidateVacancyStatuses.id, id))
+        .set(updateFields)
+        .where(
+          and(
+            eq(candidateVacancyStatuses.id, id),
+            eq(candidateVacancyStatuses.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       return updated;

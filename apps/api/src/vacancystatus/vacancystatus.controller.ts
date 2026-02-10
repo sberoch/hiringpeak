@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { VacancyStatusService } from './vacancystatus.service';
 import {
   CreateVacancyStatusDto,
@@ -24,13 +26,17 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { UserRole } from '@workspace/shared/enums';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @ApiTags('VacancyStatuses')
 @Controller('vacancyStatus')
 export class VacancyStatusController {
-  constructor(private readonly vacancyStatusService: VacancyStatusService) {}
+  constructor(
+    private readonly vacancyStatusService: VacancyStatusService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -48,7 +54,14 @@ export class VacancyStatusController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createVacancyStatusDto: CreateVacancyStatusDto) {
-    return this.vacancyStatusService.create(createVacancyStatusDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) {
+      throw new BadRequestException('Organization context required');
+    }
+    return this.vacancyStatusService.create({
+      ...createVacancyStatusDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)
@@ -58,7 +71,14 @@ export class VacancyStatusController {
     @Param('id') id: string,
     @Body() updateVacancyStatusDto: UpdateVacancyStatusDto,
   ) {
-    return this.vacancyStatusService.update(+id, updateVacancyStatusDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) {
+      throw new BadRequestException('Organization context required');
+    }
+    return this.vacancyStatusService.update(+id, {
+      ...updateVacancyStatusDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)

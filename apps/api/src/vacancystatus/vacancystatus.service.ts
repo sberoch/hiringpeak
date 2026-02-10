@@ -14,9 +14,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateVacancyStatusDto,
+  CreateVacancyStatusServiceDto,
+  UpdateVacancyStatusServiceDto,
   VacancyStatusQueryParams,
-  UpdateVacancyStatusDto,
 } from './vacancystatus.dto';
 
 @Injectable()
@@ -57,19 +57,25 @@ export class VacancyStatusService {
     return vacancyStatus;
   }
 
-  async create(createVacancyStatusDto: CreateVacancyStatusDto) {
+  async create(dto: CreateVacancyStatusServiceDto) {
     const [vacancyStatus] = await this.db
       .insert(vacancyStatuses)
-      .values(createVacancyStatusDto)
+      .values(dto)
       .returning();
     return vacancyStatus;
   }
 
-  async update(id: number, updateVacancyStatusDto: UpdateVacancyStatusDto) {
+  async update(id: number, dto: UpdateVacancyStatusServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [vacancyStatus] = await this.db
       .update(vacancyStatuses)
-      .set(updateVacancyStatusDto)
-      .where(eq(vacancyStatuses.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(vacancyStatuses.id, id),
+          eq(vacancyStatuses.organizationId, organizationId),
+        ),
+      )
       .returning();
     return vacancyStatus;
   }

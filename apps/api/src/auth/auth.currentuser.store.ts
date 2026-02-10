@@ -7,5 +7,7 @@ export interface CurrentUserStore extends ClsStore {
     name: string;
     role: string;
     active: boolean;
+    organizationId: number | undefined;
   };
+  organizationId?: number;
 }

@@ -8,6 +8,7 @@ export * from "./candidatevacancystatus.schema";
 export * from "./comment.schema";
 export * from "./company.schema";
 export * from "./industry.schema";
+export * from "./organization.schema";
 export * from "./seniority.schema";
 export * from "./user.schema";
 export * from "./vacancy.schema";

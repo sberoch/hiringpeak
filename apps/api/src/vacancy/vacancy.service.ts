@@ -36,6 +36,7 @@ import {
   vacancyFiltersSeniorities,
   VacancyFiltersSeniority,
   VacancyStatus,
+  type NewVacancy,
 } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
@@ -45,8 +46,8 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateVacancyDto,
-  UpdateVacancyDto,
+  CreateVacancyServiceDto,
+  UpdateVacancyServiceDto,
   VacancyQueryParams,
 } from './vacancy.dto';
 
@@ -190,12 +191,14 @@ export class VacancyService {
     return this.transformQueryResult(vacancy);
   }
 
-  async create(createVacancyDto: CreateVacancyDto) {
+  async create(dto: CreateVacancyServiceDto) {
+    const { organizationId, ...createVacancyDto } = dto;
     return this.db.transaction(async (tx) => {
       const [filters] = await tx
         .insert(vacancyFilters)
         .values({
           ...createVacancyDto.filters,
+          organizationId,
         })
         .returning();
 
@@ -230,7 +233,16 @@ export class VacancyService {
 
       const [vacancy] = await tx
         .insert(vacancies)
-        .values({ ...createVacancyDto, vacancyFiltersId: filters.id } as any)
+        .values({
+          title: createVacancyDto.title,
+          description: createVacancyDto.description ?? '',
+          statusId: createVacancyDto.statusId,
+          vacancyFiltersId: filters.id,
+          companyId: createVacancyDto.companyId,
+          createdBy: createVacancyDto.createdBy,
+          assignedTo: createVacancyDto.assignedTo,
+          organizationId,
+        } as NewVacancy)
         .returning();
 
       if (!vacancy) throw new Error('Error creating vacancy');
@@ -239,19 +251,41 @@ export class VacancyService {
     });
   }
 
-  async update(id: number, updateVacancyDto: UpdateVacancyDto) {
+  async update(id: number, dto: UpdateVacancyServiceDto) {
+    const { organizationId, ...updateVacancyDto } = dto;
+    const { filters: _filters, ...vacancyFields } = updateVacancyDto;
     const vacancy = await this.db.transaction(async (tx) => {
       const [vacancy] = await tx
         .update(vacancies)
-        .set({ ...updateVacancyDto, updatedAt: new Date() } as Partial<Vacancy>)
-        .where(eq(vacancies.id, id))
+        .set({
+          ...vacancyFields,
+          updatedAt: new Date(),
+        } as Partial<Vacancy>)
+        .where(
+          and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       if (updateVacancyDto.filters) {
-        await tx
-          .update(vacancyFilters)
-          .set({ ...updateVacancyDto.filters })
-          .where(eq(vacancyFilters.id, vacancy.vacancyFiltersId));
+        const f = updateVacancyDto.filters;
+        const filterScalars = {
+          ...(f.minStars !== undefined && { minStars: f.minStars }),
+          ...(f.gender !== undefined && { gender: f.gender }),
+          ...(f.minAge !== undefined && { minAge: f.minAge }),
+          ...(f.maxAge !== undefined && { maxAge: f.maxAge }),
+          ...(f.countries !== undefined && { countries: f.countries }),
+          ...(f.provinces !== undefined && { provinces: f.provinces }),
+          ...(f.languages !== undefined && { languages: f.languages }),
+        };
+        if (Object.keys(filterScalars).length > 0) {
+          await tx
+            .update(vacancyFilters)
+            .set(filterScalars as unknown as Partial<VacancyFilters>)
+            .where(eq(vacancyFilters.id, vacancy.vacancyFiltersId));
+        }
       }
 
       if (

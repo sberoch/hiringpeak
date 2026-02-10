@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { CompanyService } from './company.service';
 import {
   CreateCompanyDto,
@@ -24,13 +26,17 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { UserRole } from '@workspace/shared/enums';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @ApiTags('Companies')
 @Controller('company')
 export class CompanyController {
-  constructor(private readonly companyService: CompanyService) {}
+  constructor(
+    private readonly companyService: CompanyService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -47,7 +53,13 @@ export class CompanyController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createCompanyDto: CreateCompanyDto) {
-    return this.companyService.create(createCompanyDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null)
+      throw new BadRequestException('Organization context required');
+    return this.companyService.create({
+      ...createCompanyDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
@@ -56,7 +68,13 @@ export class CompanyController {
     @Param('id') id: string,
     @Body() updateCompanyDto: UpdateCompanyDto,
   ) {
-    return this.companyService.update(+id, updateCompanyDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null)
+      throw new BadRequestException('Organization context required');
+    return this.companyService.update(+id, {
+      ...updateCompanyDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()

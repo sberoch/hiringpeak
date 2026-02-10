@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { CandidateVacancyStatusService } from './candidatevacancystatus.service';
 import {
   CreateCandidateVacancyStatusDto,
@@ -24,6 +26,7 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { UserRole } from '@workspace/shared/enums';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
@@ -32,6 +35,7 @@ import { UserRole } from '@workspace/shared/enums';
 export class CandidateVacancyStatusController {
   constructor(
     private readonly candidateVacancyStatusService: CandidateVacancyStatusService,
+    private readonly cls: ClsService<CurrentUserStore>,
   ) {}
 
   @ApiOkResponse()
@@ -52,9 +56,12 @@ export class CandidateVacancyStatusController {
   async create(
     @Body() createCandidateVacancyStatusDto: CreateCandidateVacancyStatusDto,
   ) {
-    return this.candidateVacancyStatusService.create(
-      createCandidateVacancyStatusDto,
-    );
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.candidateVacancyStatusService.create({
+      ...createCandidateVacancyStatusDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)
@@ -64,10 +71,12 @@ export class CandidateVacancyStatusController {
     @Param('id') id: string,
     @Body() updateCandidateVacancyStatusDto: UpdateCandidateVacancyStatusDto,
   ) {
-    return this.candidateVacancyStatusService.update(
-      +id,
-      updateCandidateVacancyStatusDto,
-    );
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.candidateVacancyStatusService.update(+id, {
+      ...updateCandidateVacancyStatusDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)

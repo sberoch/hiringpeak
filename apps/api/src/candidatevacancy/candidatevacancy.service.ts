@@ -19,9 +19,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateCandidateVacancyDto,
+  CreateCandidateVacancyServiceDto,
   CandidateVacancyQueryParams,
-  UpdateCandidateVacancyDto,
+  UpdateCandidateVacancyServiceDto,
 } from './candidatevacancy.dto';
 
 @Injectable()
@@ -80,20 +80,13 @@ export class CandidateVacancyService {
     return candidateVacancy;
   }
 
-  async create(createCandidateVacancyDto: CreateCandidateVacancyDto) {
+  async create(dto: CreateCandidateVacancyServiceDto) {
     return await this.db.transaction(async (tx) => {
-      // Check if candidate-vacancy combination already exists
       const existingCandidateVacancy =
         await tx.query.candidateVacancies.findFirst({
           where: and(
-            eq(
-              candidateVacancies.candidateId,
-              createCandidateVacancyDto.candidateId,
-            ),
-            eq(
-              candidateVacancies.vacancyId,
-              createCandidateVacancyDto.vacancyId,
-            ),
+            eq(candidateVacancies.candidateId, dto.candidateId),
+            eq(candidateVacancies.vacancyId, dto.vacancyId),
           ),
         });
 
@@ -104,10 +97,7 @@ export class CandidateVacancyService {
       }
 
       const status = await tx.query.candidateVacancyStatuses.findFirst({
-        where: eq(
-          candidateVacancyStatuses.id,
-          createCandidateVacancyDto.candidateVacancyStatusId,
-        ),
+        where: eq(candidateVacancyStatuses.id, dto.candidateVacancyStatusId),
       });
 
       const maxSortStatus = await tx.query.candidateVacancyStatuses.findFirst({
@@ -118,29 +108,23 @@ export class CandidateVacancyService {
         await tx
           .update(candidates)
           .set({ isInCompanyViaPratt: true } as any)
-          .where(eq(candidates.id, createCandidateVacancyDto.candidateId));
+          .where(eq(candidates.id, dto.candidateId));
       }
 
       const [candidateVacancy] = await tx
         .insert(candidateVacancies)
-        .values(createCandidateVacancyDto)
+        .values(dto)
         .returning();
 
       return candidateVacancy;
     });
   }
 
-  async update(
-    id: number,
-    updateCandidateVacancyDto: UpdateCandidateVacancyDto,
-  ) {
+  async update(id: number, dto: UpdateCandidateVacancyServiceDto) {
     return await this.db.transaction(async (tx) => {
-      if (updateCandidateVacancyDto.candidateVacancyStatusId) {
+      if (dto.candidateVacancyStatusId) {
         const status = await tx.query.candidateVacancyStatuses.findFirst({
-          where: eq(
-            candidateVacancyStatuses.id,
-            updateCandidateVacancyDto.candidateVacancyStatusId,
-          ),
+          where: eq(candidateVacancyStatuses.id, dto.candidateVacancyStatusId),
         });
 
         const maxSortStatus = await tx.query.candidateVacancyStatuses.findFirst(
@@ -151,7 +135,7 @@ export class CandidateVacancyService {
 
         if (status && maxSortStatus && status.sort === maxSortStatus.sort) {
           const candidateId =
-            updateCandidateVacancyDto.candidateId ??
+            dto.candidateId ??
             (
               await tx.query.candidateVacancies.findFirst({
                 where: eq(candidateVacancies.id, id),
@@ -168,10 +152,16 @@ export class CandidateVacancyService {
         }
       }
 
+      const { organizationId, ...updateFields } = dto;
       const [candidateVacancy] = await tx
         .update(candidateVacancies)
-        .set(updateCandidateVacancyDto)
-        .where(eq(candidateVacancies.id, id))
+        .set(updateFields)
+        .where(
+          and(
+            eq(candidateVacancies.id, id),
+            eq(candidateVacancies.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       return candidateVacancy;

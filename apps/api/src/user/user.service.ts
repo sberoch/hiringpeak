@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
 import { and, asc, count, desc, eq, ilike, not, SQL } from 'drizzle-orm';
 import {
   users,
@@ -12,7 +13,10 @@ import {
   User,
 } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
-import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import type {
+  DbOptions,
+  DrizzleDatabase,
+} from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
 import {
   buildPaginationQuery,
@@ -20,10 +24,14 @@ import {
 } from '../common/pagination/pagination.utils';
 import { CreateUserDto, UpdateUserDto, UserQueryParams } from './user.dto';
 import { UserRole } from '@workspace/shared/enums';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @Injectable()
 export class UserService {
-  constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
+  constructor(
+    @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   async findAll(
     params: UserQueryParams,
@@ -74,9 +82,15 @@ export class UserService {
     return user;
   }
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto, options?: DbOptions) {
     createUserDto.password = await hashPassword(createUserDto.password);
-    let [user] = await this.db.insert(users).values(createUserDto).returning();
+    const organizationId = this.cls.get('organizationId');
+    const values = {
+      ...createUserDto,
+      ...(organizationId !== undefined && { organizationId }),
+    };
+    const db = options?.tx ?? this.db;
+    let [user] = await db.insert(users).values(values).returning();
     user = excludePassword(user);
     return user;
   }

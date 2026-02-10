@@ -20,8 +20,8 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   BlacklistQueryParams,
-  CreateBlacklistDto,
-  UpdateBlacklistDto,
+  CreateBlacklistServiceDto,
+  UpdateBlacklistServiceDto,
 } from './blacklist.dto';
 
 export type BlacklistApiResponse = Blacklist & {
@@ -76,9 +76,12 @@ export class BlacklistService {
     return blacklist;
   }
 
-  async create(createBlacklistDto: CreateBlacklistDto) {
+  async create(dto: CreateBlacklistServiceDto) {
     const existingBlacklist = await this.db.query.blacklists.findFirst({
-      where: eq(blacklists.candidateId, createBlacklistDto.candidateId),
+      where: and(
+        eq(blacklists.candidateId, dto.candidateId),
+        eq(blacklists.organizationId, dto.organizationId),
+      ),
     });
     if (existingBlacklist) {
       throw new BadRequestException('Candidate already blacklisted');
@@ -86,16 +89,22 @@ export class BlacklistService {
 
     const [blacklist] = await this.db
       .insert(blacklists)
-      .values(createBlacklistDto)
+      .values(dto)
       .returning();
     return blacklist;
   }
 
-  async update(id: number, updateBlacklistDto: UpdateBlacklistDto) {
+  async update(id: number, dto: UpdateBlacklistServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [blacklist] = await this.db
       .update(blacklists)
-      .set(updateBlacklistDto)
-      .where(eq(blacklists.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(blacklists.id, id),
+          eq(blacklists.organizationId, organizationId),
+        ),
+      )
       .returning();
     return blacklist;
   }

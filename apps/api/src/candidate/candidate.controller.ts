@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { CandidateService } from './candidate.service';
 import {
   CreateCandidateDto,
@@ -25,13 +27,17 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { CurrentUser } from '../auth/auth.decorators';
 import type { User } from '@workspace/shared/schemas';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @ApiTags('Candidates')
 @Controller('candidate')
 export class CandidateController {
-  constructor(private readonly candidateService: CandidateService) {}
+  constructor(
+    private readonly candidateService: CandidateService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -54,7 +60,9 @@ export class CandidateController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createCandidateDto: CreateCandidateDto) {
-    return this.candidateService.create(createCandidateDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.candidateService.create({ ...createCandidateDto, organizationId });
   }
 
   @ApiCreatedResponse()
@@ -64,7 +72,9 @@ export class CandidateController {
     @Body() blacklistCandidateDto: BlacklistCandidateDto,
     @CurrentUser() user: User,
   ) {
-    return this.candidateService.blacklist(blacklistCandidateDto, user, +id);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.candidateService.blacklist(blacklistCandidateDto, user, +id, organizationId);
   }
 
   @ApiOkResponse()
@@ -73,7 +83,9 @@ export class CandidateController {
     @Param('id') id: string,
     @Body() updateCandidateDto: UpdateCandidateDto,
   ) {
-    return this.candidateService.update(+id, updateCandidateDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.candidateService.update(+id, { ...updateCandidateDto, organizationId });
   }
 
   @ApiOkResponse()

@@ -24,6 +24,8 @@ import { BlacklistModule } from './blacklist/blacklist.module';
 import { VacancyModule } from './vacancy/vacancy.module';
 import { CandidateVacancyModule } from './candidatevacancy/candidatevacancy.module';
 import { CompanyModule } from './company/company.module';
+import { OrganizationModule } from './organization/organization.module';
+import { OnboardModule } from './onboard/onboard.module';
 
 @Module({
   imports: [
@@ -52,6 +54,8 @@ import { CompanyModule } from './company/company.module';
     CommentModule,
     BlacklistModule,
     DashboardModule,
+    OrganizationModule,
+    OnboardModule,
   ],
   controllers: [AppController],
   providers: [

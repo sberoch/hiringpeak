@@ -4,17 +4,19 @@ import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../auth.decorators';
 import { ClsService } from 'nestjs-cls';
 import { CurrentUserStore } from '../auth.currentuser.store';
+import { UserService } from '../../user/user.service';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(
     private reflector: Reflector,
     private readonly cls: ClsService<CurrentUserStore>,
+    private readonly userService: UserService,
   ) {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     // if (process.env.PRODUCTION === 'false') return true;
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -28,10 +30,31 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         const decoded = JSON.parse(
           Buffer.from(token.split('.')[1], 'base64').toString(),
         );
-        this.cls.set('user', decoded);
+
+        const userId =
+          typeof decoded.id === 'string'
+            ? parseInt(decoded.id, 10)
+            : decoded.id;
+
+        try {
+          const user = await this.userService.findOne(userId);
+          const orgId = (user as unknown as { organizationId: number | null })
+            .organizationId;
+          const organizationId = orgId ?? undefined;
+          const userData = {
+            ...decoded,
+            organizationId,
+          };
+
+          this.cls.set('user', userData);
+          this.cls.set('organizationId', organizationId);
+          return true;
+        } catch {
+          return false;
+        }
       }
       return true;
     }
-    return super.canActivate(context);
+    return super.canActivate(context) as Promise<boolean>;
   }
 }

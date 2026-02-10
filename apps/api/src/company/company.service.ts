@@ -15,8 +15,8 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   CompanyQueryParams,
-  CreateCompanyDto,
-  UpdateCompanyDto,
+  CreateCompanyServiceDto,
+  UpdateCompanyServiceDto,
 } from './company.dto';
 
 @Injectable()
@@ -63,19 +63,22 @@ export class CompanyService {
     return company;
   }
 
-  async create(createCompanyDto: CreateCompanyDto) {
+  async create(dto: CreateCompanyServiceDto) {
     const [company] = await this.db
       .insert(companies)
-      .values(createCompanyDto)
+      .values(dto)
       .returning();
     return company;
   }
 
-  async update(id: number, updateCompanyDto: UpdateCompanyDto) {
+  async update(id: number, dto: UpdateCompanyServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [company] = await this.db
       .update(companies)
-      .set(updateCompanyDto)
-      .where(eq(companies.id, id))
+      .set(updateFields)
+      .where(
+        and(eq(companies.id, id), eq(companies.organizationId, organizationId)),
+      )
       .returning();
     return company;
   }

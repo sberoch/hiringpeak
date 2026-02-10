@@ -15,6 +15,13 @@
       "when": 1770057592467,
       "tag": "0001_deep_saracen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770605407057,
+      "tag": "0002_rapid_giant_girl",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import { relations } from "drizzle-orm";
 import { vacancyFilters } from "./vacancyfilters.schema";
 import { candidateVacancies } from "./candidatevacancy.schema";
 import { users } from "./user.schema";
+import { organizations } from "./organization.schema";
 
 export const vacancies = pgTable("vacancies", {
   id: serial("id").primaryKey(),
@@ -33,6 +34,11 @@ export const vacancies = pgTable("vacancies", {
   assignedTo: integer("assigned_to")
     .notNull()
     .references(() => users.id),
+  organizationId: integer("organization_id")
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -49,6 +55,10 @@ export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
   company: one(companies, {
     fields: [vacancies.companyId],
     references: [companies.id],
+  }),
+  organization: one(organizations, {
+    fields: [vacancies.organizationId],
+    references: [organizations.id],
   }),
   candidateVacancies: many(candidateVacancies),
   createdBy: one(users, {

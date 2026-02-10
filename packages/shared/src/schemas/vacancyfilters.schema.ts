@@ -3,6 +3,7 @@ import { relations } from "drizzle-orm";
 import { seniorities } from "./seniority.schema";
 import { areas } from "./area.schema";
 import { industries } from "./industry.schema";
+import { organizations } from "./organization.schema";
 
 export const vacancyFilters = pgTable("vacancy_filters", {
   id: serial("id").primaryKey(),
@@ -13,11 +14,20 @@ export const vacancyFilters = pgTable("vacancy_filters", {
   countries: text("countries").array(),
   provinces: text("provinces").array(),
   languages: text("languages").array(),
+  organizationId: integer("organization_id")
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
 });
 
 export const vacancyFiltersRelations = relations(
   vacancyFilters,
-  ({ many }) => ({
+  ({ one, many }) => ({
+    organization: one(organizations, {
+      fields: [vacancyFilters.organizationId],
+      references: [organizations.id],
+    }),
     seniorityIds: many(vacancyFiltersSeniorities),
     areaIds: many(vacancyFiltersAreas),
     industryIds: many(vacancyFiltersIndustries),

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { SeniorityService } from './seniority.service';
 import {
   CreateSeniorityDto,
@@ -24,13 +26,17 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { UserRole } from '@workspace/shared/enums';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @ApiTags('Seniorities')
 @Controller('seniority')
 export class SeniorityController {
-  constructor(private readonly seniorityService: SeniorityService) {}
+  constructor(
+    private readonly seniorityService: SeniorityService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -48,7 +54,13 @@ export class SeniorityController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createSeniorityDto: CreateSeniorityDto) {
-    return this.seniorityService.create(createSeniorityDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null)
+      throw new BadRequestException('Organization context required');
+    return this.seniorityService.create({
+      ...createSeniorityDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)
@@ -58,7 +70,13 @@ export class SeniorityController {
     @Param('id') id: string,
     @Body() updateSeniorityDto: UpdateSeniorityDto,
   ) {
-    return this.seniorityService.update(+id, updateSeniorityDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null)
+      throw new BadRequestException('Organization context required');
+    return this.seniorityService.update(+id, {
+      ...updateSeniorityDto,
+      organizationId,
+    });
   }
 
   @Roles(UserRole.ADMIN)

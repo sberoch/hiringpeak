@@ -15,8 +15,8 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   CandidateSourceQueryParams,
-  CreateCandidateSourceDto,
-  UpdateCandidateSourceDto,
+  CreateCandidateSourceServiceDto,
+  UpdateCandidateSourceServiceDto,
 } from './candidatesource.dto';
 
 @Injectable()
@@ -57,19 +57,25 @@ export class CandidateSourceService {
     return candidateSource;
   }
 
-  async create(createCandidateSourceDto: CreateCandidateSourceDto) {
+  async create(dto: CreateCandidateSourceServiceDto) {
     const [candidateSource] = await this.db
       .insert(candidateSources)
-      .values(createCandidateSourceDto)
+      .values(dto)
       .returning();
     return candidateSource;
   }
 
-  async update(id: number, updateCandidateSourceDto: UpdateCandidateSourceDto) {
+  async update(id: number, dto: UpdateCandidateSourceServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [candidateSource] = await this.db
       .update(candidateSources)
-      .set(updateCandidateSourceDto)
-      .where(eq(candidateSources.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(candidateSources.id, id),
+          eq(candidateSources.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidateSource;
   }

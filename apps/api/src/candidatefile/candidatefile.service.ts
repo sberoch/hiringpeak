@@ -15,8 +15,8 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   CandidateFileQueryParams,
-  CreateCandidateFileDto,
-  UpdateCandidateFileDto,
+  CreateCandidateFileServiceDto,
+  UpdateCandidateFileServiceDto,
 } from './candidatefile.dto';
 
 @Injectable()
@@ -57,19 +57,25 @@ export class CandidateFileService {
     return candidatefile;
   }
 
-  async create(createCandidateFileDto: CreateCandidateFileDto) {
+  async create(dto: CreateCandidateFileServiceDto) {
     const [candidatefile] = await this.db
       .insert(candidateFiles)
-      .values(createCandidateFileDto)
+      .values(dto)
       .returning();
     return candidatefile;
   }
 
-  async update(id: number, updateCandidateFileDto: UpdateCandidateFileDto) {
+  async update(id: number, dto: UpdateCandidateFileServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [candidatefile] = await this.db
       .update(candidateFiles)
-      .set(updateCandidateFileDto)
-      .where(eq(candidateFiles.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(candidateFiles.id, id),
+          eq(candidateFiles.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidatefile;
   }

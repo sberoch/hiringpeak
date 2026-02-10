@@ -13,7 +13,11 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
-import { AreaQueryParams, CreateAreaDto, UpdateAreaDto } from './area.dto';
+import {
+  AreaQueryParams,
+  CreateAreaServiceDto,
+  UpdateAreaServiceDto,
+} from './area.dto';
 
 @Injectable()
 export class AreaService {
@@ -51,19 +55,17 @@ export class AreaService {
     return area;
   }
 
-  async create(createAreaDto: CreateAreaDto) {
-    const [area] = await this.db
-      .insert(areas)
-      .values(createAreaDto)
-      .returning();
+  async create(dto: CreateAreaServiceDto) {
+    const [area] = await this.db.insert(areas).values(dto).returning();
     return area;
   }
 
-  async update(id: number, updateAreaDto: UpdateAreaDto) {
+  async update(id: number, dto: UpdateAreaServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [area] = await this.db
       .update(areas)
-      .set(updateAreaDto)
-      .where(eq(areas.id, id))
+      .set(updateFields)
+      .where(and(eq(areas.id, id), eq(areas.organizationId, organizationId)))
       .returning();
     return area;
   }

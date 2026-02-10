@@ -24,6 +24,7 @@ export const ROLES_NAMES: Record<UserRoleEnum, string> = {
   [UserRoleEnum.ADMIN]: "Administrador",
   [UserRoleEnum.MANAGER]: "Manager",
   [UserRoleEnum.BASIC]: "Reclutador",
+  [UserRoleEnum.SYSTEM_ADMIN]: "Administrador del sistema",
 } as const;
 
 export type UserFilters = PaginationFilters & {

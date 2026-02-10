@@ -14,9 +14,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateSeniorityDto,
+  CreateSeniorityServiceDto,
   SeniorityQueryParams,
-  UpdateSeniorityDto,
+  UpdateSeniorityServiceDto,
 } from './seniority.dto';
 
 @Injectable()
@@ -57,19 +57,25 @@ export class SeniorityService {
     return seniority;
   }
 
-  async create(createSeniorityDto: CreateSeniorityDto) {
+  async create(dto: CreateSeniorityServiceDto) {
     const [seniority] = await this.db
       .insert(seniorities)
-      .values(createSeniorityDto)
+      .values(dto)
       .returning();
     return seniority;
   }
 
-  async update(id: number, updateSeniorityDto: UpdateSeniorityDto) {
+  async update(id: number, dto: UpdateSeniorityServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [seniority] = await this.db
       .update(seniorities)
-      .set(updateSeniorityDto)
-      .where(eq(seniorities.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(seniorities.id, id),
+          eq(seniorities.organizationId, organizationId),
+        ),
+      )
       .returning();
     return seniority;
   }

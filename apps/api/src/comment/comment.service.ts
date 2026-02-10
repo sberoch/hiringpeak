@@ -20,9 +20,9 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   CommentQueryParams,
-  CreateCommentDto,
+  CreateCommentServiceDto,
   DeleteCommentDto,
-  UpdateCommentDto,
+  UpdateCommentServiceDto,
 } from './comment.dto';
 
 export type CommentApiResponse = Comment & {
@@ -77,26 +77,26 @@ export class CommentService {
     return comment;
   }
 
-  async create(createCommentDto: CreateCommentDto) {
-    const [comment] = await this.db
-      .insert(comments)
-      .values(createCommentDto)
-      .returning();
+  async create(dto: CreateCommentServiceDto) {
+    const [comment] = await this.db.insert(comments).values(dto).returning();
     return comment;
   }
 
-  async update(id: number, updateCommentDto: UpdateCommentDto) {
+  async update(id: number, dto: UpdateCommentServiceDto) {
     const existingComment = await this.findOne(id);
     if (!existingComment) throw new NotFoundException('Not found');
 
-    if (existingComment.userId !== updateCommentDto.userId) {
+    if (existingComment.userId !== dto.userId) {
       throw new BadRequestException('User ID mismatch');
     }
 
+    const { organizationId, ...updateFields } = dto;
     const [comment] = await this.db
       .update(comments)
-      .set(updateCommentDto)
-      .where(eq(comments.id, id))
+      .set(updateFields)
+      .where(
+        and(eq(comments.id, id), eq(comments.organizationId, organizationId)),
+      )
       .returning();
     return comment;
   }

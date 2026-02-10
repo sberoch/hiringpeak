@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { ClsService } from 'nestjs-cls';
 import { CommentService } from './comment.service';
 import {
   CreateCommentDto,
@@ -23,13 +25,17 @@ import {
   DeleteCommentDto,
 } from './comment.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
 @ApiTags('Comments')
 @Controller('comment')
 export class CommentController {
-  constructor(private readonly commentService: CommentService) {}
+  constructor(
+    private readonly commentService: CommentService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -46,7 +52,9 @@ export class CommentController {
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createCommentDto: CreateCommentDto) {
-    return this.commentService.create(createCommentDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.commentService.create({ ...createCommentDto, organizationId });
   }
 
   @ApiOkResponse()
@@ -55,7 +63,9 @@ export class CommentController {
     @Param('id') id: string,
     @Body() updateCommentDto: UpdateCommentDto,
   ) {
-    return this.commentService.update(+id, updateCommentDto);
+    const organizationId = this.cls.get('organizationId');
+    if (organizationId == null) throw new BadRequestException('Organization context required');
+    return this.commentService.update(+id, { ...updateCommentDto, organizationId });
   }
 
   @ApiOkResponse()

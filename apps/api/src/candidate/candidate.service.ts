@@ -45,9 +45,9 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   CandidateQueryParams,
-  CreateCandidateDto,
+  CreateCandidateServiceDto,
   BlacklistCandidateDto,
-  UpdateCandidateDto,
+  UpdateCandidateServiceDto,
 } from './candidate.dto';
 
 type CandidateQueryResult = Candidate & {
@@ -149,45 +149,53 @@ export class CandidateService {
     };
   }
 
-  async create(createCandidateDto: CreateCandidateDto) {
+  async create(dto: CreateCandidateServiceDto) {
+    const {
+      organizationId,
+      areaIds,
+      industryIds,
+      seniorityIds,
+      fileIds,
+      ...candidateRow
+    } = dto;
     return this.db.transaction(async (tx) => {
       const [candidate] = await tx
         .insert(candidates)
-        .values({ ...createCandidateDto })
+        .values({ ...candidateRow, organizationId })
         .returning();
 
       if (!candidate) throw new Error('Error creating candidate');
 
-      if (createCandidateDto.areaIds?.length) {
+      if (areaIds?.length) {
         await tx.insert(candidateAreas).values(
-          createCandidateDto.areaIds.map((areaId) => ({
+          areaIds.map((areaId) => ({
             candidateId: candidate.id,
             areaId,
           })),
         );
       }
 
-      if (createCandidateDto.industryIds?.length) {
+      if (industryIds?.length) {
         await tx.insert(candidateIndustries).values(
-          createCandidateDto.industryIds.map((industryId) => ({
+          industryIds.map((industryId) => ({
             candidateId: candidate.id,
             industryId,
           })),
         );
       }
 
-      if (createCandidateDto.seniorityIds?.length) {
+      if (seniorityIds?.length) {
         await tx.insert(candidateSeniorities).values(
-          createCandidateDto.seniorityIds.map((seniorityId) => ({
+          seniorityIds.map((seniorityId) => ({
             candidateId: candidate.id,
             seniorityId,
           })),
         );
       }
 
-      if (createCandidateDto.fileIds?.length) {
+      if (fileIds?.length) {
         await tx.insert(candidateFilesRelation).values(
-          createCandidateDto.fileIds.map((fileId) => ({
+          fileIds.map((fileId) => ({
             candidateId: candidate.id,
             fileId,
           })),
@@ -202,73 +210,85 @@ export class CandidateService {
     blacklistCandidateDto: BlacklistCandidateDto,
     user: User,
     id: number,
+    organizationId: number,
   ) {
     await this.db.insert(blacklists).values({
       ...blacklistCandidateDto,
       candidateId: id,
       userId: user.id,
+      organizationId,
     });
     return this.findOne(id);
   }
 
-  async update(id: number, updateCandidateDto: UpdateCandidateDto) {
+  async update(id: number, dto: UpdateCandidateServiceDto) {
+    const {
+      organizationId,
+      areaIds,
+      industryIds,
+      seniorityIds,
+      fileIds,
+      ...updateFields
+    } = dto;
     const candidate = await this.db.transaction(async (tx) => {
-      const [candidate] = await tx
+      const [updated] = await tx
         .update(candidates)
-        .set(updateCandidateDto)
-        .where(eq(candidates.id, id))
+        .set(updateFields)
+        .where(
+          and(eq(candidates.id, id), eq(candidates.organizationId, organizationId)),
+        )
         .returning();
 
-      if (updateCandidateDto.areaIds?.length) {
+      if (areaIds?.length) {
         await tx
           .delete(candidateAreas)
           .where(eq(candidateAreas.candidateId, id));
         await tx.insert(candidateAreas).values(
-          updateCandidateDto.areaIds.map((areaId) => ({
+          areaIds.map((areaId) => ({
             candidateId: id,
             areaId,
           })),
         );
       }
 
-      if (updateCandidateDto.industryIds?.length) {
+      if (industryIds?.length) {
         await tx
           .delete(candidateIndustries)
           .where(eq(candidateIndustries.candidateId, id));
         await tx.insert(candidateIndustries).values(
-          updateCandidateDto.industryIds.map((industryId) => ({
+          industryIds.map((industryId) => ({
             candidateId: id,
             industryId,
           })),
         );
       }
 
-      if (updateCandidateDto.seniorityIds?.length) {
+      if (seniorityIds?.length) {
         await tx
           .delete(candidateSeniorities)
           .where(eq(candidateSeniorities.candidateId, id));
         await tx.insert(candidateSeniorities).values(
-          updateCandidateDto.seniorityIds.map((seniorityId) => ({
+          seniorityIds.map((seniorityId) => ({
             candidateId: id,
             seniorityId,
           })),
         );
       }
 
-      if (updateCandidateDto.fileIds !== undefined) {
+      if (fileIds !== undefined) {
         await tx
           .delete(candidateFilesRelation)
           .where(eq(candidateFilesRelation.candidateId, id));
-        if (updateCandidateDto.fileIds.length > 0) {
+        if (fileIds.length > 0) {
           await tx.insert(candidateFilesRelation).values(
-            updateCandidateDto.fileIds.map((fileId) => ({
+            fileIds.map((fileId) => ({
               candidateId: id,
               fileId,
             })),
           );
         }
       }
-      return candidate;
+      return updated;
     });
     return candidate;
   }

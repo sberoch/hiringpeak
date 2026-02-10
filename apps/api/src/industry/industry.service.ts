@@ -14,9 +14,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateIndustryDto,
+  CreateIndustryServiceDto,
   IndustryQueryParams,
-  UpdateIndustryDto,
+  UpdateIndustryServiceDto,
 } from './industry.dto';
 
 @Injectable()
@@ -57,19 +57,25 @@ export class IndustryService {
     return industry;
   }
 
-  async create(createIndustryDto: CreateIndustryDto) {
+  async create(dto: CreateIndustryServiceDto) {
     const [industry] = await this.db
       .insert(industries)
-      .values(createIndustryDto)
+      .values(dto)
       .returning();
     return industry;
   }
 
-  async update(id: number, updateIndustryDto: UpdateIndustryDto) {
+  async update(id: number, dto: UpdateIndustryServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [industry] = await this.db
       .update(industries)
-      .set(updateIndustryDto)
-      .where(eq(industries.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(industries.id, id),
+          eq(industries.organizationId, organizationId),
+        ),
+      )
       .returning();
     return industry;
   }
