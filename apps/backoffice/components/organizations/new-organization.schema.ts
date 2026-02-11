@@ -1,14 +1,14 @@
 import { z } from "zod";
 
+import { passwordSchema } from "@workspace/shared/lib/password.schema";
+
 export const newOrganizationSchema = z.object({
   name: z
     .string()
     .min(1, "El nombre es requerido")
     .min(2, "El nombre debe tener al menos 2 caracteres"),
-  email: z.string().email("Email inválido"),
-  password: z
-    .string()
-    .min(8, "La contraseña debe tener al menos 8 caracteres"),
+  email: z.email("Email inválido"),
+  password: passwordSchema,
   userName: z
     .string()
     .min(1, "El nombre del usuario es requerido")

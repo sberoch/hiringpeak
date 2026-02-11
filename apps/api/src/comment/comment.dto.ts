@@ -21,3 +21,6 @@ export type CreateCommentServiceDto = CreateCommentDto & {
 export type UpdateCommentServiceDto = UpdateCommentDto & {
   organizationId: number;
 };
+export type CommentFindAllServiceParams = CommentQueryParams & {
+  organizationId: number;
+};

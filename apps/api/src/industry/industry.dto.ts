@@ -19,3 +19,6 @@ export type CreateIndustryServiceDto = CreateIndustryDto & {
 export type UpdateIndustryServiceDto = UpdateIndustryDto & {
   organizationId: number;
 };
+export type IndustryFindAllServiceParams = IndustryQueryParams & {
+  organizationId: number;
+};

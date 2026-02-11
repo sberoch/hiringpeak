@@ -1,33 +1,41 @@
 import { z } from "zod";
 import { UserRole } from "../enums.js";
+import { passwordSchema } from "../lib/password.schema.js";
 import { PaginationParamsSchema } from "./pagination.dto.js";
 
-export const CreateUserSchema = z
-  .object({
-    organizationId: z.number().optional(),
-    email: z.email(),
-    password: z.string().min(8),
-    name: z.string().min(1),
-    role: z
-      .enum([
-        UserRole.ADMIN,
-        UserRole.MANAGER,
-        UserRole.BASIC,
-        UserRole.SYSTEM_ADMIN,
-      ] as const)
-      .default(UserRole.BASIC),
-    active: z.boolean().optional(),
-  })
-  .refine(
-    (data) =>
-      data.organizationId === undefined && data.role !== UserRole.SYSTEM_ADMIN,
-    {
-      message: "Organization ID is required for non system admin users",
-      path: ["organizationId"],
-    },
-  );
+const CreateUserSchemaBase = z.object({
+  organizationId: z.number().nullable(),
+  email: z.email(),
+  password: passwordSchema,
+  name: z.string().min(1),
+  role: z
+    .enum([
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.BASIC,
+      UserRole.SYSTEM_ADMIN,
+    ] as const)
+    .default(UserRole.BASIC),
+  active: z.boolean().optional(),
+});
 
-export const UpdateUserSchema = CreateUserSchema.partial();
+const organizationIdRefinement = (data: any) => ({
+  condition: data.organizationId === undefined && data.role !== UserRole.SYSTEM_ADMIN,
+  params: {
+    message: "Organization ID is required for non system admin users",
+    path: ["organizationId"],
+  },
+});
+
+export const CreateUserSchema = CreateUserSchemaBase.refine(
+  (data) => organizationIdRefinement(data).condition,
+  organizationIdRefinement({}).params
+);
+
+export const UpdateUserSchema = CreateUserSchemaBase.partial().refine(
+  (data) => organizationIdRefinement(data).condition,
+  organizationIdRefinement({}).params
+);
 
 export const UserQueryParamsSchema = PaginationParamsSchema.extend({
   email: z.string().optional(),

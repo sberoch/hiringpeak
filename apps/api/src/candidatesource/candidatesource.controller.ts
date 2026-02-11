@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
 import { CandidateSourceService } from './candidatesource.service';
 import {
   CreateCandidateSourceDto,
@@ -26,37 +24,43 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { UserRole } from '@workspace/shared/enums';
 import { Roles } from '../auth/roles/roles.decorator';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, OrganizationGuard)
 @ApiTags('CandidateSources')
 @Controller('candidateSource')
 export class CandidateSourceController {
   constructor(
     private readonly candidateSourceService: CandidateSourceService,
-    private readonly cls: ClsService<CurrentUserStore>,
   ) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: CandidateSourceQueryParams) {
-    return this.candidateSourceService.findAll(query);
+  async findAll(
+    @Query() query: CandidateSourceQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateSourceService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.candidateSourceService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateSourceService.findOne(+id, organizationId);
   }
 
   @Roles(UserRole.ADMIN)
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createCandidateSourceDto: CreateCandidateSourceDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null)
-      throw new BadRequestException('Organization context required');
+  async create(
+    @Body() createCandidateSourceDto: CreateCandidateSourceDto,
+    @OrganizationId() organizationId: number,
+  ) {
     return this.candidateSourceService.create({
       ...createCandidateSourceDto,
       organizationId,
@@ -69,10 +73,8 @@ export class CandidateSourceController {
   async update(
     @Param('id') id: string,
     @Body() updateCandidateSourceDto: UpdateCandidateSourceDto,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null)
-      throw new BadRequestException('Organization context required');
     return this.candidateSourceService.update(+id, {
       ...updateCandidateSourceDto,
       organizationId,
@@ -82,7 +84,10 @@ export class CandidateSourceController {
   @Roles(UserRole.ADMIN)
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.candidateSourceService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateSourceService.remove(+id, organizationId);
   }
 }

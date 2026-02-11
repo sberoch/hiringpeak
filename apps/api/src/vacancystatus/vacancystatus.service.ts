@@ -16,7 +16,7 @@ import {
 import {
   CreateVacancyStatusServiceDto,
   UpdateVacancyStatusServiceDto,
-  VacancyStatusQueryParams,
+  VacancyStatusFindAllServiceParams,
 } from './vacancystatus.dto';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class VacancyStatusService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: VacancyStatusQueryParams,
+    params: VacancyStatusFindAllServiceParams,
   ): Promise<PaginatedResponse<VacancyStatus>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -49,9 +49,12 @@ export class VacancyStatusService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const vacancyStatus = await this.db.query.vacancyStatuses.findFirst({
-      where: eq(vacancyStatuses.id, id),
+      where: and(
+        eq(vacancyStatuses.id, id),
+        eq(vacancyStatuses.organizationId, organizationId),
+      ),
     });
     if (!vacancyStatus) throw new NotFoundException('Not found');
     return vacancyStatus;
@@ -80,10 +83,15 @@ export class VacancyStatusService {
     return vacancyStatus;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [vacancyStatus] = await this.db
       .delete(vacancyStatuses)
-      .where(eq(vacancyStatuses.id, id))
+      .where(
+        and(
+          eq(vacancyStatuses.id, id),
+          eq(vacancyStatuses.organizationId, organizationId),
+        ),
+      )
       .returning();
     return vacancyStatus;
   }
@@ -92,7 +100,9 @@ export class VacancyStatusService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: VacancyStatusQueryParams): SQL[] {
+  private buildOrderBy(
+    params: VacancyStatusFindAllServiceParams,
+  ): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -103,8 +113,13 @@ export class VacancyStatusService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: VacancyStatusQueryParams) {
+  private buildWhereClause(
+    params: VacancyStatusFindAllServiceParams,
+  ) {
     const filters: SQL[] = [];
-    return filters.length > 0 ? and(...filters) : undefined;
+    filters.push(
+      eq(vacancyStatuses.organizationId, params.organizationId),
+    );
+    return and(...filters);
   }
 }

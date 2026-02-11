@@ -19,3 +19,6 @@ export type CreateBlacklistServiceDto = CreateBlacklistDto & {
 export type UpdateBlacklistServiceDto = UpdateBlacklistDto & {
   organizationId: number;
 };
+export type BlacklistFindAllServiceParams = BlacklistQueryParams & {
+  organizationId: number;
+};

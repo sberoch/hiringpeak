@@ -19,7 +19,7 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CommentQueryParams,
+  CommentFindAllServiceParams,
   CreateCommentServiceDto,
   DeleteCommentDto,
   UpdateCommentServiceDto,
@@ -34,7 +34,7 @@ export class CommentService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CommentQueryParams,
+    params: CommentFindAllServiceParams,
   ): Promise<PaginatedResponse<CommentApiResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -69,9 +69,12 @@ export class CommentService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const comment = await this.db.query.comments.findFirst({
-      where: eq(comments.id, id),
+      where: and(
+        eq(comments.id, id),
+        eq(comments.organizationId, organizationId),
+      ),
     });
     if (!comment) throw new NotFoundException('Not found');
     return comment;
@@ -83,7 +86,7 @@ export class CommentService {
   }
 
   async update(id: number, dto: UpdateCommentServiceDto) {
-    const existingComment = await this.findOne(id);
+    const existingComment = await this.findOne(id, dto.organizationId);
     if (!existingComment) throw new NotFoundException('Not found');
 
     if (existingComment.userId !== dto.userId) {
@@ -101,8 +104,12 @@ export class CommentService {
     return comment;
   }
 
-  async remove(id: number, deleteCommentDto: DeleteCommentDto) {
-    const existingComment = await this.findOne(id);
+  async remove(
+    id: number,
+    organizationId: number,
+    deleteCommentDto: DeleteCommentDto,
+  ) {
+    const existingComment = await this.findOne(id, organizationId);
     if (!existingComment) throw new NotFoundException('Not found');
 
     if (existingComment.userId !== deleteCommentDto.userId) {
@@ -111,7 +118,12 @@ export class CommentService {
 
     const [comment] = await this.db
       .delete(comments)
-      .where(eq(comments.id, id))
+      .where(
+        and(
+          eq(comments.id, id),
+          eq(comments.organizationId, organizationId),
+        ),
+      )
       .returning();
     return comment;
   }
@@ -120,7 +132,7 @@ export class CommentService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: CommentQueryParams): SQL[] {
+  private buildOrderBy(params: CommentFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -131,8 +143,9 @@ export class CommentService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(query: CommentQueryParams) {
+  private buildWhereClause(query: CommentFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(eq(comments.organizationId, query.organizationId));
     if (query.id) {
       filters.push(eq(comments.id, query.id));
     }
@@ -145,6 +158,6 @@ export class CommentService {
     if (query.userId) {
       filters.push(eq(comments.userId, query.userId));
     }
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

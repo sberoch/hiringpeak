@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
+import { PasswordRequirements } from "@workspace/ui/custom/password-requirements";
 import {
   onboardOrganization,
   ORGANIZATIONS_API_KEY,
@@ -98,6 +99,10 @@ export function NewOrganizationForm({ onSuccess }: NewOrganizationFormProps) {
               <FormControl>
                 <Input type="password" placeholder="Mínimo 8 caracteres" {...field} />
               </FormControl>
+              <PasswordRequirements
+                password={form.watch("password") ?? ""}
+                className="mt-2"
+              />
               <FormMessage />
             </FormItem>
           )}

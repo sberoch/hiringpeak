@@ -24,6 +24,14 @@
     "./dtos": {
       "types": "./dist/dtos/index.d.ts",
       "default": "./dist/dtos/index.js"
+    },
+    "./lib": {
+      "types": "./dist/lib/index.d.ts",
+      "default": "./dist/lib/index.js"
+    },
+    "./lib/*": {
+      "types": "./dist/lib/*.d.ts",
+      "default": "./dist/lib/*.js"
     }
   },
   "dependencies": {

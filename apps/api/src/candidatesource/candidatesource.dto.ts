@@ -23,3 +23,6 @@ export type CreateCandidateSourceServiceDto = CreateCandidateSourceDto & {
 export type UpdateCandidateSourceServiceDto = UpdateCandidateSourceDto & {
   organizationId: number;
 };
+export type CandidateSourceFindAllServiceParams = CandidateSourceQueryParams & {
+  organizationId: number;
+};

@@ -48,7 +48,7 @@ import {
 import {
   CreateVacancyServiceDto,
   UpdateVacancyServiceDto,
-  VacancyQueryParams,
+  VacancyFindAllServiceParams,
 } from './vacancy.dto';
 
 type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
@@ -94,7 +94,7 @@ export class VacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: VacancyQueryParams,
+    params: VacancyFindAllServiceParams,
   ): Promise<PaginatedResponse<Partial<VacancyApiResponse>>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -152,9 +152,12 @@ export class VacancyService {
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const vacancy = await this.db.query.vacancies.findFirst({
-      where: eq(vacancies.id, id),
+      where: and(
+        eq(vacancies.id, id),
+        eq(vacancies.organizationId, organizationId),
+      ),
       with: {
         status: true,
         filters: {
@@ -356,10 +359,15 @@ export class VacancyService {
     return vacancy;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [vacancy] = await this.db
       .delete(vacancies)
-      .where(eq(vacancies.id, id))
+      .where(
+        and(
+          eq(vacancies.id, id),
+          eq(vacancies.organizationId, organizationId),
+        ),
+      )
       .returning();
 
     if (!vacancy) throw new NotFoundException('Vacancy not found');
@@ -409,7 +417,7 @@ export class VacancyService {
     };
   }
 
-  private buildOrderBy(params: VacancyQueryParams): SQL[] {
+  private buildOrderBy(params: VacancyFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -420,8 +428,9 @@ export class VacancyService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(query: VacancyQueryParams) {
+  private buildWhereClause(query: VacancyFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(eq(vacancies.organizationId, query.organizationId));
     if (query.id) {
       filters.push(eq(vacancies.id, query.id));
     }
@@ -666,6 +675,6 @@ export class VacancyService {
       );
     }
 
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

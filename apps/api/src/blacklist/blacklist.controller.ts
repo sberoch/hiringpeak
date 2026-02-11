@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
 import { BlacklistService } from './blacklist.service';
 import {
   CreateBlacklistDto,
@@ -24,36 +22,44 @@ import {
   BlacklistQueryParams,
 } from './blacklist.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, OrganizationGuard)
 @ApiTags('Blacklists')
 @Controller('blacklist')
 export class BlacklistController {
-  constructor(
-    private readonly blacklistService: BlacklistService,
-    private readonly cls: ClsService<CurrentUserStore>,
-  ) {}
+  constructor(private readonly blacklistService: BlacklistService) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: BlacklistQueryParams) {
-    return this.blacklistService.findAll(query);
+  async findAll(
+    @Query() query: BlacklistQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.blacklistService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.blacklistService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.blacklistService.findOne(+id, organizationId);
   }
 
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createBlacklistDto: CreateBlacklistDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.blacklistService.create({ ...createBlacklistDto, organizationId });
+  async create(
+    @Body() createBlacklistDto: CreateBlacklistDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.blacklistService.create({
+      ...createBlacklistDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
@@ -61,21 +67,29 @@ export class BlacklistController {
   async update(
     @Param('id') id: string,
     @Body() updateBlacklistDto: UpdateBlacklistDto,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.blacklistService.update(+id, { ...updateBlacklistDto, organizationId });
+    return this.blacklistService.update(+id, {
+      ...updateBlacklistDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.blacklistService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.blacklistService.remove(+id, organizationId);
   }
 
   @ApiOkResponse()
   @Delete('candidate/:id')
-  async removeByCandidateId(@Param('id') id: string) {
-    return this.blacklistService.removeByCandidateId(+id);
+  async removeByCandidateId(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.blacklistService.removeByCandidateId(+id, organizationId);
   }
 }

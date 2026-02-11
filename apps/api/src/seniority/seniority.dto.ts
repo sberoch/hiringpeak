@@ -19,3 +19,6 @@ export type CreateSeniorityServiceDto = CreateSeniorityDto & {
 export type UpdateSeniorityServiceDto = UpdateSeniorityDto & {
   organizationId: number;
 };
+export type SeniorityFindAllServiceParams = SeniorityQueryParams & {
+  organizationId: number;
+};

@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
 import { CandidateService } from './candidate.service';
 import {
   CreateCandidateDto,
@@ -27,42 +25,53 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { CurrentUser } from '../auth/auth.decorators';
 import type { User } from '@workspace/shared/schemas';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, OrganizationGuard)
 @ApiTags('Candidates')
 @Controller('candidate')
 export class CandidateController {
-  constructor(
-    private readonly candidateService: CandidateService,
-    private readonly cls: ClsService<CurrentUserStore>,
-  ) {}
+  constructor(private readonly candidateService: CandidateService) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: CandidateQueryParams) {
-    return this.candidateService.findAll(query);
+  async findAll(
+    @Query() query: CandidateQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get('exists')
-  async exists(@Query('name') name: string) {
-    return this.candidateService.existsByName(name);
+  async exists(
+    @Query('name') name: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateService.existsByName(name, organizationId);
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.candidateService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateService.findOne(+id, organizationId);
   }
 
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createCandidateDto: CreateCandidateDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.candidateService.create({ ...createCandidateDto, organizationId });
+  async create(
+    @Body() createCandidateDto: CreateCandidateDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateService.create({
+      ...createCandidateDto,
+      organizationId,
+    });
   }
 
   @ApiCreatedResponse()
@@ -71,10 +80,14 @@ export class CandidateController {
     @Param('id') id: string,
     @Body() blacklistCandidateDto: BlacklistCandidateDto,
     @CurrentUser() user: User,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.candidateService.blacklist(blacklistCandidateDto, user, +id, organizationId);
+    return this.candidateService.blacklist(
+      blacklistCandidateDto,
+      user,
+      +id,
+      organizationId,
+    );
   }
 
   @ApiOkResponse()
@@ -82,15 +95,20 @@ export class CandidateController {
   async update(
     @Param('id') id: string,
     @Body() updateCandidateDto: UpdateCandidateDto,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.candidateService.update(+id, { ...updateCandidateDto, organizationId });
+    return this.candidateService.update(+id, {
+      ...updateCandidateDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.candidateService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateService.remove(+id, organizationId);
   }
 }

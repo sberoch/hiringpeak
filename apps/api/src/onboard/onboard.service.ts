@@ -33,6 +33,7 @@ export class OnboardService {
           name: dto.name,
           role: UserRole.ADMIN,
         },
+        organization.id,
         { tx },
       );
 

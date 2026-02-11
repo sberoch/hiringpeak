@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
 import { SeniorityService } from './seniority.service';
 import {
   CreateSeniorityDto,
@@ -26,37 +24,41 @@ import {
 import { RolesGuard } from '../auth/roles/roles.guard';
 import { Roles } from '../auth/roles/roles.decorator';
 import { UserRole } from '@workspace/shared/enums';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, OrganizationGuard)
 @ApiTags('Seniorities')
 @Controller('seniority')
 export class SeniorityController {
-  constructor(
-    private readonly seniorityService: SeniorityService,
-    private readonly cls: ClsService<CurrentUserStore>,
-  ) {}
+  constructor(private readonly seniorityService: SeniorityService) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: SeniorityQueryParams) {
-    return this.seniorityService.findAll(query);
+  async findAll(
+    @Query() query: SeniorityQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.seniorityService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.seniorityService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.seniorityService.findOne(+id, organizationId);
   }
 
   @Roles(UserRole.ADMIN)
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createSeniorityDto: CreateSeniorityDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null)
-      throw new BadRequestException('Organization context required');
+  async create(
+    @Body() createSeniorityDto: CreateSeniorityDto,
+    @OrganizationId() organizationId: number,
+  ) {
     return this.seniorityService.create({
       ...createSeniorityDto,
       organizationId,
@@ -69,10 +71,8 @@ export class SeniorityController {
   async update(
     @Param('id') id: string,
     @Body() updateSeniorityDto: UpdateSeniorityDto,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null)
-      throw new BadRequestException('Organization context required');
     return this.seniorityService.update(+id, {
       ...updateSeniorityDto,
       organizationId,
@@ -82,7 +82,10 @@ export class SeniorityController {
   @Roles(UserRole.ADMIN)
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.seniorityService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.seniorityService.remove(+id, organizationId);
   }
 }

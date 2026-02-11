@@ -14,7 +14,7 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CandidateFileQueryParams,
+  CandidateFileFindAllServiceParams,
   CreateCandidateFileServiceDto,
   UpdateCandidateFileServiceDto,
 } from './candidatefile.dto';
@@ -24,7 +24,7 @@ export class CandidateFileService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CandidateFileQueryParams,
+    params: CandidateFileFindAllServiceParams,
   ): Promise<PaginatedResponse<CandidateFile>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -49,9 +49,12 @@ export class CandidateFileService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const candidatefile = await this.db.query.candidateFiles.findFirst({
-      where: eq(candidateFiles.id, id),
+      where: and(
+        eq(candidateFiles.id, id),
+        eq(candidateFiles.organizationId, organizationId),
+      ),
     });
     if (!candidatefile) throw new NotFoundException('Not found');
     return candidatefile;
@@ -80,10 +83,15 @@ export class CandidateFileService {
     return candidatefile;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [candidatefile] = await this.db
       .delete(candidateFiles)
-      .where(eq(candidateFiles.id, id))
+      .where(
+        and(
+          eq(candidateFiles.id, id),
+          eq(candidateFiles.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidatefile;
   }
@@ -92,7 +100,7 @@ export class CandidateFileService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: CandidateFileQueryParams): SQL[] {
+  private buildOrderBy(params: CandidateFileFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -103,8 +111,9 @@ export class CandidateFileService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: CandidateFileQueryParams) {
+  private buildWhereClause(params: CandidateFileFindAllServiceParams) {
     const filters: SQL[] = [];
-    return filters.length > 0 ? and(...filters) : undefined;
+    filters.push(eq(candidateFiles.organizationId, params.organizationId));
+    return and(...filters);
   }
 }

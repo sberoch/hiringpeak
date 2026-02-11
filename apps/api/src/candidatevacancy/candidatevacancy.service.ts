@@ -19,8 +19,8 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
+  CandidateVacancyFindAllServiceParams,
   CreateCandidateVacancyServiceDto,
-  CandidateVacancyQueryParams,
   UpdateCandidateVacancyServiceDto,
 } from './candidatevacancy.dto';
 
@@ -29,7 +29,7 @@ export class CandidateVacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CandidateVacancyQueryParams,
+    params: CandidateVacancyFindAllServiceParams,
   ): Promise<PaginatedResponse<CandidateVacancy>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -63,9 +63,12 @@ export class CandidateVacancyService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const candidateVacancy = await this.db.query.candidateVacancies.findFirst({
-      where: eq(candidateVacancies.id, id),
+      where: and(
+        eq(candidateVacancies.id, id),
+        eq(candidateVacancies.organizationId, organizationId),
+      ),
       with: {
         candidate: true,
         vacancy: {
@@ -168,10 +171,15 @@ export class CandidateVacancyService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [candidateVacancy] = await this.db
       .delete(candidateVacancies)
-      .where(eq(candidateVacancies.id, id))
+      .where(
+        and(
+          eq(candidateVacancies.id, id),
+          eq(candidateVacancies.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidateVacancy;
   }
@@ -180,7 +188,7 @@ export class CandidateVacancyService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: CandidateVacancyQueryParams): SQL[] {
+  private buildOrderBy(params: CandidateVacancyFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -191,8 +199,11 @@ export class CandidateVacancyService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: CandidateVacancyQueryParams) {
+  private buildWhereClause(params: CandidateVacancyFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(
+      eq(candidateVacancies.organizationId, params.organizationId),
+    );
 
     if (params.id) {
       filters.push(eq(candidateVacancies.id, params.id));
@@ -225,6 +236,6 @@ export class CandidateVacancyService {
       filters.push(ilike(candidateVacancies.notes, params.notes));
     }
 
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

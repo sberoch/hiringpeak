@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
+import { PasswordRequirements } from "@workspace/ui/custom/password-requirements";
 import { ROLES_NAMES, User, UserRoleEnum } from "@workspace/shared/types/user";
 import { createUser, USERS_API_KEY } from "@/lib/api/user";
 
@@ -103,6 +104,10 @@ export function UserForm({
               <FormControl>
                 <Input placeholder="Contraseña" type="password" {...field} />
               </FormControl>
+              <PasswordRequirements
+                password={form.watch("password") ?? ""}
+                className="mt-2"
+              />
               <FormMessage />
             </FormItem>
           )}

@@ -8,3 +8,7 @@ import {
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}
 export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}
 export class UserQueryParams extends createZodDto(UserQueryParamsSchema) {}
+
+export type UserFindAllServiceParams = UserQueryParams & {
+  organizationId: number;
+};

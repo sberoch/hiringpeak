@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
 import { CommentService } from './comment.service';
 import {
   CreateCommentDto,
@@ -25,36 +23,44 @@ import {
   DeleteCommentDto,
 } from './comment.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, OrganizationGuard)
 @ApiTags('Comments')
 @Controller('comment')
 export class CommentController {
-  constructor(
-    private readonly commentService: CommentService,
-    private readonly cls: ClsService<CurrentUserStore>,
-  ) {}
+  constructor(private readonly commentService: CommentService) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: CommentQueryParams) {
-    return this.commentService.findAll(query);
+  async findAll(
+    @Query() query: CommentQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.commentService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.commentService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.commentService.findOne(+id, organizationId);
   }
 
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createCommentDto: CreateCommentDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.commentService.create({ ...createCommentDto, organizationId });
+  async create(
+    @Body() createCommentDto: CreateCommentDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.commentService.create({
+      ...createCommentDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
@@ -62,10 +68,12 @@ export class CommentController {
   async update(
     @Param('id') id: string,
     @Body() updateCommentDto: UpdateCommentDto,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.commentService.update(+id, { ...updateCommentDto, organizationId });
+    return this.commentService.update(+id, {
+      ...updateCommentDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
@@ -73,7 +81,8 @@ export class CommentController {
   async remove(
     @Param('id') id: string,
     @Body() deleteCommentDto: DeleteCommentDto,
+    @OrganizationId() organizationId: number,
   ) {
-    return this.commentService.remove(+id, deleteCommentDto);
+    return this.commentService.remove(+id, organizationId, deleteCommentDto);
   }
 }

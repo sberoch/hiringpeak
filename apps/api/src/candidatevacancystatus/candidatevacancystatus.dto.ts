@@ -21,3 +21,5 @@ export type CreateCandidateVacancyStatusServiceDto =
   CreateCandidateVacancyStatusDto & { organizationId: number };
 export type UpdateCandidateVacancyStatusServiceDto =
   UpdateCandidateVacancyStatusDto & { organizationId: number };
+export type CandidateVacancyStatusFindAllServiceParams =
+  CandidateVacancyStatusQueryParams & { organizationId: number };

@@ -23,3 +23,6 @@ export type CreateCandidateFileServiceDto = CreateCandidateFileDto & {
 export type UpdateCandidateFileServiceDto = UpdateCandidateFileDto & {
   organizationId: number;
 };
+export type CandidateFileFindAllServiceParams = CandidateFileQueryParams & {
+  organizationId: number;
+};

@@ -22,19 +22,19 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
-import { CreateUserDto, UpdateUserDto, UserQueryParams } from './user.dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  UserFindAllServiceParams,
+} from './user.dto';
 import { UserRole } from '@workspace/shared/enums';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
 
 @Injectable()
 export class UserService {
-  constructor(
-    @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
-    private readonly cls: ClsService<CurrentUserStore>,
-  ) {}
+  constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: UserQueryParams,
+    params: UserFindAllServiceParams,
   ): Promise<PaginatedResponse<Omit<User, 'password'>>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -65,9 +65,12 @@ export class UserService {
     return paginatedResponse(itemsResponse, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     let user = await this.db.query.users.findFirst({
-      where: eq(users.id, id),
+      where: and(
+        eq(users.id, id),
+        eq(users.organizationId, organizationId),
+      ),
     });
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
@@ -82,20 +85,24 @@ export class UserService {
     return user;
   }
 
-  async create(createUserDto: CreateUserDto, options?: DbOptions) {
+  async create(
+    createUserDto: CreateUserDto,
+    organizationId: number,
+    options?: DbOptions,
+  ) {
     createUserDto.password = await hashPassword(createUserDto.password);
-    const organizationId = this.cls.get('organizationId');
-    const values = {
-      ...createUserDto,
-      ...(organizationId !== undefined && { organizationId }),
-    };
+    const values = { ...createUserDto, organizationId };
     const db = options?.tx ?? this.db;
     let [user] = await db.insert(users).values(values).returning();
     user = excludePassword(user);
     return user;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
+  async update(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    organizationId: number,
+  ) {
     if (updateUserDto.password && updateUserDto.password !== '') {
       updateUserDto.password = await hashPassword(updateUserDto.password);
     }
@@ -105,17 +112,21 @@ export class UserService {
     let [user] = await this.db
       .update(users)
       .set(updateUserDto)
-      .where(eq(users.id, id))
+      .where(
+        and(eq(users.id, id), eq(users.organizationId, organizationId)),
+      )
       .returning();
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
     return user;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     let [user] = await this.db
       .delete(users)
-      .where(eq(users.id, id))
+      .where(
+        and(eq(users.id, id), eq(users.organizationId, organizationId)),
+      )
       .returning();
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
@@ -133,7 +144,7 @@ export class UserService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: UserQueryParams): SQL[] {
+  private buildOrderBy(params: UserFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -144,8 +155,9 @@ export class UserService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: UserQueryParams) {
+  private buildWhereClause(params: UserFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(eq(users.organizationId, params.organizationId));
     if (params.email) {
       filters.push(ilike(users.email, `%${params.email}%`));
     }
@@ -161,6 +173,6 @@ export class UserService {
     if (params.excludeRole) {
       filters.push(not(eq(users.role, params.excludeRole)));
     }
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

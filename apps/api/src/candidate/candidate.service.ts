@@ -44,7 +44,7 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CandidateQueryParams,
+  CandidateFindAllServiceParams,
   CreateCandidateServiceDto,
   BlacklistCandidateDto,
   UpdateCandidateServiceDto,
@@ -75,7 +75,7 @@ export class CandidateService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CandidateQueryParams,
+    params: CandidateFindAllServiceParams,
   ): Promise<PaginatedResponse<CandidateApiResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -111,9 +111,12 @@ export class CandidateService {
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const candidate = await this.db.query.candidates.findFirst({
-      where: eq(candidates.id, id),
+      where: and(
+        eq(candidates.id, id),
+        eq(candidates.organizationId, organizationId),
+      ),
       with: {
         source: true,
         candidateAreas: { with: { area: true } },
@@ -130,9 +133,14 @@ export class CandidateService {
 
   async existsByName(
     name: string,
+    organizationId: number,
   ): Promise<{ exists: boolean; candidate: CandidateApiResponse | null }> {
     const candidate = await this.db.query.candidates.findFirst({
-      where: and(ilike(candidates.name, name), eq(candidates.deleted, false)),
+      where: and(
+        ilike(candidates.name, name),
+        eq(candidates.deleted, false),
+        eq(candidates.organizationId, organizationId),
+      ),
       with: {
         source: true,
         candidateAreas: { with: { area: true } },
@@ -218,7 +226,7 @@ export class CandidateService {
       userId: user.id,
       organizationId,
     });
-    return this.findOne(id);
+    return this.findOne(id, organizationId);
   }
 
   async update(id: number, dto: UpdateCandidateServiceDto) {
@@ -293,9 +301,12 @@ export class CandidateService {
     return candidate;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const candidate = await this.db.query.candidates.findFirst({
-      where: eq(candidates.id, id),
+      where: and(
+        eq(candidates.id, id),
+        eq(candidates.organizationId, organizationId),
+      ),
     });
     if (!candidate) throw new NotFoundException('Candidate not found');
     const [removedCandidate] = await this.db
@@ -304,7 +315,12 @@ export class CandidateService {
         deleted: true,
         name: `${candidate.name} (deleted)`,
       } as Partial<Candidate>)
-      .where(eq(candidates.id, id))
+      .where(
+        and(
+          eq(candidates.id, id),
+          eq(candidates.organizationId, organizationId),
+        ),
+      )
       .returning();
     return removedCandidate;
   }
@@ -345,7 +361,7 @@ export class CandidateService {
     };
   }
 
-  private buildOrderBy(params: CandidateQueryParams): SQL[] {
+  private buildOrderBy(params: CandidateFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -356,8 +372,9 @@ export class CandidateService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(query: CandidateQueryParams) {
+  private buildWhereClause(query: CandidateFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(eq(candidates.organizationId, query.organizationId));
     if (query.id) {
       filters.push(eq(candidates.id, query.id));
     }
@@ -545,6 +562,6 @@ export class CandidateService {
       );
     }
 
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

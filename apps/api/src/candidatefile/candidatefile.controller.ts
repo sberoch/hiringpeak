@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
 import { CandidateFileService } from './candidatefile.service';
 import {
   CreateCandidateFileDto,
@@ -24,36 +22,44 @@ import {
   CandidateFileQueryParams,
 } from './candidatefile.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, OrganizationGuard)
 @ApiTags('CandidateFiles')
 @Controller('candidatefile')
 export class CandidateFileController {
-  constructor(
-    private readonly candidateFileService: CandidateFileService,
-    private readonly cls: ClsService<CurrentUserStore>,
-  ) {}
+  constructor(private readonly candidateFileService: CandidateFileService) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: CandidateFileQueryParams) {
-    return this.candidateFileService.findAll(query);
+  async findAll(
+    @Query() query: CandidateFileQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateFileService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.candidateFileService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateFileService.findOne(+id, organizationId);
   }
 
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createCandidateFileDto: CreateCandidateFileDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.candidateFileService.create({ ...createCandidateFileDto, organizationId });
+  async create(
+    @Body() createCandidateFileDto: CreateCandidateFileDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateFileService.create({
+      ...createCandidateFileDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
@@ -61,15 +67,20 @@ export class CandidateFileController {
   async update(
     @Param('id') id: string,
     @Body() updateCandidateFileDto: UpdateCandidateFileDto,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.candidateFileService.update(+id, { ...updateCandidateFileDto, organizationId });
+    return this.candidateFileService.update(+id, {
+      ...updateCandidateFileDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.candidateFileService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateFileService.remove(+id, organizationId);
   }
 }

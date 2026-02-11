@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
+import { REDIRECT_AUTHORIZED } from "@/lib/consts";
 import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
 import {
   Form,
   FormControl,
@@ -18,20 +18,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@workspace/ui/components/form";
+import { Input } from "@workspace/ui/components/input";
 import { LoadingSpinner } from "@workspace/ui/components/loading-spinner";
-import { REDIRECT_AUTHORIZED } from "@/lib/consts";
 
 const formSchema = z.object({
   email: z
-    .string({
-      required_error: "El correo electrónico es requerido",
-    })
-    .email({ message: "El correo electrónico no es válido" }),
-  password: z
-    .string({
-      required_error: "La contraseña es requerida",
-    })
-    .min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+    .email({ error: "El correo electrónico no es válido" }),
+  password:
+    z.string({ error: "La contraseña es requerida" })
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -123,7 +117,7 @@ export default function LoginForm({ showGoogleButton = false }: LoginFormProps) 
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                or
+                o
               </span>
             </div>
           </div>
@@ -140,7 +134,7 @@ export default function LoginForm({ showGoogleButton = false }: LoginFormProps) 
                 Conectando con Google...
               </div>
             ) : (
-              "Login with Google"
+              "Conectarse con Google"
             )}
           </Button>
         </>

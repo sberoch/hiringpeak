@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,7 +15,6 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
 import { VacancyService } from './vacancy.service';
 import {
   CreateVacancyDto,
@@ -24,37 +22,40 @@ import {
   VacancyQueryParams,
 } from './vacancy.dto';
 import { RolesGuard } from '../auth/roles/roles.guard';
-import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, OrganizationGuard)
 @ApiTags('Vacancies')
 @Controller('vacancy')
 export class VacancyController {
-  constructor(
-    private readonly vacancyService: VacancyService,
-    private readonly cls: ClsService<CurrentUserStore>,
-  ) {}
+  constructor(private readonly vacancyService: VacancyService) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: VacancyQueryParams) {
-    return this.vacancyService.findAll(query);
+  async findAll(
+    @Query() query: VacancyQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.vacancyService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyService.findOne(+id, organizationId);
   }
 
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createVacancyDto: CreateVacancyDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) {
-      throw new BadRequestException('Organization context required');
-    }
+  async create(
+    @Body() createVacancyDto: CreateVacancyDto,
+    @OrganizationId() organizationId: number,
+  ) {
     return this.vacancyService.create({
       ...createVacancyDto,
       organizationId,
@@ -66,11 +67,8 @@ export class VacancyController {
   async update(
     @Param('id') id: string,
     @Body() updateVacancyDto: UpdateVacancyDto,
+    @OrganizationId() organizationId: number,
   ) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) {
-      throw new BadRequestException('Organization context required');
-    }
     return this.vacancyService.update(+id, {
       ...updateVacancyDto,
       organizationId,
@@ -79,7 +77,10 @@ export class VacancyController {
 
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.vacancyService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyService.remove(+id, organizationId);
   }
 }

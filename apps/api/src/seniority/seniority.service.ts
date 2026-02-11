@@ -15,7 +15,7 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   CreateSeniorityServiceDto,
-  SeniorityQueryParams,
+  SeniorityFindAllServiceParams,
   UpdateSeniorityServiceDto,
 } from './seniority.dto';
 
@@ -24,7 +24,7 @@ export class SeniorityService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: SeniorityQueryParams,
+    params: SeniorityFindAllServiceParams,
   ): Promise<PaginatedResponse<Seniority>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -49,9 +49,12 @@ export class SeniorityService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const seniority = await this.db.query.seniorities.findFirst({
-      where: eq(seniorities.id, id),
+      where: and(
+        eq(seniorities.id, id),
+        eq(seniorities.organizationId, organizationId),
+      ),
     });
     if (!seniority) throw new NotFoundException('Not found');
     return seniority;
@@ -80,10 +83,15 @@ export class SeniorityService {
     return seniority;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [seniority] = await this.db
       .delete(seniorities)
-      .where(eq(seniorities.id, id))
+      .where(
+        and(
+          eq(seniorities.id, id),
+          eq(seniorities.organizationId, organizationId),
+        ),
+      )
       .returning();
     return seniority;
   }
@@ -92,7 +100,7 @@ export class SeniorityService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: SeniorityQueryParams): SQL[] {
+  private buildOrderBy(params: SeniorityFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -103,8 +111,9 @@ export class SeniorityService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: SeniorityQueryParams) {
+  private buildWhereClause(params: SeniorityFindAllServiceParams) {
     const filters: SQL[] = [];
-    return filters.length > 0 ? and(...filters) : undefined;
+    filters.push(eq(seniorities.organizationId, params.organizationId));
+    return and(...filters);
   }
 }
