@@ -4,12 +4,20 @@ import {
   UpdateAreaSchema,
   AreaQueryParamsSchema,
 } from '@workspace/shared/dtos';
+import z from 'zod';
 
-/** Request DTOs (controller): no organizationId */
+/** Request DTOs (controller): organizationId optional for query, injected by decorator */
 export class CreateAreaDto extends createZodDto(CreateAreaSchema) {}
 export class UpdateAreaDto extends createZodDto(UpdateAreaSchema) {}
-export class AreaQueryParams extends createZodDto(AreaQueryParamsSchema) {}
+export class AreaQueryParamsDto extends createZodDto(
+  AreaQueryParamsSchema.extend({
+    organizationId: z.coerce.number().optional(),
+  }),
+) {}
 
 /** Service DTOs: organizationId injected by controller */
-export type CreateAreaServiceDto = CreateAreaDto & { organizationId: number };
-export type UpdateAreaServiceDto = UpdateAreaDto & { organizationId: number };
+export type CreateAreaServiceDto = CreateAreaDto;
+export type UpdateAreaServiceDto = UpdateAreaDto;
+export type AreaFindAllServiceParams = AreaQueryParamsDto & {
+  organizationId: number;
+};

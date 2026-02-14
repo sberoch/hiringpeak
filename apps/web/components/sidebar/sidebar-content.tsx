@@ -99,11 +99,25 @@ const data: SidebarItem[] = [
     visibleTo: PAGE_AUTHORIZATION_ACCESS["/companies"],
   },
   {
-    id: "users",
-    title: "Usuarios",
-    url: "/users",
-    icon: <UserCircle className="w-4 h-4" />,
-    visibleTo: PAGE_AUTHORIZATION_ACCESS["/users"],
+    id: "organization-settings",
+    title: "Organización",
+    url: "/organization-settings",
+    icon: <Building2 className="w-4 h-4" />,
+    visibleTo: PAGE_AUTHORIZATION_ACCESS["/organization-settings"] ?? [UserRoleEnum.ADMIN],
+    items: [
+      {
+        id: "org-users",
+        title: "Usuarios",
+        url: "/organization-settings/users",
+        visibleTo: PAGE_AUTHORIZATION_ACCESS["/organization-settings/users"] ?? [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER],
+      },
+      {
+        id: "org-roles",
+        title: "Roles y permisos",
+        url: "/organization-settings/roles",
+        visibleTo: PAGE_AUTHORIZATION_ACCESS["/organization-settings/roles"] ?? [UserRoleEnum.ADMIN],
+      },
+    ],
   },
   {
     id: "settings",

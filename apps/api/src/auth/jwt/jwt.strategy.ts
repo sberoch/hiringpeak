@@ -22,22 +22,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any) {
     const userId =
       typeof payload.id === 'string' ? parseInt(payload.id, 10) : payload.id;
-    let organizationId: number | undefined;
-    try {
-      const user = await this.userService.findOne(userId);
-      const orgId = (user as unknown as { organizationId: number | null })
-        .organizationId;
-      organizationId = orgId ?? undefined;
-    } catch {
-      return null;
-    }
+    const user = await this.userService.findById(userId);
+    if (!user) return null;
 
+    const organizationId = user.organizationId ?? undefined;
     const userData = {
       id: payload.id,
       email: payload.email,
       name: payload.name,
       role: payload.role,
       active: payload.active,
+      userType: user.userType,
+      roleId: user.roleId ?? null,
       organizationId,
     };
 

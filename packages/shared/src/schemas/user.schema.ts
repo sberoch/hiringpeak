@@ -9,13 +9,19 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { UserRole } from "../enums";
+import { UserRole, UserType } from "../enums";
 import * as bcrypt from "bcryptjs";
 import { organizations } from "./organization.schema";
+import { roles } from "./role.schema";
 
 export const roleEnum = pgEnum(
   "role",
   Object.values(UserRole) as [string, ...string[]]
+);
+
+export const userTypeEnum = pgEnum(
+  "user_type",
+  Object.values(UserType) as [string, ...string[]]
 );
 
 export const users = pgTable(
@@ -26,9 +32,15 @@ export const users = pgTable(
     password: text("password").notNull(),
     name: text("name").notNull(),
     active: boolean("active").default(true),
+    /** @deprecated Legacy; use roleId for tenant RBAC. Kept for transition and SYSTEM_ADMIN. */
     role: roleEnum("role").notNull(),
+    /** Internal-only: web vs backoffice. Never expose via API. */
+    userType: userTypeEnum("user_type").notNull().default("END_USER"),
     organizationId: integer("organization_id").references(() => organizations.id, {
       onDelete: "restrict",
+    }),
+    roleId: integer("role_id").references(() => roles.id, {
+      onDelete: "set null",
     }),
     lastLogin: timestamp("last_login"),
     createdAt: timestamp("created_at").defaultNow(),
@@ -43,6 +55,10 @@ export const usersRelations = relations(users, ({ one }) => ({
   organization: one(organizations, {
     fields: [users.organizationId],
     references: [organizations.id],
+  }),
+  role: one(roles, {
+    fields: [users.roleId],
+    references: [roles.id],
   }),
 }));
 

@@ -37,10 +37,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
             : decoded.id;
 
         try {
-          const user = await this.userService.findOne(userId);
-          const orgId = (user as unknown as { organizationId: number | null })
-            .organizationId;
-          const organizationId = orgId ?? undefined;
+          const user = await this.userService.findById(userId);
+          if (!user) return false;
+          const organizationId = user.organizationId ?? undefined;
           const userData = {
             ...decoded,
             organizationId,

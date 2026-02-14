@@ -5,6 +5,7 @@ import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { CurrentUserStore } from '../auth/auth.currentuser.store';
 import { OrganizationService } from '../organization/organization.service';
+import { RoleService } from '../role/role.service';
 import { UserService } from '../user/user.service';
 import { OnboardOrganizationDto } from './onboard.dto';
 
@@ -13,6 +14,7 @@ export class OnboardService {
   constructor(
     private readonly organizationService: OrganizationService,
     private readonly userService: UserService,
+    private readonly roleService: RoleService,
     private readonly cls: ClsService<CurrentUserStore>,
     @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
   ) {}
@@ -26,12 +28,19 @@ export class OnboardService {
 
       this.cls.set('organizationId', organization.id);
 
+      const { administradorRoleId } =
+        await this.roleService.createDefaultRolesForOrganization(
+          organization.id,
+          { tx },
+        );
+
       const user = await this.userService.create(
         {
           email: dto.email,
           password: dto.password,
           name: dto.name,
           role: UserRole.ADMIN,
+          roleId: administradorRoleId,
         },
         organization.id,
         { tx },

@@ -27,6 +27,9 @@ import { CompanyModule } from './company/company.module';
 import { OrganizationModule } from './organization/organization.module';
 import { OnboardModule } from './onboard/onboard.module';
 import { FeatureFlagModule } from './feature-flag/feature-flag.module';
+import { PermissionModule } from './permission/permission.module';
+import { RoleModule } from './role/role.module';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
@@ -42,6 +45,8 @@ import { FeatureFlagModule } from './feature-flag/feature-flag.module';
     FeatureFlagModule,
     UserModule,
     AuthModule,
+    PermissionModule,
+    RoleModule,
     CandidateModule,
     VacancyModule,
     CandidateVacancyModule,
@@ -58,6 +63,7 @@ import { FeatureFlagModule } from './feature-flag/feature-flag.module';
     DashboardModule,
     OrganizationModule,
     OnboardModule,
+    SeedModule,
   ],
   controllers: [AppController],
   providers: [

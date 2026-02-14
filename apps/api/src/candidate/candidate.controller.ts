@@ -22,14 +22,16 @@ import {
   CandidateQueryParams,
   BlacklistCandidateDto,
 } from './candidate.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
 import { CurrentUser } from '../auth/auth.decorators';
 import type { User } from '@workspace/shared/schemas';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(OrganizationGuard, PermissionsGuard)
 @ApiTags('Candidates')
 @Controller('candidate')
 export class CandidateController {
@@ -37,6 +39,7 @@ export class CandidateController {
 
   @ApiOkResponse()
   @Get()
+  @Permissions(PermissionCode.CANDIDATE_READ)
   async findAll(
     @Query() query: CandidateQueryParams,
     @OrganizationId() organizationId: number,
@@ -46,6 +49,7 @@ export class CandidateController {
 
   @ApiOkResponse()
   @Get('exists')
+  @Permissions(PermissionCode.CANDIDATE_READ)
   async exists(
     @Query('name') name: string,
     @OrganizationId() organizationId: number,
@@ -55,6 +59,7 @@ export class CandidateController {
 
   @ApiOkResponse()
   @Get(':id')
+  @Permissions(PermissionCode.CANDIDATE_READ)
   async findOne(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
@@ -64,6 +69,7 @@ export class CandidateController {
 
   @ApiCreatedResponse()
   @Post()
+  @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async create(
     @Body() createCandidateDto: CreateCandidateDto,
     @OrganizationId() organizationId: number,
@@ -76,6 +82,7 @@ export class CandidateController {
 
   @ApiCreatedResponse()
   @Post(':id/blacklist')
+  @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async blacklist(
     @Param('id') id: string,
     @Body() blacklistCandidateDto: BlacklistCandidateDto,
@@ -92,6 +99,7 @@ export class CandidateController {
 
   @ApiOkResponse()
   @Patch(':id')
+  @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async update(
     @Param('id') id: string,
     @Body() updateCandidateDto: UpdateCandidateDto,
@@ -105,6 +113,7 @@ export class CandidateController {
 
   @ApiOkResponse()
   @Delete(':id')
+  @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async remove(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,

@@ -2,7 +2,13 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "globalDependencies": [".env"],
-  "globalEnv": ["NODE_ENV", "JWT_SECRET", "SERVER_PORT"],
+  "globalEnv": [
+    "NODE_ENV",
+    "JWT_SECRET",
+    "SERVER_PORT",
+    "GOOGLE_CLIENT_ID",
+    "DATABASE_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

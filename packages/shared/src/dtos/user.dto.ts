@@ -16,6 +16,7 @@ const CreateUserSchemaBase = z.object({
       UserRole.SYSTEM_ADMIN,
     ] as const)
     .default(UserRole.BASIC),
+  roleId: z.number().int().positive().optional(),
   active: z.boolean().optional(),
 });
 

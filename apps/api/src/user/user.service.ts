@@ -4,14 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ClsService } from 'nestjs-cls';
-import { and, asc, count, desc, eq, ilike, not, SQL } from 'drizzle-orm';
+import { UserRole } from '@workspace/shared/enums';
 import {
-  users,
-  hashPassword,
   excludePassword,
+  hashPassword,
   User,
+  users,
 } from '@workspace/shared/schemas';
+import { and, asc, count, desc, eq, ilike, not, SQL } from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type {
   DbOptions,
@@ -22,12 +22,12 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
+import type { UserPublic } from '@workspace/shared/types/user';
 import {
   CreateUserDto,
   UpdateUserDto,
   UserFindAllServiceParams,
 } from './user.dto';
-import { UserRole } from '@workspace/shared/enums';
 
 @Injectable()
 export class UserService {
@@ -65,19 +65,25 @@ export class UserService {
     return paginatedResponse(itemsResponse, totalItems, paginationQuery);
   }
 
+  /** Find user by id only (e.g. for JWT validation). */
+  async findById(id: number): Promise<UserPublic | null> {
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+    if (!user) return null;
+    return excludePassword(user) as UserPublic;
+  }
+
   async findOne(id: number, organizationId: number) {
     let user = await this.db.query.users.findFirst({
-      where: and(
-        eq(users.id, id),
-        eq(users.organizationId, organizationId),
-      ),
+      where: and(eq(users.id, id), eq(users.organizationId, organizationId)),
     });
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
     return user;
   }
 
-  async findOneByEmail(email: string) {
+  async findOneByEmail(email: string): Promise<User | null> {
     const user = await this.db.query.users.findFirst({
       where: eq(users.email, email),
     });
@@ -112,9 +118,7 @@ export class UserService {
     let [user] = await this.db
       .update(users)
       .set(updateUserDto)
-      .where(
-        and(eq(users.id, id), eq(users.organizationId, organizationId)),
-      )
+      .where(and(eq(users.id, id), eq(users.organizationId, organizationId)))
       .returning();
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
@@ -124,9 +128,7 @@ export class UserService {
   async remove(id: number, organizationId: number) {
     let [user] = await this.db
       .delete(users)
-      .where(
-        and(eq(users.id, id), eq(users.organizationId, organizationId)),
-      )
+      .where(and(eq(users.id, id), eq(users.organizationId, organizationId)))
       .returning();
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);

@@ -21,12 +21,14 @@ import {
   UpdateVacancyDto,
   VacancyQueryParams,
 } from './vacancy.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(OrganizationGuard, PermissionsGuard)
 @ApiTags('Vacancies')
 @Controller('vacancy')
 export class VacancyController {
@@ -34,6 +36,7 @@ export class VacancyController {
 
   @ApiOkResponse()
   @Get()
+  @Permissions(PermissionCode.VACANCY_READ)
   async findAll(
     @Query() query: VacancyQueryParams,
     @OrganizationId() organizationId: number,
@@ -43,6 +46,7 @@ export class VacancyController {
 
   @ApiOkResponse()
   @Get(':id')
+  @Permissions(PermissionCode.VACANCY_READ)
   async findOne(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
@@ -52,6 +56,7 @@ export class VacancyController {
 
   @ApiCreatedResponse()
   @Post()
+  @Permissions(PermissionCode.VACANCY_MANAGE)
   async create(
     @Body() createVacancyDto: CreateVacancyDto,
     @OrganizationId() organizationId: number,
@@ -64,6 +69,7 @@ export class VacancyController {
 
   @ApiOkResponse()
   @Patch(':id')
+  @Permissions(PermissionCode.VACANCY_MANAGE)
   async update(
     @Param('id') id: string,
     @Body() updateVacancyDto: UpdateVacancyDto,
@@ -77,6 +83,7 @@ export class VacancyController {
 
   @ApiOkResponse()
   @Delete(':id')
+  @Permissions(PermissionCode.VACANCY_MANAGE)
   async remove(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,

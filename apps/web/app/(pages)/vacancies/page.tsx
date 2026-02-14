@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 import { Heading } from "@workspace/ui/components/heading";
-import { NewVacancySheet } from "@/components/vacancies/new-vacancy-sheet";
+import { NewVacancySheetWithPermission } from "@/components/vacancies/new-vacancy-sheet-with-permission";
 import { VacancyTable } from "@/components/vacancies/vacancy-table";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
 import type { VacancyFiltersType } from "@workspace/shared/types/vacancy";
@@ -53,7 +53,7 @@ export default async function Vacancies({ searchParams }: VacanciesProps) {
     <div className="container flex flex-col">
       <div className="flex items-center justify-between">
         <Heading>Vacantes</Heading>
-        <NewVacancySheet />
+        <NewVacancySheetWithPermission />
       </div>
       <VacancyTable initialFilters={initialFilters} />
     </div>

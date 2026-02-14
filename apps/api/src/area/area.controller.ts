@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,15 +13,16 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { ApiTags } from '@nestjs/swagger';
-import { ClsService } from 'nestjs-cls';
-import { AreaService } from './area.service';
-import { CreateAreaDto, UpdateAreaDto, AreaQueryParams } from './area.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
 import { UserRole } from '@workspace/shared/enums';
-import { Roles } from '../auth/roles/roles.decorator';
+import { ClsService } from 'nestjs-cls';
+import { OrganizationId } from 'src/auth/organization/organization.decorator';
 import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { Roles } from '../auth/roles/roles.decorator';
+import { RolesGuard } from '../auth/roles/roles.guard';
+import { AreaQueryParamsDto, CreateAreaDto, UpdateAreaDto } from './area.dto';
+import { AreaService } from './area.service';
 
 @ApiBearerAuth()
 @UseGuards(RolesGuard)
@@ -36,38 +36,50 @@ export class AreaController {
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: AreaQueryParams) {
-    return this.areaService.findAll(query);
+  async findAll(
+    @Query() query: AreaQueryParamsDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.areaService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.findOne(+id, organizationId);
   }
 
   @Roles(UserRole.ADMIN)
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createAreaDto: CreateAreaDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.areaService.create({ ...createAreaDto, organizationId });
+  async create(
+    @Body() createAreaDto: CreateAreaDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.create(createAreaDto, organizationId);
   }
 
   @Roles(UserRole.ADMIN)
   @ApiOkResponse()
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateAreaDto: UpdateAreaDto) {
-    const organizationId = this.cls.get('organizationId');
-    if (organizationId == null) throw new BadRequestException('Organization context required');
-    return this.areaService.update(+id, { ...updateAreaDto, organizationId });
+  async update(
+    @Param('id') id: string,
+    @Body() updateAreaDto: UpdateAreaDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.update(+id, updateAreaDto, organizationId);
   }
 
   @Roles(UserRole.ADMIN)
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.areaService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.remove(+id, organizationId);
   }
 }

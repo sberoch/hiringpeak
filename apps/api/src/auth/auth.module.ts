@@ -8,10 +8,18 @@ import { JwtStrategy } from './jwt/jwt.strategy';
 import { LocalStrategy } from './local/local.strategy';
 import { FeatureFlagModule } from '../feature-flag/feature-flag.module';
 import { OrganizationGuard } from './organization/organization.guard';
+import { DrizzleModule } from '../common/database/drizzle.module';
+import { AuthzService } from './authz/authz.service';
+import { PermissionsGuard } from './permissions/permissions.guard';
+import { PermissionModule } from '../permission/permission.module';
+import { RoleModule } from '../role/role.module';
 
 @Module({
   imports: [
     forwardRef(() => UserModule),
+    forwardRef(() => RoleModule),
+    PermissionModule,
+    DrizzleModule,
     FeatureFlagModule,
     PassportModule,
     JwtModule.register({
@@ -19,7 +27,7 @@ import { OrganizationGuard } from './organization/organization.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, OrganizationGuard],
-  exports: [AuthService, JwtModule, OrganizationGuard],
+  providers: [AuthService, LocalStrategy, JwtStrategy, OrganizationGuard, AuthzService, PermissionsGuard],
+  exports: [AuthService, JwtModule, OrganizationGuard, AuthzService, PermissionsGuard],
 })
 export class AuthModule {}

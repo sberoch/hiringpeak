@@ -2,12 +2,14 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client } from 'google-auth-library';
 import { UserService } from '../user/user.service';
-import { checkPassword, excludePassword } from '@workspace/shared/schemas';
-import { UserRole } from '@workspace/shared/enums';
+import {
+  checkPassword,
+  excludePassword,
+  User,
+} from '@workspace/shared/schemas';
+import { UserType } from '@workspace/shared/enums';
 import type { LoginDto } from '@workspace/shared/dtos';
 import type { AuthTokenData } from '@workspace/shared/types/auth';
-
-const WEB_ROLES: string[] = [UserRole.ADMIN, UserRole.MANAGER, UserRole.BASIC];
 
 @Injectable()
 export class AuthService {
@@ -28,15 +30,15 @@ export class AuthService {
   }
 
   /**
-   * Validates user and origin: web requires org user (ADMIN/MANAGER/BASIC with organizationId);
-   * backoffice requires SYSTEM_ADMIN with no org.
+   * Validates user and origin: web requires END_USER with organizationId;
+   * backoffice requires INTERNAL_USER (SYSTEM_ADMIN) with no org.
    */
   async validateUserWithOrigin(
     email: string,
     password: string,
     origin: 'web' | 'backoffice',
   ): Promise<any> {
-    let user: any;
+    let user: User | null;
     try {
       user = await this.usersService.findOneByEmail(email);
     } catch {
@@ -50,14 +52,14 @@ export class AuthService {
       return null;
     }
     const organizationId = user.organizationId ?? null;
-    const role = user.role as string;
+    const userType = (user as User & { userType?: string }).userType ?? UserType.END_USER;
 
     if (origin === 'web') {
-      if (organizationId == null || !WEB_ROLES.includes(role)) {
+      if (organizationId == null || userType !== UserType.END_USER) {
         return null;
       }
     } else if (origin === 'backoffice') {
-      if (role !== UserRole.SYSTEM_ADMIN || organizationId != null) {
+      if (userType !== UserType.INTERNAL_USER || organizationId != null) {
         return null;
       }
     } else {
@@ -75,6 +77,7 @@ export class AuthService {
       email: user.email ?? undefined,
       role: user.role,
       name: user.name,
+      roleId: user.roleId ?? null,
       organizationId: user.organizationId ?? null,
     };
     return {
@@ -129,8 +132,8 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     const organizationId = user.organizationId ?? null;
-    const role = user.role as string;
-    if (organizationId == null || !WEB_ROLES.includes(role)) {
+    const userType = (user as User & { userType?: string }).userType ?? UserType.END_USER;
+    if (organizationId == null || userType !== UserType.END_USER) {
       throw new UnauthorizedException();
     }
     await this.usersService.updateLastLogin(user.id);

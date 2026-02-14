@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Building2, LogOut } from "lucide-react";
+import { Building2, LogOut, ShieldCheck } from "lucide-react";
 
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -22,6 +22,7 @@ import { useSession } from "next-auth/react";
 
 const navItems = [
   { href: "/organizations", label: "Organizaciones", icon: Building2 },
+  { href: "/permissions", label: "Permisos", icon: ShieldCheck },
 ] as const;
 
 export function AppSidebar() {
