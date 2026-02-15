@@ -3,6 +3,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { getAllRoles, ROLES_API_KEY } from "@/lib/api/role";
+import { updateUser, USERS_API_KEY } from "@/lib/api/user";
+import { useQuery } from "@tanstack/react-query";
+import type { User } from "@workspace/shared/types/user";
 import { Button } from "@workspace/ui/components/button";
 import {
   Form,
@@ -14,6 +18,13 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -21,15 +32,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@workspace/ui/components/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select";
-import { updateUser, USERS_API_KEY } from "@/lib/api/user";
-import { ROLES_NAMES, User, UserRoleEnum } from "@workspace/shared/types/user";
 
 import { editUserFormSchema, type EditUserFormSchema } from "./edit-user.schema";
 
@@ -42,13 +44,19 @@ interface EditUserSheetProps {
 export function EditUserSheet({ user, isOpen, onClose }: EditUserSheetProps) {
   const queryClient = useQueryClient();
 
+  const { data: rolesData } = useQuery({
+    queryKey: [ROLES_API_KEY],
+    queryFn: () => getAllRoles({ limit: 100, page: 1 }),
+  });
+  const roles = rolesData?.items ?? [];
+
   const form = useForm<EditUserFormSchema>({
     resolver: zodResolver(editUserFormSchema),
     defaultValues: {
       name: user.name,
       email: user.email,
       password: "",
-      role: user.role,
+      roleId: user.roleId ?? undefined,
     },
   });
 
@@ -135,21 +143,26 @@ export function EditUserSheet({ user, isOpen, onClose }: EditUserSheetProps) {
 
               <FormField
                 control={form.control}
-                name="role"
+                name="roleId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Rol</FormLabel>
                     <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={(v) =>
+                          field.onChange(v ? Number(v) : undefined)
+                        }
+                        value={field.value != null ? String(field.value) : ""}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un rol" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {Object.values(UserRoleEnum).map((role) => (
-                            <SelectItem key={role} value={role}>
-                              {ROLES_NAMES[role]}
+                          {roles.map((role) => (
+                            <SelectItem key={role.id} value={String(role.id)}>
+                              {role.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

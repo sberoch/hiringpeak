@@ -27,7 +27,8 @@ export type UserFilters = PaginationFilters & {
   email?: string;
   name?: string;
   active?: boolean;
-  role?: UserRoleEnum;
+  roleId?: number;
+  excludeRoleId?: number;
 };
 
 export type UserParams = UserFilters;

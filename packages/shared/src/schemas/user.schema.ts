@@ -9,19 +9,14 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { UserRole, UserType } from "../enums";
+import { UserType } from "../enums";
 import * as bcrypt from "bcryptjs";
 import { organizations } from "./organization.schema";
 import { roles } from "./role.schema";
 
-export const roleEnum = pgEnum(
-  "role",
-  Object.values(UserRole) as [string, ...string[]]
-);
-
 export const userTypeEnum = pgEnum(
   "user_type",
-  Object.values(UserType) as [string, ...string[]]
+  Object.values(UserType) as [string, ...string[]],
 );
 
 export const users = pgTable(
@@ -32,13 +27,14 @@ export const users = pgTable(
     password: text("password").notNull(),
     name: text("name").notNull(),
     active: boolean("active").default(true),
-    /** @deprecated Legacy; use roleId for tenant RBAC. Kept for transition and SYSTEM_ADMIN. */
-    role: roleEnum("role").notNull(),
     /** Internal-only: web vs backoffice. Never expose via API. */
     userType: userTypeEnum("user_type").notNull().default("END_USER"),
-    organizationId: integer("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: integer("organization_id").references(
+      () => organizations.id,
+      {
+        onDelete: "restrict",
+      },
+    ),
     roleId: integer("role_id").references(() => roles.id, {
       onDelete: "set null",
     }),
@@ -46,9 +42,12 @@ export const users = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
-  (table) => ({
-    emailOrgUnique: unique().on(table.email, table.organizationId),
-  })
+  (table) => [
+    unique("users_email_organization_id_unique").on(
+      table.email,
+      table.organizationId,
+    ),
+  ],
 );
 
 export const usersRelations = relations(users, ({ one }) => ({
@@ -72,7 +71,7 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function checkPassword(
   plainPassword: string,
-  hashedPassword: string
+  hashedPassword: string,
 ): Promise<boolean> {
   return await bcrypt.compare(plainPassword, hashedPassword);
 }

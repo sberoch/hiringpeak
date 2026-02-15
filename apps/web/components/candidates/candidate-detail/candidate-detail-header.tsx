@@ -1,7 +1,4 @@
-import { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -15,20 +12,23 @@ import {
   PlusCircle,
   Trash,
 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { PermissionGuard } from "@/components/auth/permission-guard";
+import { CANDIDATE_API_KEY, updateCandidate } from "@/lib/api/candidate";
+import { PermissionCode } from "@workspace/shared/enums";
+import type { Candidate } from "@workspace/shared/types/candidate";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import { Separator } from "@workspace/ui/components/separator";
-import type { Candidate } from "@workspace/shared/types/candidate";
-import { UserRoleEnum } from "@workspace/shared/types/user";
-import { CANDIDATE_API_KEY, updateCandidate } from "@/lib/api/candidate";
-import { RBACAuthzGuard } from "@/components/auth/rbac-authz-guard";
 import { AddToVacancyDialog } from "../add-to-vacancy-dialog";
 import { BlacklistCandidateDialog } from "../blacklist-candidate-dialog";
-import { DeleteCandidateDialog } from "../delete-candidate-dialog";
 import { CandidateStars } from "../candidate-stars";
+import { DeleteCandidateDialog } from "../delete-candidate-dialog";
 
 interface CandidateDetailHeaderProps {
   candidate: Candidate;
@@ -179,7 +179,7 @@ export const CandidateDetailHeader = ({
               Eliminar de blacklist
             </Button>
           )}
-          <RBACAuthzGuard visibleTo={[UserRoleEnum.ADMIN]}>
+          <PermissionGuard permissions={[PermissionCode.CANDIDATE_MANAGE]}>
             <Button
               variant="outline"
               size="sm"
@@ -189,11 +189,11 @@ export const CandidateDetailHeader = ({
               <Trash className="h-4 w-4" />
               Eliminar candidato
             </Button>
-          </RBACAuthzGuard>
+          </PermissionGuard>
         </div>
         <Card className="p-4 w-full">
           <div className="flex flex-col md:flex-row gap-8">
-            <div className="relative w-full lg:w-1/6 flex-shrink-0">
+            <div className="relative w-full lg:w-1/6 shrink-0">
               <div className="aspect-square overflow-hidden rounded-lg">
                 <Image
                   src={candidate.image || "/images/placeholder.svg"}

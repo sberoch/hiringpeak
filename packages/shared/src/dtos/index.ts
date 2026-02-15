@@ -1,4 +1,5 @@
 export * from "./pagination.dto.js";
+export * from "./audit-log.dto.js";
 export * from "./user.dto.js";
 export * from "./auth.dto.js";
 export * from "./area.dto.js";

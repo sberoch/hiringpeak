@@ -1,11 +1,13 @@
+import { PermissionCode } from "@workspace/shared/enums";
+
 export type MePermissionsResponse = {
   roleId: number | null;
   roleName: string | null;
-  permissionCodes: string[];
+  permissionCodes: PermissionCode[];
 };
 
 export async function getMePermissions(
-  accessToken: string
+  accessToken: string,
 ): Promise<MePermissionsResponse> {
   const base = process.env.NEXT_PUBLIC_API_URL;
   const res = await fetch(`${base}/auth/me/permissions`, {

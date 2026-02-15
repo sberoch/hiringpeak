@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import { useState } from "react";
 
+import { PermissionGuard } from "@/components/auth/permission-guard";
+import { PermissionCode } from "@workspace/shared/enums";
+import type { Candidate } from "@workspace/shared/types/candidate";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -15,9 +18,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import type { Candidate } from "@workspace/shared/types/candidate";
-import { UserRoleEnum } from "@workspace/shared/types/user";
-import { RBACAuthzGuard } from "@/components/auth/rbac-authz-guard";
 
 import { CandidateStars } from "./candidate-stars";
 import { DeleteCandidateDialog } from "./delete-candidate-dialog";
@@ -45,14 +45,14 @@ const CellActions = ({ candidate }: CellActionsProps) => {
               Editar candidato
             </Link>
           </DropdownMenuItem>
-          <RBACAuthzGuard visibleTo={[UserRoleEnum.ADMIN]}>
+          <PermissionGuard permissions={[PermissionCode.CANDIDATE_MANAGE]}>
             <DropdownMenuItem
               className="text-red-600 cursor-pointer"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
               Eliminar candidato
             </DropdownMenuItem>
-          </RBACAuthzGuard>
+          </PermissionGuard>
         </DropdownMenuContent>
       </DropdownMenu>
       <DeleteCandidateDialog

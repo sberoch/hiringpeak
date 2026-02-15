@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { Mail, MessageSquare, MoreHorizontal, Phone } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, MessageSquare, MoreHorizontal, Phone } from "lucide-react";
+import { useState } from "react";
 
+import { PermissionGuard } from "@/components/auth/permission-guard";
+import { cn } from "@/lib/utils";
+import { PermissionCode } from "@workspace/shared/enums";
+import type { Candidate } from "@workspace/shared/types/candidate";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -13,10 +17,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { cn } from "@/lib/utils";
-import type { Candidate } from "@workspace/shared/types/candidate";
-import { UserRoleEnum } from "@workspace/shared/types/user";
-import { RBACAuthzGuard } from "@/components/auth/rbac-authz-guard";
 
 import { CandidateStars } from "./candidate-stars";
 import { DeleteCandidateDialog } from "./delete-candidate-dialog";
@@ -109,7 +109,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
                         Editar candidato
                       </Link>
                     </DropdownMenuItem>
-                    <RBACAuthzGuard visibleTo={[UserRoleEnum.ADMIN]}>
+                    <PermissionGuard permissions={[PermissionCode.CANDIDATE_MANAGE]}>
                       <DropdownMenuItem
                         className="text-red-600 cursor-pointer"
                         onClick={() => {
@@ -119,7 +119,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
                       >
                         Eliminar candidato
                       </DropdownMenuItem>
-                    </RBACAuthzGuard>
+                    </PermissionGuard>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

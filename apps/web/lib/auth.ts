@@ -8,6 +8,8 @@ import { PAGE_AUTHORIZATION_ACCESS } from "@/lib/consts";
 import { parseJwt } from "@/lib/utils";
 import type { AuthLogin } from "@workspace/shared/types/auth";
 
+/** Routes in this map require authentication; no role check (API enforces permissions). */
+
 const loginEnabled = process.env.NEXT_PUBLIC_LOGIN_ENABLED !== "false";
 const googleLoginEnabled = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED !== "false";
 const hasGoogleConfig = Boolean(process.env.AUTH_GOOGLE_ID);
@@ -133,12 +135,10 @@ const nextAuth = NextAuth({
 
 export const { handlers, signIn, signOut, auth } = nextAuth;
 
+/** True if the route is protected and the user has a valid token. API enforces permissions. */
 export function hasAccessToRoute(route: string, token?: string): boolean {
   if (!token) return false;
-
-  const data = parseJwt(token);
-
-  return PAGE_AUTHORIZATION_ACCESS[route]?.includes(data.role) ?? false;
+  return PAGE_AUTHORIZATION_ACCESS[route] !== undefined;
 }
 
 export function getAuthorizedRoute(pathname: string): string | null {

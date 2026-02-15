@@ -28,6 +28,7 @@ export const PermissionCode = {
   AREA_MANAGE: "AREA_MANAGE",
   SETTINGS_READ: "SETTINGS_READ",
   SETTINGS_MANAGE: "SETTINGS_MANAGE",
+  AUDIT_LOG_READ: "AUDIT_LOG_READ",
 } as const;
 export type PermissionCode =
   (typeof PermissionCode)[keyof typeof PermissionCode];
