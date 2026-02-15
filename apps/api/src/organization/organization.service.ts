@@ -73,7 +73,7 @@ export class OrganizationService {
         id: true,
         name: true,
         email: true,
-        role: true,
+        roleId: true,
         active: true,
         createdAt: true,
         lastLogin: true,

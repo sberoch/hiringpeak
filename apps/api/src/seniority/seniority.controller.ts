@@ -21,14 +21,14 @@ import {
   UpdateSeniorityDto,
   SeniorityQueryParams,
 } from './seniority.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { Roles } from '../auth/roles/roles.decorator';
-import { UserRole } from '@workspace/shared/enums';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('Seniorities')
 @Controller('seniority')
 export class SeniorityController {
@@ -52,7 +52,7 @@ export class SeniorityController {
     return this.seniorityService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -65,7 +65,7 @@ export class SeniorityController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -79,7 +79,7 @@ export class SeniorityController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
   @ApiOkResponse()
   @Delete(':id')
   async remove(

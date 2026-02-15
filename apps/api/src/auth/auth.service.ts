@@ -75,7 +75,6 @@ export class AuthService {
       active: Boolean(user.active),
       id: Number(user.id),
       email: user.email ?? undefined,
-      role: user.role,
       name: user.name,
       roleId: user.roleId ?? null,
       organizationId: user.organizationId ?? null,

@@ -15,6 +15,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CommentService } from './comment.service';
 import {
   CreateCommentDto,
@@ -22,12 +23,11 @@ import {
   CommentQueryParams,
   DeleteCommentDto,
 } from './comment.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(OrganizationGuard)
 @ApiTags('Comments')
 @Controller('comment')
 export class CommentController {
@@ -52,6 +52,7 @@ export class CommentController {
   }
 
   @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_comment', entityType: 'comment' })
   @Post()
   async create(
     @Body() createCommentDto: CreateCommentDto,
@@ -64,6 +65,7 @@ export class CommentController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'update_comment', entityType: 'comment' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -77,6 +79,7 @@ export class CommentController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'delete_comment', entityType: 'comment' })
   @Delete(':id')
   async remove(
     @Param('id') id: string,

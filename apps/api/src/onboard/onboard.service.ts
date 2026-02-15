@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
-import { UserRole } from '@workspace/shared/enums';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { CurrentUserStore } from '../auth/auth.currentuser.store';
@@ -39,7 +38,6 @@ export class OnboardService {
           email: dto.email,
           password: dto.password,
           name: dto.name,
-          role: UserRole.ADMIN,
           roleId: administradorRoleId,
         },
         organization.id,

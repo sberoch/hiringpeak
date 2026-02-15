@@ -15,20 +15,21 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { VacancyStatusService } from './vacancystatus.service';
 import {
   CreateVacancyStatusDto,
   UpdateVacancyStatusDto,
   VacancyStatusQueryParams,
 } from './vacancystatus.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { Roles } from '../auth/roles/roles.decorator';
-import { UserRole } from '@workspace/shared/enums';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('VacancyStatuses')
 @Controller('vacancyStatus')
 export class VacancyStatusController {
@@ -54,7 +55,8 @@ export class VacancyStatusController {
     return this.vacancyStatusService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'create_vacancy_status', entityType: 'vacancy_status' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -67,7 +69,8 @@ export class VacancyStatusController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'update_vacancy_status', entityType: 'vacancy_status' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -81,7 +84,8 @@ export class VacancyStatusController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'delete_vacancy_status', entityType: 'vacancy_status' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(

@@ -15,6 +15,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { VacancyService } from './vacancy.service';
 import {
   CreateVacancyDto,
@@ -55,6 +56,7 @@ export class VacancyController {
   }
 
   @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_vacancy', entityType: 'vacancy' })
   @Post()
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async create(
@@ -68,6 +70,7 @@ export class VacancyController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'update_vacancy', entityType: 'vacancy' })
   @Patch(':id')
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async update(
@@ -82,6 +85,7 @@ export class VacancyController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'delete_vacancy', entityType: 'vacancy' })
   @Delete(':id')
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async remove(

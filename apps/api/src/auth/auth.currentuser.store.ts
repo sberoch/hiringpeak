@@ -5,7 +5,6 @@ export interface CurrentUserStore extends ClsStore {
     id: string;
     email: string;
     name: string;
-    role: string;
     active: boolean;
     userType: string;
     roleId: number | null;

@@ -13,9 +13,7 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@workspace/shared/enums';
-import { Roles } from '../auth/roles/roles.decorator';
-import { RolesGuard } from '../auth/roles/roles.guard';
+import { InternalUserGuard } from '../auth/internal-user.guard';
 import {
   CreateOrganizationDto,
   OrganizationQueryParams,
@@ -23,34 +21,30 @@ import {
 import { OrganizationService } from './organization.service';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(InternalUserGuard)
 @ApiTags('Organizations')
 @Controller('organization')
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
-  @Roles(UserRole.SYSTEM_ADMIN)
   @ApiOkResponse()
   @Get()
   async findAll(@Query() query: OrganizationQueryParams) {
     return this.organizationService.findAll(query);
   }
 
-  @Roles(UserRole.SYSTEM_ADMIN)
   @ApiOkResponse()
   @Get(':id/detail')
   async findOneWithUsers(@Param('id') id: string) {
     return this.organizationService.findOneWithUsers(+id);
   }
 
-  @Roles(UserRole.SYSTEM_ADMIN)
   @ApiOkResponse()
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.organizationService.findOne(+id);
   }
 
-  @Roles(UserRole.SYSTEM_ADMIN)
   @ApiCreatedResponse()
   @Post()
   async create(@Body() createOrganizationDto: CreateOrganizationDto) {

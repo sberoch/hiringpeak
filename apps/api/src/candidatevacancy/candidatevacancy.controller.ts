@@ -15,18 +15,18 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CandidateVacancyService } from './candidatevacancy.service';
 import {
   CreateCandidateVacancyDto,
   UpdateCandidateVacancyDto,
   CandidateVacancyQueryParams,
 } from './candidatevacancy.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(OrganizationGuard)
 @ApiTags('CandidateVacancies')
 @Controller('candidateVacancy')
 export class CandidateVacancyController {
@@ -53,6 +53,7 @@ export class CandidateVacancyController {
   }
 
   @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_candidate_vacancy', entityType: 'candidate_vacancy' })
   @Post()
   async create(
     @Body() createCandidateVacancyDto: CreateCandidateVacancyDto,
@@ -65,6 +66,7 @@ export class CandidateVacancyController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'update_candidate_vacancy', entityType: 'candidate_vacancy' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -78,6 +80,7 @@ export class CandidateVacancyController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'delete_candidate_vacancy', entityType: 'candidate_vacancy' })
   @Delete(':id')
   async remove(
     @Param('id') id: string,

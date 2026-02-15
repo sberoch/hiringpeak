@@ -15,20 +15,21 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CandidateSourceService } from './candidatesource.service';
 import {
   CreateCandidateSourceDto,
   UpdateCandidateSourceDto,
   CandidateSourceQueryParams,
 } from './candidatesource.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { UserRole } from '@workspace/shared/enums';
-import { Roles } from '../auth/roles/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('CandidateSources')
 @Controller('candidateSource')
 export class CandidateSourceController {
@@ -54,7 +55,8 @@ export class CandidateSourceController {
     return this.candidateSourceService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
+  @AuditAction({ eventType: 'create_candidate_source', entityType: 'candidate_source' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -67,7 +69,8 @@ export class CandidateSourceController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
+  @AuditAction({ eventType: 'update_candidate_source', entityType: 'candidate_source' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -81,7 +84,8 @@ export class CandidateSourceController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
+  @AuditAction({ eventType: 'delete_candidate_source', entityType: 'candidate_source' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(

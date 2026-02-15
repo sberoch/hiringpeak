@@ -11,6 +11,7 @@ import { OrganizationGuard } from './organization/organization.guard';
 import { DrizzleModule } from '../common/database/drizzle.module';
 import { AuthzService } from './authz/authz.service';
 import { PermissionsGuard } from './permissions/permissions.guard';
+import { InternalUserGuard } from './internal-user.guard';
 import { PermissionModule } from '../permission/permission.module';
 import { RoleModule } from '../role/role.module';
 
@@ -18,7 +19,7 @@ import { RoleModule } from '../role/role.module';
   imports: [
     forwardRef(() => UserModule),
     forwardRef(() => RoleModule),
-    PermissionModule,
+    forwardRef(() => PermissionModule),
     DrizzleModule,
     FeatureFlagModule,
     PassportModule,
@@ -27,7 +28,7 @@ import { RoleModule } from '../role/role.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, OrganizationGuard, AuthzService, PermissionsGuard],
-  exports: [AuthService, JwtModule, OrganizationGuard, AuthzService, PermissionsGuard],
+  providers: [AuthService, LocalStrategy, JwtStrategy, OrganizationGuard, AuthzService, PermissionsGuard, InternalUserGuard],
+  exports: [AuthService, JwtModule, OrganizationGuard, AuthzService, PermissionsGuard, InternalUserGuard],
 })
 export class AuthModule {}

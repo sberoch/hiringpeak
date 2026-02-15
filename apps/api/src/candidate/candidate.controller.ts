@@ -15,6 +15,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CandidateService } from './candidate.service';
 import {
   CreateCandidateDto,
@@ -68,6 +69,7 @@ export class CandidateController {
   }
 
   @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_candidate', entityType: 'candidate' })
   @Post()
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async create(
@@ -81,6 +83,7 @@ export class CandidateController {
   }
 
   @ApiCreatedResponse()
+  @AuditAction({ eventType: 'blacklist_candidate', entityType: 'candidate' })
   @Post(':id/blacklist')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async blacklist(
@@ -98,6 +101,7 @@ export class CandidateController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'update_candidate', entityType: 'candidate' })
   @Patch(':id')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async update(
@@ -112,6 +116,7 @@ export class CandidateController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'delete_candidate', entityType: 'candidate' })
   @Delete(':id')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async remove(

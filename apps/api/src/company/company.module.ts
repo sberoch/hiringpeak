@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { CompanyController } from './company.controller';
 import { CompanyService } from './company.service';
 import { DrizzleModule } from '../common/database/drizzle.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DrizzleModule, AuthModule],
   controllers: [CompanyController],
   providers: [CompanyService],
   exports: [CompanyService],

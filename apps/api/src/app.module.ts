@@ -29,10 +29,11 @@ import { OnboardModule } from './onboard/onboard.module';
 import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 import { PermissionModule } from './permission/permission.module';
 import { RoleModule } from './role/role.module';
-import { SeedModule } from './seed/seed.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
+    AuditLogModule,
     EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -63,7 +64,6 @@ import { SeedModule } from './seed/seed.module';
     DashboardModule,
     OrganizationModule,
     OnboardModule,
-    SeedModule,
   ],
   controllers: [AppController],
   providers: [

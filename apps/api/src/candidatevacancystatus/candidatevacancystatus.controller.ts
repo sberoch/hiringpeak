@@ -15,20 +15,21 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CandidateVacancyStatusService } from './candidatevacancystatus.service';
 import {
   CreateCandidateVacancyStatusDto,
   UpdateCandidateVacancyStatusDto,
   CandidateVacancyStatusQueryParams,
 } from './candidatevacancystatus.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { Roles } from '../auth/roles/roles.decorator';
-import { UserRole } from '@workspace/shared/enums';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard, OrganizationGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('CandidateVacancyStatuses')
 @Controller('candidateVacancyStatus')
 export class CandidateVacancyStatusController {
@@ -57,7 +58,8 @@ export class CandidateVacancyStatusController {
     return this.candidateVacancyStatusService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'create_candidate_vacancy_status', entityType: 'candidate_vacancy_status' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -70,7 +72,8 @@ export class CandidateVacancyStatusController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'update_candidate_vacancy_status', entityType: 'candidate_vacancy_status' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -84,7 +87,8 @@ export class CandidateVacancyStatusController {
     });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'delete_candidate_vacancy_status', entityType: 'candidate_vacancy_status' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(

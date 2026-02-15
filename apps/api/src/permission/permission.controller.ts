@@ -8,15 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '@workspace/shared/enums';
-import { Roles } from '../auth/roles/roles.decorator';
-import { RolesGuard } from '../auth/roles/roles.guard';
+import { InternalUserGuard } from '../auth/internal-user.guard';
 import { PermissionQueryParams, UpdatePermissionDto } from './permission.dto';
 import { PermissionService } from './permission.service';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
-@Roles(UserRole.SYSTEM_ADMIN)
+@UseGuards(InternalUserGuard)
 @ApiTags('Permissions')
 @Controller('permission')
 export class PermissionController {

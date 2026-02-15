@@ -16,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PermissionCode } from '@workspace/shared/enums';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { Permissions } from '../auth/permissions/permissions.decorator';
@@ -51,6 +52,7 @@ export class RoleController {
   }
 
   @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_role', entityType: 'role' })
   @Post()
   @Permissions(PermissionCode.ROLE_MANAGE)
   async create(
@@ -61,6 +63,7 @@ export class RoleController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'update_role', entityType: 'role' })
   @Patch(':id')
   @Permissions(PermissionCode.ROLE_MANAGE)
   async update(
@@ -72,6 +75,7 @@ export class RoleController {
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'delete_role', entityType: 'role' })
   @Delete(':id')
   @Permissions(PermissionCode.ROLE_MANAGE)
   async remove(

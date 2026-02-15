@@ -4,7 +4,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UserRole } from '@workspace/shared/enums';
 import {
   excludePassword,
   hashPassword,
@@ -56,12 +55,7 @@ export class UserService {
       itemsQuery,
       countQuery,
     ]);
-    items = items.map((user) => excludePassword(user as User));
-    const itemsResponse: User[] = items.map((user) => {
-      user.role = user.role as UserRole;
-      return user as User;
-    });
-
+    const itemsResponse = items.map((user) => excludePassword(user as User));
     return paginatedResponse(itemsResponse, totalItems, paginationQuery);
   }
 
@@ -169,11 +163,11 @@ export class UserService {
     if (params.active !== undefined) {
       filters.push(eq(users.active, params.active));
     }
-    if (params.role) {
-      filters.push(eq(users.role, params.role));
+    if (params.roleId != null) {
+      filters.push(eq(users.roleId, params.roleId));
     }
-    if (params.excludeRole) {
-      filters.push(not(eq(users.role, params.excludeRole)));
+    if (params.excludeRoleId != null) {
+      filters.push(not(eq(users.roleId, params.excludeRoleId)));
     }
     return and(...filters);
   }

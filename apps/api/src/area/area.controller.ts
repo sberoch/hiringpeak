@@ -15,17 +15,19 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@workspace/shared/enums';
+import { PermissionCode } from '@workspace/shared/enums';
 import { ClsService } from 'nestjs-cls';
 import { OrganizationId } from 'src/auth/organization/organization.decorator';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CurrentUserStore } from '../auth/auth.currentuser.store';
-import { Roles } from '../auth/roles/roles.decorator';
-import { RolesGuard } from '../auth/roles/roles.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { AreaQueryParamsDto, CreateAreaDto, UpdateAreaDto } from './area.dto';
 import { AreaService } from './area.service';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('Areas')
 @Controller('area')
 export class AreaController {
@@ -52,7 +54,8 @@ export class AreaController {
     return this.areaService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.AREA_MANAGE)
+  @AuditAction({ eventType: 'create_area', entityType: 'area' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -62,7 +65,8 @@ export class AreaController {
     return this.areaService.create(createAreaDto, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.AREA_MANAGE)
+  @AuditAction({ eventType: 'update_area', entityType: 'area' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -73,7 +77,8 @@ export class AreaController {
     return this.areaService.update(+id, updateAreaDto, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.AREA_MANAGE)
+  @AuditAction({ eventType: 'delete_area', entityType: 'area' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(
