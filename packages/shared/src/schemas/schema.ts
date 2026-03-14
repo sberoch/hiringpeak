@@ -1,4 +1,5 @@
 export * from "./area.schema";
+export * from "./audit-event.schema";
 export * from "./blacklist.schema";
 export * from "./candidate.schema";
 export * from "./candidatefile.schema";
@@ -8,6 +9,10 @@ export * from "./candidatevacancystatus.schema";
 export * from "./comment.schema";
 export * from "./company.schema";
 export * from "./industry.schema";
+export * from "./organization.schema";
+export * from "./permission.schema";
+export * from "./role.schema";
+export * from "./role-permission.schema";
 export * from "./seniority.schema";
 export * from "./user.schema";
 export * from "./vacancy.schema";

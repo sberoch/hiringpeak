@@ -18,11 +18,11 @@ import {
   COMPANY_STATUS_NAMES,
   CompanyStatusEnum,
 } from "@workspace/shared/types/company";
-import { UserRoleEnum } from "@workspace/shared/types/user";
 import { cn } from "@/lib/utils";
 import { DeleteCompanyDialog } from "@/components/companies/delete-company-dialog";
 import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
-import { RBACAuthzGuard } from "@/components/auth/rbac-authz-guard";
+import { PermissionGuard } from "@/components/auth/permission-guard";
+import { PermissionCode } from "@workspace/shared/enums";
 
 interface CellActionsProps {
   company: Company;
@@ -49,14 +49,14 @@ const CellActions = ({ company }: CellActionsProps) => {
           >
             Editar empresa
           </DropdownMenuItem>
-          <RBACAuthzGuard visibleTo={[UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]}>
+          <PermissionGuard permissions={[PermissionCode.COMPANY_MANAGE]}>
             <DropdownMenuItem
               className="text-red-600 cursor-pointer"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
               Eliminar empresa
             </DropdownMenuItem>
-          </RBACAuthzGuard>
+          </PermissionGuard>
         </DropdownMenuContent>
       </DropdownMenu>
       {isDeleteDialogOpen && (

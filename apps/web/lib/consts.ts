@@ -1,56 +1,27 @@
-import { UserRoleEnum } from "@workspace/shared/types/user";
-
 export const REDIRECT_AUTHORIZED = "/candidates";
 export const REDIRECT_UNAUTHORIZED = "/login";
 
-export const PAGE_AUTHORIZATION_ACCESS: Record<string, UserRoleEnum[]> = {
-  "/candidates": [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.BASIC],
-  "/candidates/:id": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
-  "/candidates/:id/edit": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
-  "/candidates/new": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
-  "/companies": [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.BASIC],
-  "/companies/new": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
-  "/dashboard": [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.BASIC],
-  "/settings": [UserRoleEnum.ADMIN],
-  "/users": [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER],
-  "/users/new": [UserRoleEnum.ADMIN],
-  "/vacancies": [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.BASIC],
-  "/vacancies/:id": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
-  "/vacancies/:id/candidate-selection": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
-  "/vacancies/new": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
-  "/vacancies/new/candidate-selection": [
-    UserRoleEnum.ADMIN,
-    UserRoleEnum.MANAGER,
-    UserRoleEnum.BASIC,
-  ],
+/** Path patterns that require authentication (any authenticated user). API enforces permissions. */
+export const PAGE_AUTHORIZATION_ACCESS: Record<string, true> = {
+  "/candidates": true,
+  "/candidates/:id": true,
+  "/candidates/:id/edit": true,
+  "/candidates/new": true,
+  "/companies": true,
+  "/companies/new": true,
+  "/dashboard": true,
+  "/settings": true,
+  "/organization-settings": true,
+  "/organization-settings/users": true,
+  "/organization-settings/roles": true,
+  "/organization-settings/audit-log": true,
+  "/users": true,
+  "/users/new": true,
+  "/vacancies": true,
+  "/vacancies/:id": true,
+  "/vacancies/:id/candidate-selection": true,
+  "/vacancies/new": true,
+  "/vacancies/new/candidate-selection": true,
 } as const;
 
 export enum DialogsIdsEnum {

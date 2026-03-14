@@ -30,9 +30,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateCandidateVacancyStatusDto,
-  CandidateVacancyStatusQueryParams,
-  UpdateCandidateVacancyStatusDto,
+  CandidateVacancyStatusFindAllServiceParams,
+  CreateCandidateVacancyStatusServiceDto,
+  UpdateCandidateVacancyStatusServiceDto,
 } from './candidatevacancystatus.dto';
 
 @Injectable()
@@ -40,7 +40,7 @@ export class CandidateVacancyStatusService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CandidateVacancyStatusQueryParams,
+    params: CandidateVacancyStatusFindAllServiceParams,
   ): Promise<PaginatedResponse<CandidateVacancyStatus>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -65,50 +65,60 @@ export class CandidateVacancyStatusService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const candidateVacancyStatus =
       await this.db.query.candidateVacancyStatuses.findFirst({
-        where: eq(candidateVacancyStatuses.id, id),
+        where: and(
+          eq(candidateVacancyStatuses.id, id),
+          eq(candidateVacancyStatuses.organizationId, organizationId),
+        ),
       });
     if (!candidateVacancyStatus) throw new NotFoundException('Not found');
     return candidateVacancyStatus;
   }
 
-  async create(
-    createCandidateVacancyStatusDto: CreateCandidateVacancyStatusDto,
-  ) {
-    const sort = createCandidateVacancyStatusDto.sort ?? 0;
+  async create(dto: CreateCandidateVacancyStatusServiceDto) {
+    const sort = dto.sort ?? 0;
+    const { organizationId } = dto;
 
     return await this.db.transaction(async (tx) => {
       await tx
         .update(candidateVacancyStatuses)
         .set({ sort: sql`${candidateVacancyStatuses.sort} + 1` })
-        .where(gte(candidateVacancyStatuses.sort, sort));
+        .where(
+          and(
+            eq(candidateVacancyStatuses.organizationId, organizationId),
+            gte(candidateVacancyStatuses.sort, sort),
+          ),
+        );
 
-      if (createCandidateVacancyStatusDto.isInitial === true) {
+      if (dto.isInitial === true) {
         await tx
           .update(candidateVacancyStatuses)
           .set({ isInitial: false })
-          .where(eq(candidateVacancyStatuses.isInitial, true));
+          .where(
+            and(
+              eq(candidateVacancyStatuses.organizationId, organizationId),
+              eq(candidateVacancyStatuses.isInitial, true),
+            ),
+          );
       }
 
       const [candidateVacancyStatus] = await tx
         .insert(candidateVacancyStatuses)
-        .values({ ...createCandidateVacancyStatusDto, sort })
+        .values({ ...dto, sort })
         .returning();
 
       return candidateVacancyStatus;
     });
   }
 
-  async update(
-    id: number,
-    updateCandidateVacancyStatusDto: UpdateCandidateVacancyStatusDto,
-  ) {
+  async update(id: number, dto: UpdateCandidateVacancyStatusServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     return await this.db.transaction(async (tx) => {
-      const currentStatus = await this.findOne(id);
+      const currentStatus = await this.findOne(id, organizationId);
 
-      const newSort = updateCandidateVacancyStatusDto.sort;
+      const newSort = dto.sort;
 
       if (newSort !== undefined && newSort !== currentStatus.sort) {
         if (newSort > currentStatus.sort) {
@@ -117,6 +127,7 @@ export class CandidateVacancyStatusService {
             .set({ sort: sql`${candidateVacancyStatuses.sort} - 1` })
             .where(
               and(
+                eq(candidateVacancyStatuses.organizationId, organizationId),
                 gt(candidateVacancyStatuses.sort, currentStatus.sort),
                 lte(candidateVacancyStatuses.sort, newSort),
               ),
@@ -127,6 +138,7 @@ export class CandidateVacancyStatusService {
             .set({ sort: sql`${candidateVacancyStatuses.sort} + 1` })
             .where(
               and(
+                eq(candidateVacancyStatuses.organizationId, organizationId),
                 gte(candidateVacancyStatuses.sort, newSort),
                 lt(candidateVacancyStatuses.sort, currentStatus.sort),
               ),
@@ -134,12 +146,13 @@ export class CandidateVacancyStatusService {
         }
       }
 
-      if (updateCandidateVacancyStatusDto.isInitial === true) {
+      if (dto.isInitial === true) {
         await tx
           .update(candidateVacancyStatuses)
           .set({ isInitial: false })
           .where(
             and(
+              eq(candidateVacancyStatuses.organizationId, organizationId),
               not(eq(candidateVacancyStatuses.id, id)),
               eq(candidateVacancyStatuses.isInitial, true),
             ),
@@ -148,26 +161,41 @@ export class CandidateVacancyStatusService {
 
       const [updated] = await tx
         .update(candidateVacancyStatuses)
-        .set(updateCandidateVacancyStatusDto)
-        .where(eq(candidateVacancyStatuses.id, id))
+        .set(updateFields)
+        .where(
+          and(
+            eq(candidateVacancyStatuses.id, id),
+            eq(candidateVacancyStatuses.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       return updated;
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     return await this.db.transaction(async (tx) => {
-      const currentStatus = await this.findOne(id);
+      const currentStatus = await this.findOne(id, organizationId);
 
       await tx
         .update(candidateVacancyStatuses)
         .set({ sort: sql`${candidateVacancyStatuses.sort} - 1` })
-        .where(gt(candidateVacancyStatuses.sort, currentStatus.sort));
+        .where(
+          and(
+            eq(candidateVacancyStatuses.organizationId, organizationId),
+            gt(candidateVacancyStatuses.sort, currentStatus.sort),
+          ),
+        );
 
       const [deleted] = await tx
         .delete(candidateVacancyStatuses)
-        .where(eq(candidateVacancyStatuses.id, id))
+        .where(
+          and(
+            eq(candidateVacancyStatuses.id, id),
+            eq(candidateVacancyStatuses.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       return deleted;
@@ -178,7 +206,9 @@ export class CandidateVacancyStatusService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: CandidateVacancyStatusQueryParams): SQL[] {
+  private buildOrderBy(
+    params: CandidateVacancyStatusFindAllServiceParams,
+  ): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -189,8 +219,13 @@ export class CandidateVacancyStatusService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: CandidateVacancyStatusQueryParams) {
+  private buildWhereClause(
+    params: CandidateVacancyStatusFindAllServiceParams,
+  ) {
     const filters: SQL[] = [];
-    return filters.length > 0 ? and(...filters) : undefined;
+    filters.push(
+      eq(candidateVacancyStatuses.organizationId, params.organizationId),
+    );
+    return and(...filters);
   }
 }

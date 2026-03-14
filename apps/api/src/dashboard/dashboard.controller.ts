@@ -1,10 +1,8 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { RolesGuard } from '../auth/roles/roles.guard';
 import { DashboardService } from './dashboard.service';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
 @ApiTags('Dashboard')
 @Controller('dashboard')
 export class DashboardController {

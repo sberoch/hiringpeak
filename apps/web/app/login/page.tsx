@@ -9,6 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
+  const loginEnabled = process.env.NEXT_PUBLIC_LOGIN_ENABLED !== "false";
+  const googleLoginEnabled =
+    process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED !== "false";
+
   return (
     <div className="w-full lg:grid lg:grid-cols-2 min-h-screen h-full">
       <div className="flex items-center justify-center py-12">
@@ -22,9 +26,17 @@ export default function LoginPage() {
               className="h-10 object-contain mb-12"
             />
             <h1 className="text-3xl font-bold">Iniciar sesión</h1>
-            <p>Ingrese sus credenciales para acceder a su cuenta</p>
+            {loginEnabled ? (
+              <p>Ingrese sus credenciales para acceder a su cuenta</p>
+            ) : (
+              <p className="text-muted-foreground">
+                Login is currently disabled
+              </p>
+            )}
           </div>
-          <LoginForm />
+          {loginEnabled ? (
+            <LoginForm showGoogleButton={googleLoginEnabled} />
+          ) : null}
         </div>
       </div>
       <div className="hidden bg-muted lg:block relative">

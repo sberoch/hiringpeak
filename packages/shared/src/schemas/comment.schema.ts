@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { candidates } from "./candidate.schema";
 import { users } from "./user.schema";
+import { organizations } from "./organization.schema";
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
@@ -17,6 +18,11 @@ export const comments = pgTable("comments", {
     .references(() => users.id, {
       onDelete: "cascade",
     }),
+  organizationId: integer("organization_id")
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
 });
 
 export const commentRelations = relations(comments, ({ one }) => ({
@@ -27,6 +33,10 @@ export const commentRelations = relations(comments, ({ one }) => ({
   user: one(users, {
     fields: [comments.userId],
     references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [comments.organizationId],
+    references: [organizations.id],
   }),
 }));
 

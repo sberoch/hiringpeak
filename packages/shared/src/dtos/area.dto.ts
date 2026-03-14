@@ -7,7 +7,9 @@ export const CreateAreaSchema = z.object({
 
 export const UpdateAreaSchema = CreateAreaSchema.partial();
 
-export const AreaQueryParamsSchema = PaginationParamsSchema;
+export const AreaQueryParamsSchema = PaginationParamsSchema.extend({
+  name: z.string().optional(),
+});
 
 export type CreateAreaDto = z.infer<typeof CreateAreaSchema>;
 export type UpdateAreaDto = z.infer<typeof UpdateAreaSchema>;

@@ -21,12 +21,14 @@ import {
   UpdateSeniorityDto,
   SeniorityQueryParams,
 } from './seniority.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { Roles } from '../auth/roles/roles.decorator';
-import { UserRole } from '@workspace/shared/enums';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('Seniorities')
 @Controller('seniority')
 export class SeniorityController {
@@ -34,37 +36,56 @@ export class SeniorityController {
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: SeniorityQueryParams) {
-    return this.seniorityService.findAll(query);
+  async findAll(
+    @Query() query: SeniorityQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.seniorityService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.seniorityService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.seniorityService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createSeniorityDto: CreateSeniorityDto) {
-    return this.seniorityService.create(createSeniorityDto);
+  async create(
+    @Body() createSeniorityDto: CreateSeniorityDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.seniorityService.create({
+      ...createSeniorityDto,
+      organizationId,
+    });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
   @ApiOkResponse()
   @Patch(':id')
   async update(
     @Param('id') id: string,
     @Body() updateSeniorityDto: UpdateSeniorityDto,
+    @OrganizationId() organizationId: number,
   ) {
-    return this.seniorityService.update(+id, updateSeniorityDto);
+    return this.seniorityService.update(+id, {
+      ...updateSeniorityDto,
+      organizationId,
+    });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.seniorityService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.seniorityService.remove(+id, organizationId);
   }
 }

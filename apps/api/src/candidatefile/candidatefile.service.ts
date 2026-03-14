@@ -14,9 +14,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CandidateFileQueryParams,
-  CreateCandidateFileDto,
-  UpdateCandidateFileDto,
+  CandidateFileFindAllServiceParams,
+  CreateCandidateFileServiceDto,
+  UpdateCandidateFileServiceDto,
 } from './candidatefile.dto';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class CandidateFileService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CandidateFileQueryParams,
+    params: CandidateFileFindAllServiceParams,
   ): Promise<PaginatedResponse<CandidateFile>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -49,35 +49,49 @@ export class CandidateFileService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const candidatefile = await this.db.query.candidateFiles.findFirst({
-      where: eq(candidateFiles.id, id),
+      where: and(
+        eq(candidateFiles.id, id),
+        eq(candidateFiles.organizationId, organizationId),
+      ),
     });
     if (!candidatefile) throw new NotFoundException('Not found');
     return candidatefile;
   }
 
-  async create(createCandidateFileDto: CreateCandidateFileDto) {
+  async create(dto: CreateCandidateFileServiceDto) {
     const [candidatefile] = await this.db
       .insert(candidateFiles)
-      .values(createCandidateFileDto)
+      .values(dto)
       .returning();
     return candidatefile;
   }
 
-  async update(id: number, updateCandidateFileDto: UpdateCandidateFileDto) {
+  async update(id: number, dto: UpdateCandidateFileServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [candidatefile] = await this.db
       .update(candidateFiles)
-      .set(updateCandidateFileDto)
-      .where(eq(candidateFiles.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(candidateFiles.id, id),
+          eq(candidateFiles.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidatefile;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [candidatefile] = await this.db
       .delete(candidateFiles)
-      .where(eq(candidateFiles.id, id))
+      .where(
+        and(
+          eq(candidateFiles.id, id),
+          eq(candidateFiles.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidatefile;
   }
@@ -86,7 +100,7 @@ export class CandidateFileService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: CandidateFileQueryParams): SQL[] {
+  private buildOrderBy(params: CandidateFileFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -97,8 +111,9 @@ export class CandidateFileService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: CandidateFileQueryParams) {
+  private buildWhereClause(params: CandidateFileFindAllServiceParams) {
     const filters: SQL[] = [];
-    return filters.length > 0 ? and(...filters) : undefined;
+    filters.push(eq(candidateFiles.organizationId, params.organizationId));
+    return and(...filters);
   }
 }

@@ -24,9 +24,16 @@ import { BlacklistModule } from './blacklist/blacklist.module';
 import { VacancyModule } from './vacancy/vacancy.module';
 import { CandidateVacancyModule } from './candidatevacancy/candidatevacancy.module';
 import { CompanyModule } from './company/company.module';
+import { OrganizationModule } from './organization/organization.module';
+import { OnboardModule } from './onboard/onboard.module';
+import { FeatureFlagModule } from './feature-flag/feature-flag.module';
+import { PermissionModule } from './permission/permission.module';
+import { RoleModule } from './role/role.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
+    AuditLogModule,
     EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -36,8 +43,11 @@ import { CompanyModule } from './company/company.module';
       middleware: { mount: true },
     }),
     DrizzleModule,
+    FeatureFlagModule,
     UserModule,
     AuthModule,
+    PermissionModule,
+    RoleModule,
     CandidateModule,
     VacancyModule,
     CandidateVacancyModule,
@@ -52,6 +62,8 @@ import { CompanyModule } from './company/company.module';
     CommentModule,
     BlacklistModule,
     DashboardModule,
+    OrganizationModule,
+    OnboardModule,
   ],
   controllers: [AppController],
   providers: [

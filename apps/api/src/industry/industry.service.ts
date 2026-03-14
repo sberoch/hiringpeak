@@ -14,9 +14,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateIndustryDto,
-  IndustryQueryParams,
-  UpdateIndustryDto,
+  CreateIndustryServiceDto,
+  IndustryFindAllServiceParams,
+  UpdateIndustryServiceDto,
 } from './industry.dto';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class IndustryService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: IndustryQueryParams,
+    params: IndustryFindAllServiceParams,
   ): Promise<PaginatedResponse<Industry>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -49,35 +49,49 @@ export class IndustryService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const industry = await this.db.query.industries.findFirst({
-      where: eq(industries.id, id),
+      where: and(
+        eq(industries.id, id),
+        eq(industries.organizationId, organizationId),
+      ),
     });
     if (!industry) throw new NotFoundException('Not found');
     return industry;
   }
 
-  async create(createIndustryDto: CreateIndustryDto) {
+  async create(dto: CreateIndustryServiceDto) {
     const [industry] = await this.db
       .insert(industries)
-      .values(createIndustryDto)
+      .values(dto)
       .returning();
     return industry;
   }
 
-  async update(id: number, updateIndustryDto: UpdateIndustryDto) {
+  async update(id: number, dto: UpdateIndustryServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [industry] = await this.db
       .update(industries)
-      .set(updateIndustryDto)
-      .where(eq(industries.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(industries.id, id),
+          eq(industries.organizationId, organizationId),
+        ),
+      )
       .returning();
     return industry;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [industry] = await this.db
       .delete(industries)
-      .where(eq(industries.id, id))
+      .where(
+        and(
+          eq(industries.id, id),
+          eq(industries.organizationId, organizationId),
+        ),
+      )
       .returning();
     return industry;
   }
@@ -86,7 +100,7 @@ export class IndustryService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: IndustryQueryParams): SQL[] {
+  private buildOrderBy(params: IndustryFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -97,8 +111,9 @@ export class IndustryService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: IndustryQueryParams) {
+  private buildWhereClause(params: IndustryFindAllServiceParams) {
     const filters: SQL[] = [];
-    return filters.length > 0 ? and(...filters) : undefined;
+    filters.push(eq(industries.organizationId, params.organizationId));
+    return and(...filters);
   }
 }

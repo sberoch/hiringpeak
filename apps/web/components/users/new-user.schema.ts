@@ -1,18 +1,16 @@
 import { z } from "zod";
 
-import { UserRoleEnum } from "@workspace/shared/types/user";
+import { passwordSchema } from "@workspace/shared/lib/password.schema";
 
 export const userFormSchema = z.object({
   name: z.string().min(2, {
     message: "El nombre debe tener al menos 2 caracteres.",
   }),
-  email: z.string().email({
+  email: z.email({
     message: "Ingrese una dirección de correo electrónico válida.",
   }),
-  password: z.string().min(8, {
-    message: "La contraseña debe tener al menos 8 caracteres.",
-  }),
-  role: z.nativeEnum(UserRoleEnum),
+  password: passwordSchema,
+  roleId: z.number().int().positive().optional(),
 });
 
 export type UserFormSchema = z.infer<typeof userFormSchema>;

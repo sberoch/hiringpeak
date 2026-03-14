@@ -3,11 +3,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { CurrentUserStore } from '../auth.currentuser.store';
+import { UserService } from '../../user/user.service';
 import 'dotenv/config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly cls: ClsService<CurrentUserStore>) {
+  constructor(
+    private readonly cls: ClsService<CurrentUserStore>,
+    private readonly userService: UserService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -16,13 +20,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    this.cls.set('user', payload);
-    return {
+    const userId =
+      typeof payload.id === 'string' ? parseInt(payload.id, 10) : payload.id;
+    const user = await this.userService.findById(userId);
+    if (!user) return null;
+
+    const organizationId = user.organizationId ?? undefined;
+    const userData = {
       id: payload.id,
       email: payload.email,
       name: payload.name,
-      role: payload.role,
       active: payload.active,
+      userType: user.userType,
+      roleId: user.roleId ?? null,
+      organizationId,
     };
+
+    this.cls.set('user', userData);
+    this.cls.set('organizationId', organizationId);
+
+    return userData;
   }
 }

@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { Edit, Plus, Trash, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { stringToColor, vacancyDisplayLabel } from "@/lib/utils";
+import { PermissionCode } from "@workspace/shared/enums";
+import type { Vacancy } from "@workspace/shared/types/vacancy";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import { WorkflowInfoDialog } from "@workspace/ui/components/workflow-info-dialog";
+import { PermissionGuard } from "../../auth/permission-guard";
 import { DeleteVacancyDialog } from "../delete-vacancy-dialog";
 import { EditVacancySheet } from "../edit-vacancy-sheet";
 import { AddCandidatesDialog } from "./add-candidates-dialog";
 import { VacancyDetailHeaderFilters } from "./vacancy-detail-header-filters";
-import { stringToColor, vacancyDisplayLabel } from "@/lib/utils";
-import type { Vacancy } from "@workspace/shared/types/vacancy";
-import { UserRoleEnum } from "@workspace/shared/types/user";
-import { RBACAuthzGuard } from "../../auth/rbac-authz-guard";
 
 interface VacancyDetailHeaderProps {
   vacancy: Vacancy;
@@ -139,7 +139,7 @@ export const VacancyDetailHeader = ({
               <UserPlus className="h-4 w-4" />
               Nuevo postulante
             </Button>
-            <RBACAuthzGuard visibleTo={[UserRoleEnum.ADMIN]}>
+            <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
               <Button
                 variant="outline"
                 size="sm"
@@ -149,7 +149,7 @@ export const VacancyDetailHeader = ({
                 <Trash className="h-4 w-4" />
                 Eliminar vacante
               </Button>
-            </RBACAuthzGuard>
+            </PermissionGuard>
           </div>
         </Card>
 

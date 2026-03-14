@@ -15,6 +15,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CommentService } from './comment.service';
 import {
   CreateCommentDto,
@@ -22,10 +23,11 @@ import {
   CommentQueryParams,
   DeleteCommentDto,
 } from './comment.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(OrganizationGuard)
 @ApiTags('Comments')
 @Controller('comment')
 export class CommentController {
@@ -33,37 +35,57 @@ export class CommentController {
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: CommentQueryParams) {
-    return this.commentService.findAll(query);
+  async findAll(
+    @Query() query: CommentQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.commentService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.commentService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.commentService.findOne(+id, organizationId);
   }
 
   @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_comment', entityType: 'comment' })
   @Post()
-  async create(@Body() createCommentDto: CreateCommentDto) {
-    return this.commentService.create(createCommentDto);
+  async create(
+    @Body() createCommentDto: CreateCommentDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.commentService.create({
+      ...createCommentDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'update_comment', entityType: 'comment' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
     @Body() updateCommentDto: UpdateCommentDto,
+    @OrganizationId() organizationId: number,
   ) {
-    return this.commentService.update(+id, updateCommentDto);
+    return this.commentService.update(+id, {
+      ...updateCommentDto,
+      organizationId,
+    });
   }
 
   @ApiOkResponse()
+  @AuditAction({ eventType: 'delete_comment', entityType: 'comment' })
   @Delete(':id')
   async remove(
     @Param('id') id: string,
     @Body() deleteCommentDto: DeleteCommentDto,
+    @OrganizationId() organizationId: number,
   ) {
-    return this.commentService.remove(+id, deleteCommentDto);
+    return this.commentService.remove(+id, organizationId, deleteCommentDto);
   }
 }

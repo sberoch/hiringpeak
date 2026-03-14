@@ -7,11 +7,11 @@ import { Button } from "@workspace/ui/components/button";
 import { Heading } from "@workspace/ui/components/heading";
 import { StatCard } from "@workspace/ui/components/stat-card";
 import { VacancyTableHeadless } from "@/components/vacancies/vacancy-table-headless";
+import { getMePermissions } from "@/lib/api/auth";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
 import { auth } from "@/lib/auth";
 import { parseJwt } from "@/lib/utils";
-import { UserRoleEnum } from "@workspace/shared/types/user";
 
 export const metadata: Metadata = {
   title: "Dashboard | PRATT FIT",
@@ -19,7 +19,9 @@ export const metadata: Metadata = {
 
 export default async function Dashboard() {
   const session = await auth();
-  const data = parseJwt(session?.accessToken || "");
+  const token = session?.accessToken ?? "";
+  const data = parseJwt(token);
+  const permissions = token ? await getMePermissions(token) : null;
   const dashboardData = await getDashboardSummary();
   const spreadsheetUrl = process.env.NEXT_PUBLIC_SPREADSHEET_URL;
   const vacancyStatuses = await getAllVacancyStatuses({ limit: 1e9, page: 1 });
@@ -42,9 +44,11 @@ export default async function Dashboard() {
     <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
         <Heading>¡Hola {data.name}! 👋</Heading>
-        <Badge className="ml-4 bg-[#445cb4]/10 text-[#445cb4] hover:bg-[#445cb4]/10">
-          {data.role === UserRoleEnum.ADMIN ? "Administrador" : "Reclutador"}{" "}
-        </Badge>
+        {permissions?.roleName && (
+          <Badge className="ml-4 bg-[#445cb4]/10 text-[#445cb4] hover:bg-[#445cb4]/10">
+            {permissions.roleName}
+          </Badge>
+        )}
         <Badge className="bg-[#445cb4] hover:bg-[#445cb4]/70">Pratt</Badge>
       </div>
 

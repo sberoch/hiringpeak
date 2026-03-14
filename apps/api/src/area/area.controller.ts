@@ -13,51 +13,78 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { ApiTags } from '@nestjs/swagger';
+import { PermissionCode } from '@workspace/shared/enums';
+import { ClsService } from 'nestjs-cls';
+import { OrganizationId } from 'src/auth/organization/organization.decorator';
+import { AuditAction } from '../audit-log/audit-action.decorator';
+import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { AreaQueryParamsDto, CreateAreaDto, UpdateAreaDto } from './area.dto';
 import { AreaService } from './area.service';
-import { CreateAreaDto, UpdateAreaDto, AreaQueryParams } from './area.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { UserRole } from '@workspace/shared/enums';
-import { Roles } from '../auth/roles/roles.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('Areas')
 @Controller('area')
 export class AreaController {
-  constructor(private readonly areaService: AreaService) {}
+  constructor(
+    private readonly areaService: AreaService,
+    private readonly cls: ClsService<CurrentUserStore>,
+  ) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: AreaQueryParams) {
-    return this.areaService.findAll(query);
+  async findAll(
+    @Query() query: AreaQueryParamsDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.areaService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.AREA_MANAGE)
+  @AuditAction({ eventType: 'create_area', entityType: 'area' })
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createAreaDto: CreateAreaDto) {
-    return this.areaService.create(createAreaDto);
+  async create(
+    @Body() createAreaDto: CreateAreaDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.create(createAreaDto, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.AREA_MANAGE)
+  @AuditAction({ eventType: 'update_area', entityType: 'area' })
   @ApiOkResponse()
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateAreaDto: UpdateAreaDto) {
-    return this.areaService.update(+id, updateAreaDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateAreaDto: UpdateAreaDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.update(+id, updateAreaDto, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.AREA_MANAGE)
+  @AuditAction({ eventType: 'delete_area', entityType: 'area' })
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.areaService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.areaService.remove(+id, organizationId);
   }
 }

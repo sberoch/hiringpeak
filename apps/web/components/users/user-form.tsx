@@ -1,10 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { getAllRoles, ROLES_API_KEY } from "@/lib/api/role";
+import { createUser, USERS_API_KEY } from "@/lib/api/user";
+import { useQuery } from "@tanstack/react-query";
+import type { User } from "@workspace/shared/types/user";
 import { Button } from "@workspace/ui/components/button";
 import {
   Form,
@@ -22,8 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { ROLES_NAMES, User, UserRoleEnum } from "@workspace/shared/types/user";
-import { createUser, USERS_API_KEY } from "@/lib/api/user";
+import { PasswordRequirements } from "@workspace/ui/custom/password-requirements";
 
 import { userFormSchema, type UserFormSchema } from "./new-user.schema";
 
@@ -43,6 +46,11 @@ export function UserForm({
   submitLabel = "Crear usuario",
 }: UserFormProps) {
   const queryClient = useQueryClient();
+  const { data: rolesData } = useQuery({
+    queryKey: [ROLES_API_KEY],
+    queryFn: () => getAllRoles({ limit: 100, page: 1 }),
+  });
+  const roles = rolesData?.items ?? [];
 
   const form = useForm<UserFormSchema>({
     resolver: zodResolver(userFormSchema),
@@ -103,6 +111,10 @@ export function UserForm({
               <FormControl>
                 <Input placeholder="Contraseña" type="password" {...field} />
               </FormControl>
+              <PasswordRequirements
+                password={form.watch("password") ?? ""}
+                className="mt-2"
+              />
               <FormMessage />
             </FormItem>
           )}
@@ -110,21 +122,24 @@ export function UserForm({
 
         <FormField
           control={form.control}
-          name="role"
+          name="roleId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Rol</FormLabel>
               <FormControl>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}
+                  value={field.value != null ? String(field.value) : ""}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona un rol" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Object.values(UserRoleEnum).map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {ROLES_NAMES[role]}
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={String(role.id)}>
+                        {role.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

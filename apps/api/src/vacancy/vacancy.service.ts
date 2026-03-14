@@ -36,6 +36,7 @@ import {
   vacancyFiltersSeniorities,
   VacancyFiltersSeniority,
   VacancyStatus,
+  type NewVacancy,
 } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
@@ -45,9 +46,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateVacancyDto,
-  UpdateVacancyDto,
-  VacancyQueryParams,
+  CreateVacancyServiceDto,
+  UpdateVacancyServiceDto,
+  VacancyFindAllServiceParams,
 } from './vacancy.dto';
 
 type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
@@ -93,7 +94,7 @@ export class VacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: VacancyQueryParams,
+    params: VacancyFindAllServiceParams,
   ): Promise<PaginatedResponse<Partial<VacancyApiResponse>>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -151,9 +152,12 @@ export class VacancyService {
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const vacancy = await this.db.query.vacancies.findFirst({
-      where: eq(vacancies.id, id),
+      where: and(
+        eq(vacancies.id, id),
+        eq(vacancies.organizationId, organizationId),
+      ),
       with: {
         status: true,
         filters: {
@@ -190,12 +194,14 @@ export class VacancyService {
     return this.transformQueryResult(vacancy);
   }
 
-  async create(createVacancyDto: CreateVacancyDto) {
+  async create(dto: CreateVacancyServiceDto) {
+    const { organizationId, ...createVacancyDto } = dto;
     return this.db.transaction(async (tx) => {
       const [filters] = await tx
         .insert(vacancyFilters)
         .values({
           ...createVacancyDto.filters,
+          organizationId,
         })
         .returning();
 
@@ -230,7 +236,16 @@ export class VacancyService {
 
       const [vacancy] = await tx
         .insert(vacancies)
-        .values({ ...createVacancyDto, vacancyFiltersId: filters.id } as any)
+        .values({
+          title: createVacancyDto.title,
+          description: createVacancyDto.description ?? '',
+          statusId: createVacancyDto.statusId,
+          vacancyFiltersId: filters.id,
+          companyId: createVacancyDto.companyId,
+          createdBy: createVacancyDto.createdBy,
+          assignedTo: createVacancyDto.assignedTo,
+          organizationId,
+        } as NewVacancy)
         .returning();
 
       if (!vacancy) throw new Error('Error creating vacancy');
@@ -239,19 +254,41 @@ export class VacancyService {
     });
   }
 
-  async update(id: number, updateVacancyDto: UpdateVacancyDto) {
+  async update(id: number, dto: UpdateVacancyServiceDto) {
+    const { organizationId, ...updateVacancyDto } = dto;
+    const { filters: _filters, ...vacancyFields } = updateVacancyDto;
     const vacancy = await this.db.transaction(async (tx) => {
       const [vacancy] = await tx
         .update(vacancies)
-        .set({ ...updateVacancyDto, updatedAt: new Date() } as Partial<Vacancy>)
-        .where(eq(vacancies.id, id))
+        .set({
+          ...vacancyFields,
+          updatedAt: new Date(),
+        } as Partial<Vacancy>)
+        .where(
+          and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       if (updateVacancyDto.filters) {
-        await tx
-          .update(vacancyFilters)
-          .set({ ...updateVacancyDto.filters })
-          .where(eq(vacancyFilters.id, vacancy.vacancyFiltersId));
+        const f = updateVacancyDto.filters;
+        const filterScalars = {
+          ...(f.minStars !== undefined && { minStars: f.minStars }),
+          ...(f.gender !== undefined && { gender: f.gender }),
+          ...(f.minAge !== undefined && { minAge: f.minAge }),
+          ...(f.maxAge !== undefined && { maxAge: f.maxAge }),
+          ...(f.countries !== undefined && { countries: f.countries }),
+          ...(f.provinces !== undefined && { provinces: f.provinces }),
+          ...(f.languages !== undefined && { languages: f.languages }),
+        };
+        if (Object.keys(filterScalars).length > 0) {
+          await tx
+            .update(vacancyFilters)
+            .set(filterScalars as unknown as Partial<VacancyFilters>)
+            .where(eq(vacancyFilters.id, vacancy.vacancyFiltersId));
+        }
       }
 
       if (
@@ -322,10 +359,15 @@ export class VacancyService {
     return vacancy;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [vacancy] = await this.db
       .delete(vacancies)
-      .where(eq(vacancies.id, id))
+      .where(
+        and(
+          eq(vacancies.id, id),
+          eq(vacancies.organizationId, organizationId),
+        ),
+      )
       .returning();
 
     if (!vacancy) throw new NotFoundException('Vacancy not found');
@@ -375,7 +417,7 @@ export class VacancyService {
     };
   }
 
-  private buildOrderBy(params: VacancyQueryParams): SQL[] {
+  private buildOrderBy(params: VacancyFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -386,8 +428,9 @@ export class VacancyService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(query: VacancyQueryParams) {
+  private buildWhereClause(query: VacancyFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(eq(vacancies.organizationId, query.organizationId));
     if (query.id) {
       filters.push(eq(vacancies.id, query.id));
     }
@@ -632,6 +675,6 @@ export class VacancyService {
       );
     }
 
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

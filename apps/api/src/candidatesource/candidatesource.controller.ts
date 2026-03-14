@@ -15,18 +15,21 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CandidateSourceService } from './candidatesource.service';
 import {
   CreateCandidateSourceDto,
   UpdateCandidateSourceDto,
   CandidateSourceQueryParams,
 } from './candidatesource.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { UserRole } from '@workspace/shared/enums';
-import { Roles } from '../auth/roles/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('CandidateSources')
 @Controller('candidateSource')
 export class CandidateSourceController {
@@ -36,37 +39,59 @@ export class CandidateSourceController {
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: CandidateSourceQueryParams) {
-    return this.candidateSourceService.findAll(query);
+  async findAll(
+    @Query() query: CandidateSourceQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateSourceService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.candidateSourceService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateSourceService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
+  @AuditAction({ eventType: 'create_candidate_source', entityType: 'candidate_source' })
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createCandidateSourceDto: CreateCandidateSourceDto) {
-    return this.candidateSourceService.create(createCandidateSourceDto);
+  async create(
+    @Body() createCandidateSourceDto: CreateCandidateSourceDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateSourceService.create({
+      ...createCandidateSourceDto,
+      organizationId,
+    });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
+  @AuditAction({ eventType: 'update_candidate_source', entityType: 'candidate_source' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
     @Param('id') id: string,
     @Body() updateCandidateSourceDto: UpdateCandidateSourceDto,
+    @OrganizationId() organizationId: number,
   ) {
-    return this.candidateSourceService.update(+id, updateCandidateSourceDto);
+    return this.candidateSourceService.update(+id, {
+      ...updateCandidateSourceDto,
+      organizationId,
+    });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.SETTINGS_MANAGE)
+  @AuditAction({ eventType: 'delete_candidate_source', entityType: 'candidate_source' })
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.candidateSourceService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.candidateSourceService.remove(+id, organizationId);
   }
 }

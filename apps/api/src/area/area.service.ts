@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, SQL } from 'drizzle-orm';
 import { Area, areas } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
@@ -13,13 +13,17 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
-import { AreaQueryParams, CreateAreaDto, UpdateAreaDto } from './area.dto';
+import {
+  AreaFindAllServiceParams,
+  CreateAreaServiceDto,
+  UpdateAreaServiceDto,
+} from './area.dto';
 
 @Injectable()
 export class AreaService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
-  async findAll(params: AreaQueryParams): Promise<PaginatedResponse<Area>> {
+  async findAll(params: AreaFindAllServiceParams): Promise<PaginatedResponse<Area>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
     const orderClause = this.buildOrderBy(params);
@@ -43,35 +47,35 @@ export class AreaService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const area = await this.db.query.areas.findFirst({
-      where: eq(areas.id, id),
+      where: and(eq(areas.id, id), eq(areas.organizationId, organizationId)),
     });
     if (!area) throw new NotFoundException('Not found');
     return area;
   }
 
-  async create(createAreaDto: CreateAreaDto) {
+  async create(dto: CreateAreaServiceDto, organizationId: number) {
     const [area] = await this.db
       .insert(areas)
-      .values(createAreaDto)
+      .values({ ...dto, organizationId })
       .returning();
     return area;
   }
 
-  async update(id: number, updateAreaDto: UpdateAreaDto) {
+  async update(id: number, dto: UpdateAreaServiceDto, organizationId: number) {
     const [area] = await this.db
       .update(areas)
-      .set(updateAreaDto)
-      .where(eq(areas.id, id))
+      .set({ ...dto, organizationId })
+      .where(and(eq(areas.id, id), eq(areas.organizationId, organizationId)))
       .returning();
     return area;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [area] = await this.db
       .delete(areas)
-      .where(eq(areas.id, id))
+      .where(and(eq(areas.id, id), eq(areas.organizationId, organizationId)))
       .returning();
     return area;
   }
@@ -80,7 +84,7 @@ export class AreaService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: AreaQueryParams): SQL[] {
+  private buildOrderBy(params: AreaFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -91,8 +95,15 @@ export class AreaService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: AreaQueryParams) {
+  private buildWhereClause(params: AreaFindAllServiceParams) {
     const filters: SQL[] = [];
+
+    if (typeof params.organizationId === 'number') {
+      filters.push(eq(areas.organizationId, params.organizationId as number));
+    }
+    if (params.name) {
+      filters.push(ilike(areas.name, `%${params.name}%`));
+    }
     return filters.length > 0 ? and(...filters) : undefined;
   }
 }

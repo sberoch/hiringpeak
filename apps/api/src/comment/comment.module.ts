@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { CommentController } from './comment.controller';
 import { CommentService } from './comment.service';
 import { DrizzleModule } from '../common/database/drizzle.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DrizzleModule, AuthModule],
   controllers: [CommentController],
   providers: [CommentService],
   exports: [CommentService],

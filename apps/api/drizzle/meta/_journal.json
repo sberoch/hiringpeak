@@ -15,6 +15,41 @@
       "when": 1770057592467,
       "tag": "0001_deep_saracen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770605407057,
+      "tag": "0002_rapid_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771033511816,
+      "tag": "0003_warm_starbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771033600000,
+      "tag": "0004_backfill_user_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771100878482,
+      "tag": "0005_worthless_taskmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771200000000,
+      "tag": "0006_drop_user_role",
+      "breakpoints": true
     }
   ]
 }

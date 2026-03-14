@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 
+import { DeleteUserDialog } from "@/components/users/delete-user-dialog";
+import { EditUserSheet } from "@/components/users/edit-user-sheet";
+import type { User } from "@workspace/shared/types/user";
 import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
@@ -12,9 +15,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { ROLES_NAMES, User } from "@workspace/shared/types/user";
-import { DeleteUserDialog } from "@/components/users/delete-user-dialog";
-import { EditUserSheet } from "@/components/users/edit-user-sheet";
 
 interface CellActionsProps {
   user: User;
@@ -67,54 +67,57 @@ const CellActions = ({ user }: CellActionsProps) => {
   );
 };
 
-export const columns: ColumnDef<User>[] = [
-  {
-    accessorKey: "name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
-        >
-          Nombre
-          <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-        </Button>
-      );
+export function getColumns(roleIdToName: Record<number, string>): ColumnDef<User>[] {
+  return [
+    {
+      accessorKey: "name",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+          >
+            Nombre
+            <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
+          </Button>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "email",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
-        >
-          Email
-          <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-        </Button>
-      );
+    {
+      accessorKey: "email",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+          >
+            Email
+            <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
+          </Button>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "role",
-    header: "Rol",
-    cell: ({ row }) => {
-      return <div>{ROLES_NAMES[row.original.role]}</div>;
+    {
+      accessorKey: "roleId",
+      header: "Rol",
+      cell: ({ row }) => {
+        const roleId = row.original.roleId;
+        return <div>{roleId != null ? roleIdToName[roleId] ?? roleId : "—"}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Fecha de creación",
-    cell: ({ row }) => {
-      const createdAt = new Date(row.getValue("createdAt"));
-      return <div>{createdAt.toLocaleDateString()}</div>;
+    {
+      accessorKey: "createdAt",
+      header: "Fecha de creación",
+      cell: ({ row }) => {
+        const createdAt = new Date(row.getValue("createdAt"));
+        return <div>{createdAt.toLocaleDateString()}</div>;
+      },
     },
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => <CellActions user={row.original} />,
-  },
-];
+    {
+      id: "actions",
+      cell: ({ row }) => <CellActions user={row.original} />,
+    },
+  ];
+}

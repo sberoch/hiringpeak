@@ -4,29 +4,36 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, not, SQL } from 'drizzle-orm';
 import {
-  users,
-  hashPassword,
   excludePassword,
+  hashPassword,
   User,
+  users,
 } from '@workspace/shared/schemas';
+import { and, asc, count, desc, eq, ilike, not, SQL } from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
-import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import type {
+  DbOptions,
+  DrizzleDatabase,
+} from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
 import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
-import { CreateUserDto, UpdateUserDto, UserQueryParams } from './user.dto';
-import { UserRole } from '@workspace/shared/enums';
+import type { UserPublic } from '@workspace/shared/types/user';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  UserFindAllServiceParams,
+} from './user.dto';
 
 @Injectable()
 export class UserService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: UserQueryParams,
+    params: UserFindAllServiceParams,
   ): Promise<PaginatedResponse<Omit<User, 'password'>>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -48,25 +55,29 @@ export class UserService {
       itemsQuery,
       countQuery,
     ]);
-    items = items.map((user) => excludePassword(user as User));
-    const itemsResponse: User[] = items.map((user) => {
-      user.role = user.role as UserRole;
-      return user as User;
-    });
-
+    const itemsResponse = items.map((user) => excludePassword(user as User));
     return paginatedResponse(itemsResponse, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
-    let user = await this.db.query.users.findFirst({
+  /** Find user by id only (e.g. for JWT validation). */
+  async findById(id: number): Promise<UserPublic | null> {
+    const user = await this.db.query.users.findFirst({
       where: eq(users.id, id),
+    });
+    if (!user) return null;
+    return excludePassword(user) as UserPublic;
+  }
+
+  async findOne(id: number, organizationId: number) {
+    let user = await this.db.query.users.findFirst({
+      where: and(eq(users.id, id), eq(users.organizationId, organizationId)),
     });
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
     return user;
   }
 
-  async findOneByEmail(email: string) {
+  async findOneByEmail(email: string): Promise<User | null> {
     const user = await this.db.query.users.findFirst({
       where: eq(users.email, email),
     });
@@ -74,14 +85,24 @@ export class UserService {
     return user;
   }
 
-  async create(createUserDto: CreateUserDto) {
+  async create(
+    createUserDto: CreateUserDto,
+    organizationId: number,
+    options?: DbOptions,
+  ) {
     createUserDto.password = await hashPassword(createUserDto.password);
-    let [user] = await this.db.insert(users).values(createUserDto).returning();
+    const values = { ...createUserDto, organizationId };
+    const db = options?.tx ?? this.db;
+    let [user] = await db.insert(users).values(values).returning();
     user = excludePassword(user);
     return user;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
+  async update(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    organizationId: number,
+  ) {
     if (updateUserDto.password && updateUserDto.password !== '') {
       updateUserDto.password = await hashPassword(updateUserDto.password);
     }
@@ -91,17 +112,17 @@ export class UserService {
     let [user] = await this.db
       .update(users)
       .set(updateUserDto)
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), eq(users.organizationId, organizationId)))
       .returning();
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
     return user;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     let [user] = await this.db
       .delete(users)
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), eq(users.organizationId, organizationId)))
       .returning();
     if (!user) throw new NotFoundException('Not found');
     user = excludePassword(user);
@@ -119,7 +140,7 @@ export class UserService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: UserQueryParams): SQL[] {
+  private buildOrderBy(params: UserFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -130,8 +151,9 @@ export class UserService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: UserQueryParams) {
+  private buildWhereClause(params: UserFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(eq(users.organizationId, params.organizationId));
     if (params.email) {
       filters.push(ilike(users.email, `%${params.email}%`));
     }
@@ -141,12 +163,12 @@ export class UserService {
     if (params.active !== undefined) {
       filters.push(eq(users.active, params.active));
     }
-    if (params.role) {
-      filters.push(eq(users.role, params.role));
+    if (params.roleId != null) {
+      filters.push(eq(users.roleId, params.roleId));
     }
-    if (params.excludeRole) {
-      filters.push(not(eq(users.role, params.excludeRole)));
+    if (params.excludeRoleId != null) {
+      filters.push(not(eq(users.roleId, params.excludeRoleId)));
     }
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

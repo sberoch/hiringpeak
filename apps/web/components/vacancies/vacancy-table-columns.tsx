@@ -26,8 +26,8 @@ import { EditVacancySheet } from "./edit-vacancy-sheet";
 import { DuplicateVacancySheet } from "./duplicate-vacancy-sheet";
 import { stringToColor, vacancyDisplayLabel } from "@/lib/utils";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
-import { UserRoleEnum } from "@workspace/shared/types/user";
-import { RBACAuthzGuard } from "../auth/rbac-authz-guard";
+import { PermissionGuard } from "../auth/permission-guard";
+import { PermissionCode } from "@workspace/shared/enums";
 
 interface CellActionsProps {
   vacancy: Vacancy;
@@ -61,14 +61,14 @@ const CellActions = ({ vacancy }: CellActionsProps) => {
           >
             Duplicar vacante
           </DropdownMenuItem>
-          <RBACAuthzGuard visibleTo={[UserRoleEnum.ADMIN]}>
+          <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
             <DropdownMenuItem
               className="text-red-600 cursor-pointer"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
               Eliminar vacante
             </DropdownMenuItem>
-          </RBACAuthzGuard>
+          </PermissionGuard>
         </DropdownMenuContent>
       </DropdownMenu>
       {isDeleteDialogOpen && (

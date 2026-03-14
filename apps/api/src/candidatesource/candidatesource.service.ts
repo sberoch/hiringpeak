@@ -14,9 +14,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CandidateSourceQueryParams,
-  CreateCandidateSourceDto,
-  UpdateCandidateSourceDto,
+  CandidateSourceFindAllServiceParams,
+  CreateCandidateSourceServiceDto,
+  UpdateCandidateSourceServiceDto,
 } from './candidatesource.dto';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class CandidateSourceService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CandidateSourceQueryParams,
+    params: CandidateSourceFindAllServiceParams,
   ): Promise<PaginatedResponse<CandidateSource>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -49,35 +49,49 @@ export class CandidateSourceService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const candidateSource = await this.db.query.candidateSources.findFirst({
-      where: eq(candidateSources.id, id),
+      where: and(
+        eq(candidateSources.id, id),
+        eq(candidateSources.organizationId, organizationId),
+      ),
     });
     if (!candidateSource) throw new NotFoundException('Not found');
     return candidateSource;
   }
 
-  async create(createCandidateSourceDto: CreateCandidateSourceDto) {
+  async create(dto: CreateCandidateSourceServiceDto) {
     const [candidateSource] = await this.db
       .insert(candidateSources)
-      .values(createCandidateSourceDto)
+      .values(dto)
       .returning();
     return candidateSource;
   }
 
-  async update(id: number, updateCandidateSourceDto: UpdateCandidateSourceDto) {
+  async update(id: number, dto: UpdateCandidateSourceServiceDto) {
+    const { organizationId, ...updateFields } = dto;
     const [candidateSource] = await this.db
       .update(candidateSources)
-      .set(updateCandidateSourceDto)
-      .where(eq(candidateSources.id, id))
+      .set(updateFields)
+      .where(
+        and(
+          eq(candidateSources.id, id),
+          eq(candidateSources.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidateSource;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [candidateSource] = await this.db
       .delete(candidateSources)
-      .where(eq(candidateSources.id, id))
+      .where(
+        and(
+          eq(candidateSources.id, id),
+          eq(candidateSources.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidateSource;
   }
@@ -86,7 +100,7 @@ export class CandidateSourceService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: CandidateSourceQueryParams): SQL[] {
+  private buildOrderBy(params: CandidateSourceFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -97,8 +111,9 @@ export class CandidateSourceService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: CandidateSourceQueryParams) {
+  private buildWhereClause(params: CandidateSourceFindAllServiceParams) {
     const filters: SQL[] = [];
-    return filters.length > 0 ? and(...filters) : undefined;
+    filters.push(eq(candidateSources.organizationId, params.organizationId));
+    return and(...filters);
   }
 }

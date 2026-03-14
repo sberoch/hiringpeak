@@ -15,56 +15,83 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../audit-log/audit-action.decorator';
 import { VacancyStatusService } from './vacancystatus.service';
 import {
   CreateVacancyStatusDto,
   UpdateVacancyStatusDto,
   VacancyStatusQueryParams,
 } from './vacancystatus.dto';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { Roles } from '../auth/roles/roles.decorator';
-import { UserRole } from '@workspace/shared/enums';
+import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { Permissions } from '../auth/permissions/permissions.decorator';
+import { PermissionCode } from '@workspace/shared/enums';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
+import { OrganizationId } from '../auth/organization/organization.decorator';
 
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
+@UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('VacancyStatuses')
 @Controller('vacancyStatus')
 export class VacancyStatusController {
-  constructor(private readonly vacancyStatusService: VacancyStatusService) {}
+  constructor(
+    private readonly vacancyStatusService: VacancyStatusService,
+  ) {}
 
   @ApiOkResponse()
   @Get()
-  async findAll(@Query() query: VacancyStatusQueryParams) {
-    return this.vacancyStatusService.findAll(query);
+  async findAll(
+    @Query() query: VacancyStatusQueryParams,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyStatusService.findAll({ ...query, organizationId });
   }
 
   @ApiOkResponse()
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.vacancyStatusService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyStatusService.findOne(+id, organizationId);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'create_vacancy_status', entityType: 'vacancy_status' })
   @ApiCreatedResponse()
   @Post()
-  async create(@Body() createVacancyStatusDto: CreateVacancyStatusDto) {
-    return this.vacancyStatusService.create(createVacancyStatusDto);
+  async create(
+    @Body() createVacancyStatusDto: CreateVacancyStatusDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyStatusService.create({
+      ...createVacancyStatusDto,
+      organizationId,
+    });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'update_vacancy_status', entityType: 'vacancy_status' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
     @Param('id') id: string,
     @Body() updateVacancyStatusDto: UpdateVacancyStatusDto,
+    @OrganizationId() organizationId: number,
   ) {
-    return this.vacancyStatusService.update(+id, updateVacancyStatusDto);
+    return this.vacancyStatusService.update(+id, {
+      ...updateVacancyStatusDto,
+      organizationId,
+    });
   }
 
-  @Roles(UserRole.ADMIN)
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @AuditAction({ eventType: 'delete_vacancy_status', entityType: 'vacancy_status' })
   @ApiOkResponse()
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.vacancyStatusService.remove(+id);
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyStatusService.remove(+id, organizationId);
   }
 }

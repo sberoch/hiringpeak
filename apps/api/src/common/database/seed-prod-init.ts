@@ -1,7 +1,6 @@
 import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { seed } from 'drizzle-seed';
-import { UserRole } from '@workspace/shared/enums';
 import { hashPassword, users } from '@workspace/shared/schemas';
 
 config();
@@ -25,9 +24,6 @@ async function main() {
         }),
         password: f.default({
           defaultValue: hashedPassword,
-        }),
-        role: f.default({
-          defaultValue: UserRole.ADMIN,
         }),
         active: f.default({
           defaultValue: true,

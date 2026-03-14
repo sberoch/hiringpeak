@@ -31,6 +31,15 @@
 $ pnpm install
 ```
 
+### Auth and Google OAuth env vars (optional)
+
+In `.env` you can set:
+
+- `JWT_SECRET` – used to sign JWTs (required for auth).
+- `LOGIN_ENABLED` – set to `false` to disable all login (credentials and Google). Default: enabled.
+- `GOOGLE_LOGIN_ENABLED` – set to `false` to disable only Google login. Default: enabled.
+- `GOOGLE_CLIENT_ID` – Google OAuth client ID (required for `POST /auth/google` token verification).
+
 ## Compile and run the project
 
 ```bash

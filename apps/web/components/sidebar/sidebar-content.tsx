@@ -1,21 +1,23 @@
 "use client";
 
-import { ComponentProps } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Briefcase,
   Building2,
   ChevronRight,
   LayoutDashboard,
   Settings,
-  UserCircle,
-  Users,
+  Users
 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ComponentProps } from "react";
 
 import { SidebarDialogs } from "@/components/sidebar/dialogs";
 import { LogoutButton } from "@/components/sidebar/logout";
+import { usePermissions } from "@/contexts/permission-context";
+import { DialogsIdsEnum } from "@/lib/consts";
+import { PermissionCode } from "@workspace/shared/enums";
 import {
   Collapsible,
   CollapsibleContent,
@@ -34,8 +36,6 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@workspace/ui/components/sidebar";
-import { DialogsIdsEnum, PAGE_AUTHORIZATION_ACCESS } from "@/lib/consts";
-import { UserRoleEnum } from "@workspace/shared/types/user";
 
 interface SidebarItem {
   id: string;
@@ -43,7 +43,8 @@ interface SidebarItem {
   url: string;
   icon: React.ReactNode;
   items?: SidebarSubItem[];
-  visibleTo: UserRoleEnum[];
+  /** Show item when user has any of these permissions; omit = show to all authenticated. */
+  requiredPermissions?: string[];
 }
 
 interface SidebarSubItem {
@@ -51,43 +52,42 @@ interface SidebarSubItem {
   title: string;
   url: string;
   dialogId?: string;
-  visibleTo: UserRoleEnum[];
+  requiredPermissions?: string[];
 }
 
-const data: SidebarItem[] = [
+const SIDEBAR_DATA: SidebarItem[] = [
   {
     id: "dashboard",
     title: "Dashboard",
     url: "/dashboard",
     icon: <LayoutDashboard className="w-4 h-4" />,
-    visibleTo: PAGE_AUTHORIZATION_ACCESS["/dashboard"],
   },
   {
     id: "candidates",
     title: "Postulantes",
     url: "/candidates",
     icon: <Users className="w-4 h-4" />,
-    visibleTo: PAGE_AUTHORIZATION_ACCESS["/candidates"],
+    requiredPermissions: [PermissionCode.CANDIDATE_READ],
   },
   {
     id: "vacancies",
     title: "Vacantes",
     url: "/vacancies",
     icon: <Briefcase className="w-4 h-4" />,
-    visibleTo: PAGE_AUTHORIZATION_ACCESS["/vacancies"],
+    requiredPermissions: [PermissionCode.VACANCY_READ],
     items: [
       {
         id: "all-vacancies",
         title: "Todas las vacantes",
         url: "/vacancies",
-        visibleTo: PAGE_AUTHORIZATION_ACCESS["/vacancies"],
+        requiredPermissions: [PermissionCode.VACANCY_READ],
       },
       {
         id: "simulate-vacancy",
         title: "Simular búsqueda",
         url: "#",
         dialogId: DialogsIdsEnum.simulateVacancy,
-        visibleTo: [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.BASIC],
+        requiredPermissions: [PermissionCode.VACANCY_READ],
       },
     ],
   },
@@ -96,32 +96,55 @@ const data: SidebarItem[] = [
     title: "Empresas",
     url: "/companies",
     icon: <Building2 className="w-4 h-4" />,
-    visibleTo: PAGE_AUTHORIZATION_ACCESS["/companies"],
+    requiredPermissions: [PermissionCode.COMPANY_READ],
   },
   {
-    id: "users",
-    title: "Usuarios",
-    url: "/users",
-    icon: <UserCircle className="w-4 h-4" />,
-    visibleTo: PAGE_AUTHORIZATION_ACCESS["/users"],
+    id: "organization-settings",
+    title: "Organización",
+    url: "/organization-settings",
+    icon: <Building2 className="w-4 h-4" />,
+    requiredPermissions: [PermissionCode.SETTINGS_READ],
+    items: [
+      {
+        id: "org-users",
+        title: "Usuarios",
+        url: "/organization-settings/users",
+        requiredPermissions: [PermissionCode.USER_READ, PermissionCode.USER_MANAGE],
+      },
+      {
+        id: "org-roles",
+        title: "Roles y permisos",
+        url: "/organization-settings/roles",
+        requiredPermissions: [PermissionCode.ROLE_MANAGE],
+      },
+      {
+        id: "org-audit-log",
+        title: "Registro de auditoría",
+        url: "/organization-settings/audit-log",
+        requiredPermissions: [PermissionCode.AUDIT_LOG_READ],
+      },
+    ],
   },
   {
     id: "settings",
     title: "Configuración",
     url: "/settings",
     icon: <Settings className="w-4 h-4" />,
-    visibleTo: PAGE_AUTHORIZATION_ACCESS["/settings"],
+    requiredPermissions: [PermissionCode.SETTINGS_READ],
   },
 ];
 
 interface SidebarContentProps {
-  role: UserRoleEnum;
   otherProps: ComponentProps<typeof Sidebar>;
 }
 
-export function AppSidebarContent({ role, otherProps }: SidebarContentProps) {
+export function AppSidebarContent({ otherProps }: SidebarContentProps) {
   const pathname = usePathname();
+  const { hasAnyPermission, isLoading } = usePermissions();
   const { ...props } = otherProps;
+
+  const canSee = (requiredPermissions?: string[]) =>
+    !requiredPermissions?.length || hasAnyPermission(requiredPermissions);
 
   const isActiveItem = (itemUrl: string) => {
     if (itemUrl === "/dashboard") {
@@ -137,6 +160,8 @@ export function AppSidebarContent({ role, otherProps }: SidebarContentProps) {
     }
     return pathname.startsWith(subItemUrl);
   };
+
+  if (isLoading) return null;
 
   return (
     <Sidebar {...props}>
@@ -154,8 +179,7 @@ export function AppSidebarContent({ role, otherProps }: SidebarContentProps) {
         </div>
       </SidebarHeader>
       <SidebarContent className="gap-0">
-        {data
-          .filter((itm) => itm.visibleTo.includes(role))
+        {SIDEBAR_DATA.filter((itm) => canSee(itm.requiredPermissions))
           .map((item) => {
             const isActive = isActiveItem(item.url);
             const hasActiveSubItem = item.items?.some((subItem) =>
@@ -173,8 +197,8 @@ export function AppSidebarContent({ role, otherProps }: SidebarContentProps) {
                   <SidebarGroupLabel
                     asChild
                     className={`group/label text-sm transition-colors relative py-2 ${isActive || hasActiveSubItem
-                        ? "bg-primary/5 text-primary border-l-2 border-primary hover:bg-primary/10"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      ? "bg-primary/5 text-primary border-l-2 border-primary hover:bg-primary/10"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       }`}
                   >
                     {item.items ? (
@@ -195,7 +219,7 @@ export function AppSidebarContent({ role, otherProps }: SidebarContentProps) {
                       <SidebarGroupContent>
                         <SidebarMenu>
                           {item.items
-                            .filter((itm) => itm.visibleTo.includes(role))
+                            .filter((subItm) => canSee(subItm.requiredPermissions))
                             .map((subItem) => {
                               return (
                                 <SidebarMenuItem key={subItem.id}>

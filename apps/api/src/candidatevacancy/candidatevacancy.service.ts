@@ -19,9 +19,9 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
-  CreateCandidateVacancyDto,
-  CandidateVacancyQueryParams,
-  UpdateCandidateVacancyDto,
+  CandidateVacancyFindAllServiceParams,
+  CreateCandidateVacancyServiceDto,
+  UpdateCandidateVacancyServiceDto,
 } from './candidatevacancy.dto';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class CandidateVacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CandidateVacancyQueryParams,
+    params: CandidateVacancyFindAllServiceParams,
   ): Promise<PaginatedResponse<CandidateVacancy>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -63,9 +63,12 @@ export class CandidateVacancyService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number) {
     const candidateVacancy = await this.db.query.candidateVacancies.findFirst({
-      where: eq(candidateVacancies.id, id),
+      where: and(
+        eq(candidateVacancies.id, id),
+        eq(candidateVacancies.organizationId, organizationId),
+      ),
       with: {
         candidate: true,
         vacancy: {
@@ -80,20 +83,13 @@ export class CandidateVacancyService {
     return candidateVacancy;
   }
 
-  async create(createCandidateVacancyDto: CreateCandidateVacancyDto) {
+  async create(dto: CreateCandidateVacancyServiceDto) {
     return await this.db.transaction(async (tx) => {
-      // Check if candidate-vacancy combination already exists
       const existingCandidateVacancy =
         await tx.query.candidateVacancies.findFirst({
           where: and(
-            eq(
-              candidateVacancies.candidateId,
-              createCandidateVacancyDto.candidateId,
-            ),
-            eq(
-              candidateVacancies.vacancyId,
-              createCandidateVacancyDto.vacancyId,
-            ),
+            eq(candidateVacancies.candidateId, dto.candidateId),
+            eq(candidateVacancies.vacancyId, dto.vacancyId),
           ),
         });
 
@@ -104,10 +100,7 @@ export class CandidateVacancyService {
       }
 
       const status = await tx.query.candidateVacancyStatuses.findFirst({
-        where: eq(
-          candidateVacancyStatuses.id,
-          createCandidateVacancyDto.candidateVacancyStatusId,
-        ),
+        where: eq(candidateVacancyStatuses.id, dto.candidateVacancyStatusId),
       });
 
       const maxSortStatus = await tx.query.candidateVacancyStatuses.findFirst({
@@ -118,29 +111,23 @@ export class CandidateVacancyService {
         await tx
           .update(candidates)
           .set({ isInCompanyViaPratt: true } as any)
-          .where(eq(candidates.id, createCandidateVacancyDto.candidateId));
+          .where(eq(candidates.id, dto.candidateId));
       }
 
       const [candidateVacancy] = await tx
         .insert(candidateVacancies)
-        .values(createCandidateVacancyDto)
+        .values(dto)
         .returning();
 
       return candidateVacancy;
     });
   }
 
-  async update(
-    id: number,
-    updateCandidateVacancyDto: UpdateCandidateVacancyDto,
-  ) {
+  async update(id: number, dto: UpdateCandidateVacancyServiceDto) {
     return await this.db.transaction(async (tx) => {
-      if (updateCandidateVacancyDto.candidateVacancyStatusId) {
+      if (dto.candidateVacancyStatusId) {
         const status = await tx.query.candidateVacancyStatuses.findFirst({
-          where: eq(
-            candidateVacancyStatuses.id,
-            updateCandidateVacancyDto.candidateVacancyStatusId,
-          ),
+          where: eq(candidateVacancyStatuses.id, dto.candidateVacancyStatusId),
         });
 
         const maxSortStatus = await tx.query.candidateVacancyStatuses.findFirst(
@@ -151,7 +138,7 @@ export class CandidateVacancyService {
 
         if (status && maxSortStatus && status.sort === maxSortStatus.sort) {
           const candidateId =
-            updateCandidateVacancyDto.candidateId ??
+            dto.candidateId ??
             (
               await tx.query.candidateVacancies.findFirst({
                 where: eq(candidateVacancies.id, id),
@@ -168,20 +155,31 @@ export class CandidateVacancyService {
         }
       }
 
+      const { organizationId, ...updateFields } = dto;
       const [candidateVacancy] = await tx
         .update(candidateVacancies)
-        .set(updateCandidateVacancyDto)
-        .where(eq(candidateVacancies.id, id))
+        .set(updateFields)
+        .where(
+          and(
+            eq(candidateVacancies.id, id),
+            eq(candidateVacancies.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       return candidateVacancy;
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [candidateVacancy] = await this.db
       .delete(candidateVacancies)
-      .where(eq(candidateVacancies.id, id))
+      .where(
+        and(
+          eq(candidateVacancies.id, id),
+          eq(candidateVacancies.organizationId, organizationId),
+        ),
+      )
       .returning();
     return candidateVacancy;
   }
@@ -190,7 +188,7 @@ export class CandidateVacancyService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
-  private buildOrderBy(params: CandidateVacancyQueryParams): SQL[] {
+  private buildOrderBy(params: CandidateVacancyFindAllServiceParams): SQL[] {
     const [sortBy, sortOrderString] = params.order?.split(':') || ['id', 'asc'];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
     // Basic safety check: ensure sortBy is a valid column key
@@ -201,8 +199,11 @@ export class CandidateVacancyService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: CandidateVacancyQueryParams) {
+  private buildWhereClause(params: CandidateVacancyFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(
+      eq(candidateVacancies.organizationId, params.organizationId),
+    );
 
     if (params.id) {
       filters.push(eq(candidateVacancies.id, params.id));
@@ -235,6 +236,6 @@ export class CandidateVacancyService {
       filters.push(ilike(candidateVacancies.notes, params.notes));
     }
 
-    return filters.length > 0 ? and(...filters) : undefined;
+    return and(...filters);
   }
 }

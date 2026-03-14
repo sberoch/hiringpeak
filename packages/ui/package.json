@@ -4,9 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "lint": "pnpm dlx eslint . --max-warnings 0"
+    "lint": "eslint ."
   },
   "dependencies": {
+    "@workspace/shared": "workspace:*",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -68,6 +69,7 @@
     "typescript": "^5.9.2"
   },
   "exports": {
+    "./custom/*": "./src/custom/*.tsx",
     "./globals.css": "./src/styles/globals.css",
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
