@@ -10,16 +10,17 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import type { PermissionCode } from "@workspace/shared/enums";
 
 const PERMISSIONS_QUERY_KEY = ["auth", "me", "permissions"];
 const STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
 
 type PermissionContextValue = {
-  permissionCodes: string[];
+  permissionCodes: PermissionCode[];
   roleName: string | null;
   isLoading: boolean;
-  hasPermission: (code: string) => boolean;
-  hasAnyPermission: (codes: string[]) => boolean;
+  hasPermission: (code: PermissionCode) => boolean;
+  hasAnyPermission: (codes: PermissionCode[]) => boolean;
   refetch: () => void;
 };
 
@@ -41,17 +42,17 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     staleTime: STALE_TIME_MS,
   });
 
-  const permissionCodes = data?.permissionCodes ?? [];
+  const permissionCodes: PermissionCode[] = data?.permissionCodes ?? [];
   const roleName = data?.roleName ?? null;
   const isLoading = status === "loading" || (Boolean(accessToken) && queryLoading);
 
   const hasPermission = useCallback(
-    (code: string) => permissionCodes.includes(code),
+    (code: PermissionCode) => permissionCodes.includes(code),
     [permissionCodes]
   );
 
   const hasAnyPermission = useCallback(
-    (codes: string[]) => codes.some((c) => permissionCodes.includes(c)),
+    (codes: PermissionCode[]) => codes.some((c) => permissionCodes.includes(c)),
     [permissionCodes]
   );
 

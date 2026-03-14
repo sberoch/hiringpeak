@@ -44,7 +44,7 @@ interface SidebarItem {
   icon: React.ReactNode;
   items?: SidebarSubItem[];
   /** Show item when user has any of these permissions; omit = show to all authenticated. */
-  requiredPermissions?: string[];
+  requiredPermissions?: PermissionCode[];
 }
 
 interface SidebarSubItem {
@@ -52,7 +52,7 @@ interface SidebarSubItem {
   title: string;
   url: string;
   dialogId?: string;
-  requiredPermissions?: string[];
+  requiredPermissions?: PermissionCode[];
 }
 
 const SIDEBAR_DATA: SidebarItem[] = [
@@ -143,7 +143,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
   const { hasAnyPermission, isLoading } = usePermissions();
   const { ...props } = otherProps;
 
-  const canSee = (requiredPermissions?: string[]) =>
+  const canSee = (requiredPermissions?: PermissionCode[]) =>
     !requiredPermissions?.length || hasAnyPermission(requiredPermissions);
 
   const isActiveItem = (itemUrl: string) => {

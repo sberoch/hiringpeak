@@ -12,5 +12,6 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: hiringpeak
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - ./data:/var/lib/postgresql/data

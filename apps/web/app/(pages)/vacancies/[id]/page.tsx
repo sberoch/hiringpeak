@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -25,13 +26,14 @@ function VacancyDetailSkeleton() {
 export default function VacancyDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({
-    queryKey: [VACANCY_API_KEY, params.id],
-    queryFn: () => getVacancyById(params.id),
+    queryKey: [VACANCY_API_KEY, id],
+    queryFn: () => getVacancyById(id),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: true,
@@ -48,13 +50,13 @@ export default function VacancyDetailPage({
         vacancy={data}
         onDialogClose={() => {
           queryClient.invalidateQueries({
-            queryKey: [VACANCY_API_KEY, params.id],
+            queryKey: [VACANCY_API_KEY, id],
           });
         }}
       />
       <div className="mt-6 flex flex-col">
         <h2 className="text-2xl font-bold mb-2">Postulantes</h2>
-        <KanbanBoard candidates={data.candidates} vacancyId={params.id} />
+        <KanbanBoard candidates={data.candidates} vacancyId={id} />
       </div>
     </div>
   );

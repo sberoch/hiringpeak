@@ -20,8 +20,8 @@ export const createVacancyFormSchema = z.object({
     message: "El título debe tener al menos 2 caracteres.",
   }),
   description: z.string().optional(),
-  status: z.string({ required_error: "Seleccione estado" }),
-  company: z.string({ required_error: "Seleccione companía" }),
+  status: z.string({ error: "Seleccione estado" }),
+  company: z.string({ error: "Seleccione companía" }),
   filters: z
     .object({
       seniorities: z.array(senioritySchema).optional(),
@@ -48,10 +48,10 @@ export const createVacancySchema = z.object({
   }),
   description: z.string().optional(),
   statusId: z.number({
-    required_error: "El estado es requerido.",
+    error: "El estado es requerido.",
   }),
   companyId: z.number({
-    required_error: "La empresa es requerida.",
+    error: "La empresa es requerida.",
   }),
   filters: z
     .object({
@@ -67,8 +67,8 @@ export const createVacancySchema = z.object({
       languages: z.array(z.string()).optional(),
     })
     .optional(),
-  createdBy: z.number({ required_error: "Es requerido el creador" }),
-  assignedTo: z.number({ required_error: "Es requerida una asignación" }),
+  createdBy: z.number({ error: "Es requerido el creador" }),
+  assignedTo: z.number({ error: "Es requerida una asignación" }),
 });
 
 export type CreateVacancySchema = z.infer<typeof createVacancySchema>;

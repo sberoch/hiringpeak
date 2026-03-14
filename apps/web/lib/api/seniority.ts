@@ -32,7 +32,7 @@ export async function updateSeniority(
   return response.data;
 }
 
-export async function deleteSeniority(id: string) {
+export async function deleteSeniority(id: Seniority["id"]) {
   const response = await api.delete(`/seniority/${id}`);
   return response.data;
 }

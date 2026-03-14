@@ -150,7 +150,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
                   {!candidate?.vacancies?.length
                     ? "Base general"
                     : candidate.vacancies.length === 1
-                      ? candidate.vacancies[0].title
+                      ? candidate.vacancies[0]!.title
                       : `${candidate.vacancies.length} vacantes`}
                 </Badge>
                 <Badge variant="outline">

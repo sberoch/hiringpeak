@@ -13,7 +13,7 @@ import {
   editCandidateFormSchema,
   type EditCandidateFormSchema,
 } from "@/components/candidates/edit-candidate.schema";
-import { AREA_API_KEY, getAllAreas } from "@/lib/api/area";
+import { AREAS_API_KEY, getAllAreas } from "@/lib/api/area";
 import { CANDIDATE_API_KEY, updateCandidate } from "@/lib/api/candidate";
 import {
   CANDIDATE_FILE_API_KEY,
@@ -23,7 +23,7 @@ import {
   CANDIDATE_SOURCE_API_KEY,
   getAllCandidateSources,
 } from "@/lib/api/candidate-source";
-import { getAllIndustries, INDUSTRY_API_KEY } from "@/lib/api/industry";
+import { getAllIndustries, INDUSTRIES_API_KEY } from "@/lib/api/industry";
 import { getAllSeniorities, SENIORITY_API_KEY } from "@/lib/api/seniority";
 import { CANDIDATE_VACANCY_API_KEY } from "@/lib/api/candidate-vacancy";
 import countries from "@/public/assets/countries.json";
@@ -123,12 +123,12 @@ export default function EditCandidateForm({ candidate }: EditCandidateFormProps)
   }, [searchParams]);
 
   const { data: areas } = useQuery({
-    queryKey: [AREA_API_KEY, { limit: 1e9, page: 1 }],
+    queryKey: [AREAS_API_KEY, { limit: 1e9, page: 1 }],
     queryFn: () => getAllAreas({ limit: 1e9, page: 1 }),
   });
 
   const { data: industries } = useQuery({
-    queryKey: [INDUSTRY_API_KEY, { limit: 1e9, page: 1 }],
+    queryKey: [INDUSTRIES_API_KEY, { limit: 1e9, page: 1 }],
     queryFn: () => getAllIndustries({ limit: 1e9, page: 1 }),
   });
 
@@ -296,10 +296,10 @@ export default function EditCandidateForm({ candidate }: EditCandidateFormProps)
                   <FileUploader
                     value={image ? [image] : null}
                     onValueChange={async (files) => {
-                      setImage(files && files.length > 0 ? files[0] : null);
+                      setImage(files && files.length > 0 ? files[0]! : null);
                       setHasManuallyChangedImage(true);
                       if (files && files.length > 0) {
-                        const file = files[0];
+                        const file = files[0]!;
                         setImageSrc(URL.createObjectURL(file));
                         try {
                           const uploadedFile = await uploadFile(

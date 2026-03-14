@@ -64,10 +64,10 @@ export const editVacancySchema = z.object({
   }),
   description: z.string().optional().or(z.literal("")),
   statusId: z.number({
-    required_error: "El estado es requerido.",
+    error: "El estado es requerido.",
   }),
   companyId: z.number({
-    required_error: "La empresa es requerida.",
+    error: "La empresa es requerida.",
   }),
   filters: z
     .object({
@@ -81,10 +81,10 @@ export const editVacancySchema = z.object({
     })
     .optional(),
   createdBy: z.number({
-    required_error: "Es requerido el creador",
+    error: "Es requerido el creador",
   }),
   assignedTo: z.number({
-    required_error: "Es requerida una asignación",
+    error: "Es requerida una asignación",
   }),
 });
 

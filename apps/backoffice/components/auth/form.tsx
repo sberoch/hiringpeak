@@ -24,12 +24,12 @@ import { REDIRECT_AUTHORIZED } from "@/lib/consts";
 const formSchema = z.object({
   email: z
     .string({
-      required_error: "El correo electrónico es requerido",
+      error: "El correo electrónico es requerido",
     })
     .email({ message: "El correo electrónico no es válido" }),
   password: z
     .string({
-      required_error: "La contraseña es requerida",
+      error: "La contraseña es requerida",
     })
     .min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
 });

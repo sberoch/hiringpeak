@@ -127,7 +127,7 @@ export const KanbanBoard = ({
 
       if (activeIndex === -1 || overIndex === -1) return columns;
 
-      const activeCandidate = columns[activeIndex].candidates.find(
+      const activeCandidate = columns[activeIndex]!.candidates.find(
         (candidate) => candidate.id === active.data.current?.candidate.id
       );
 

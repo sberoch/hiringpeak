@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextMiddleware } from "next/server";
 
 import { auth, getAuthorizedRoute, hasAccessToRoute } from "@/lib/auth";
 import { REDIRECT_AUTHORIZED, REDIRECT_UNAUTHORIZED } from "@/lib/consts";
@@ -9,15 +9,8 @@ export const config = {
   ],
 };
 
-export default auth(async (req) => {
+const middleware: NextMiddleware = auth(async (req) => {
   const pathname = req.nextUrl.pathname;
-  console.log(
-    "auth",
-    pathname,
-    req.auth,
-    REDIRECT_AUTHORIZED,
-    REDIRECT_UNAUTHORIZED
-  );
   if (
     pathname === REDIRECT_UNAUTHORIZED ||
     (pathname === REDIRECT_AUTHORIZED && req.auth?.accessToken)
@@ -38,4 +31,6 @@ export default auth(async (req) => {
   }
 
   return NextResponse.next();
-});
+}) as unknown as NextMiddleware;
+
+export default middleware;

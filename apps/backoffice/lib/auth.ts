@@ -100,8 +100,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
 export function hasAccessToRoute(route: string, token?: string): boolean {
   if (!token) return false;
+  // All PAGE_AUTHORIZATION_ACCESS routes require SYSTEM_ADMIN.
+  // After the multitenancy refactor, internal/backoffice users are identified
+  // by having no organizationId (roleId is null for INTERNAL_USERs).
+  if (!PAGE_AUTHORIZATION_ACCESS[route]) return true;
   const data = parseJwt(token);
-  return PAGE_AUTHORIZATION_ACCESS[route]?.includes(data.role) ?? false;
+  return data.organizationId == null;
 }
 
 export function getAuthorizedRoute(pathname: string): string | null {

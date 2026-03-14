@@ -23,8 +23,9 @@ import {
 } from "@workspace/ui/components/command";
 import { cn } from "@workspace/ui/lib/utils";
 
-interface MultiSelectorProps
-  extends React.ComponentPropsWithoutRef<typeof CommandPrimitive> {
+interface MultiSelectorProps extends React.ComponentPropsWithoutRef<
+  typeof CommandPrimitive
+> {
   values: string[];
   onValuesChange: (value: string[]) => void;
   loop?: boolean;
@@ -80,7 +81,7 @@ const MultiSelector = ({
         onValueChange([...value, val]);
       }
     },
-    [value, onValueChange]
+    [value, onValueChange],
   );
 
   const handleSelect = React.useCallback(
@@ -89,13 +90,13 @@ const MultiSelector = ({
       const target = e.currentTarget;
       const selection = target.value.substring(
         target.selectionStart ?? 0,
-        target.selectionEnd ?? 0
+        target.selectionEnd ?? 0,
       );
 
       setSelectedValue(selection);
       setIsValueSelected(selection === inputValue);
     },
-    [inputValue]
+    [inputValue],
   );
 
   const handleKeyDown = useCallback(
@@ -108,7 +109,7 @@ const MultiSelector = ({
       const moveNext = () => {
         const nextIndex = activeIndex + 1;
         setActiveIndex(
-          nextIndex > value.length - 1 ? (loop ? 0 : -1) : nextIndex
+          nextIndex > value.length - 1 ? (loop ? 0 : -1) : nextIndex,
         );
       };
 
@@ -156,11 +157,11 @@ const MultiSelector = ({
         case "Delete":
           if (value.length > 0) {
             if (activeIndex !== -1 && activeIndex < value.length) {
-              onValueChangeHandler(value[activeIndex]);
+              onValueChangeHandler(value[activeIndex] ?? "");
               moveCurrent();
             } else if (target.selectionStart === 0) {
               if (selectedValue === inputValue || isValueSelected) {
-                onValueChangeHandler(value[value.length - 1]);
+                onValueChangeHandler(value[value.length - 1] ?? "");
               }
             }
           }
@@ -179,7 +180,7 @@ const MultiSelector = ({
           break;
       }
     },
-    [value, inputValue, activeIndex, loop, dir, open, onValueChangeHandler]
+    [value, inputValue, activeIndex, loop, dir, open, onValueChangeHandler],
   );
 
   return (
@@ -193,13 +194,16 @@ const MultiSelector = ({
         setInputValue,
         activeIndex,
         setActiveIndex,
-        ref: inputRef,
+        ref: inputRef as React.RefObject<HTMLInputElement>,
         handleSelect,
       }}
     >
       <Command
         onKeyDown={handleKeyDown}
-        className={cn("overflow-visible bg-transparent flex flex-col gap-2", className)}
+        className={cn(
+          "overflow-visible bg-transparent flex flex-col gap-2",
+          className,
+        )}
         dir={dir}
         {...props}
       >
@@ -226,7 +230,7 @@ const MultiSelectorTrigger = forwardRef<
       className={cn(
         "flex flex-wrap gap-1 p-1 py-2 border border-zinc-200 rounded-md bg-background focus-visible:outline-none",
         "focus-visible:ring-1 focus-visible:ring-zinc-950 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:border-zinc-800 dark:placeholder:text-zinc-400 dark:focus-visible:ring-zinc-300",
-        className
+        className,
       )}
       {...props}
     >
@@ -235,7 +239,7 @@ const MultiSelectorTrigger = forwardRef<
           key={item}
           className={cn(
             "px-1 rounded-xl flex items-center gap-1",
-            activeIndex === index && "ring-2 ring-muted-foreground "
+            activeIndex === index && "ring-2 ring-muted-foreground ",
           )}
           variant="secondary"
         >
@@ -287,7 +291,7 @@ const MultiSelectorInput = forwardRef<
       className={cn(
         "ml-2 bg-transparent outline-none placeholder:text-muted-foreground flex-1",
         className,
-        activeIndex !== -1 && "caret-transparent"
+        activeIndex !== -1 && "caret-transparent",
       )}
     />
   );
@@ -318,7 +322,7 @@ const MultiSelectorList = forwardRef<
       ref={ref}
       className={cn(
         "p-2 flex flex-col gap-2 rounded-md scrollbar-thin scrollbar-track-transparent transition-colors scrollbar-thumb-muted-foreground dark:scrollbar-thumb-muted scrollbar-thumb-rounded-lg w-full absolute bg-background shadow-md z-10 border border-muted top-0",
-        className
+        className,
       )}
     >
       {children}
@@ -333,7 +337,9 @@ MultiSelectorList.displayName = "MultiSelectorList";
 
 const MultiSelectorItem = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
-  { value: string } & React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
+  { value: string } & React.ComponentPropsWithoutRef<
+    typeof CommandPrimitive.Item
+  >
 >(({ className, value, children, ...props }, ref) => {
   const { value: Options, onValueChange, setInputValue } = useMultiSelect();
 
@@ -355,7 +361,7 @@ const MultiSelectorItem = forwardRef<
         "rounded-md cursor-pointer px-2 py-1 transition-colors flex justify-between ",
         className,
         isIncluded && "opacity-50 cursor-default",
-        props.disabled && "opacity-50 cursor-not-allowed"
+        props.disabled && "opacity-50 cursor-not-allowed",
       )}
       onMouseDown={mousePreventDefault}
     >

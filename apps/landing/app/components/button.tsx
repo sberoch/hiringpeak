@@ -31,7 +31,7 @@ function Button({
   variant,
   size,
   ...props
-}: React.ComponentProps<typeof UIButton> &
+}: Omit<React.ComponentProps<typeof UIButton>, "variant" | "size"> &
   VariantProps<typeof landingButtonVariants>) {
   return (
     <UIButton

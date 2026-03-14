@@ -347,8 +347,8 @@ export default function NewCandidateForm() {
 
       if (vacancyId && candidateVacancyStatus?.items.length) {
         const initialStatus =
-          candidateVacancyStatus.items.find((status) => status.isInitial) ||
-          candidateVacancyStatus.items[0];
+          candidateVacancyStatus.items.find((status) => status.isInitial) ??
+          candidateVacancyStatus.items[0]!;
 
         await createCandidateVacancyMutation.mutateAsync({
           candidateId: newCandidate.id,
