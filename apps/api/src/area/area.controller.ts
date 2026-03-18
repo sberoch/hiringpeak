@@ -20,9 +20,9 @@ import { ClsService } from 'nestjs-cls';
 import { OrganizationId } from 'src/auth/organization/organization.decorator';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
-import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { AreaQueryParamsDto, CreateAreaDto, UpdateAreaDto } from './area.dto';
 import { AreaService } from './area.service';
 

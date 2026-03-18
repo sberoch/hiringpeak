@@ -16,6 +16,7 @@ import {
   UserType,
   CompanyStatus,
   PermissionCode,
+  CandidateVacancyState,
 } from '@workspace/shared/enums';
 import {
   hashPassword,
@@ -276,15 +277,21 @@ async function main() {
       .insert(vacancyStatuses)
       .values({ name: 'Open', organizationId })
       .returning({ id: vacancyStatuses.id });
-    const [candidateVacancyStatus] = await tx
+    const [appliedCandidateVacancyStatus] = await tx
       .insert(candidateVacancyStatuses)
       .values({
-        name: 'Applied',
+        name: CandidateVacancyState.APLICADO,
         sort: 1,
         isInitial: true,
         organizationId,
       })
       .returning({ id: candidateVacancyStatuses.id });
+    await tx.insert(candidateVacancyStatuses).values({
+      name: CandidateVacancyState.RECHAZADO,
+      sort: 2,
+      isInitial: false,
+      organizationId,
+    });
     const [candidateSource] = await tx
       .insert(candidateSources)
       .values({ name: 'LinkedIn', organizationId })
@@ -303,7 +310,7 @@ async function main() {
       !industry ||
       !seniority ||
       !vacancyStatus ||
-      !candidateVacancyStatus ||
+      !appliedCandidateVacancyStatus ||
       !candidateSource ||
       !candidateFile
     ) {
@@ -427,7 +434,7 @@ async function main() {
       organizationId,
       candidateId: candidate.id,
       vacancyId: vacancy.id,
-      candidateVacancyStatusId: candidateVacancyStatus.id,
+      candidateVacancyStatusId: appliedCandidateVacancyStatus.id,
       notes: 'Dev seed application.',
     } as typeof candidateVacancies.$inferInsert);
   });

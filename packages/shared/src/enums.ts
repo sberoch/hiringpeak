@@ -37,3 +37,8 @@ export enum CompanyStatus {
   ACTIVE = "Active",
   PROSPECT = "Prospect",
 }
+
+export enum CandidateVacancyState {
+  APLICADO = "APLICADO",
+  RECHAZADO = "RECHAZADO",
+}
