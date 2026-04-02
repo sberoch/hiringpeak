@@ -11,16 +11,17 @@ export const metadata: Metadata = {
 };
 
 interface VacanciesProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function Vacancies({ searchParams }: VacanciesProps) {
+  const resolvedSearchParams = await searchParams;
   const initialFilters: VacancyFiltersType = {};
 
-  if (searchParams.status) {
-    const statusParam = Array.isArray(searchParams.status)
-      ? searchParams.status[0]
-      : searchParams.status;
+  if (resolvedSearchParams.status) {
+    const statusParam = Array.isArray(resolvedSearchParams.status)
+      ? resolvedSearchParams.status[0]
+      : resolvedSearchParams.status;
 
     if (statusParam && isNaN(Number(statusParam))) {
       const vacancyStatuses = await getAllVacancyStatuses({

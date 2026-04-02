@@ -3,7 +3,7 @@ services:
   postgres:
     restart: unless-stopped
     container_name: hiringpeak-postgres
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     ports:
       - "5432:5432"
     env_file:
@@ -12,5 +12,9 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: hiringpeak
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:

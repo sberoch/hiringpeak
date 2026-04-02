@@ -1,4 +1,4 @@
-import NextAuth, { type User } from "next-auth";
+import NextAuth, { type NextAuthConfig, type User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { match } from "path-to-regexp";
@@ -11,10 +11,11 @@ import type { AuthLogin } from "@workspace/shared/types/auth";
 /** Routes in this map require authentication; no role check (API enforces permissions). */
 
 const loginEnabled = process.env.NEXT_PUBLIC_LOGIN_ENABLED !== "false";
-const googleLoginEnabled = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED !== "false";
+const googleLoginEnabled =
+  process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED !== "false";
 const hasGoogleConfig = Boolean(process.env.AUTH_GOOGLE_ID);
 
-const providers: NextAuth["providers"] = [
+const providers: NextAuthConfig["providers"] = [
   CredentialsProvider({
     name: "Credentials",
     credentials: {
@@ -32,7 +33,9 @@ const providers: NextAuth["providers"] = [
           const payload = parseJwt(data.access_token);
           const email =
             (typeof payload.email === "string" ? payload.email : null) ??
-            (typeof credentials?.email === "string" ? credentials.email : null) ??
+            (typeof credentials?.email === "string"
+              ? credentials.email
+              : null) ??
             "";
           return {
             id: String(payload.id),
@@ -46,7 +49,7 @@ const providers: NextAuth["providers"] = [
       } catch (err) {
         console.error(
           "[Auth] - authorize - Error during login",
-          JSON.stringify(err)
+          JSON.stringify(err),
         );
         return null;
       }
@@ -133,7 +136,10 @@ const nextAuth = NextAuth({
   },
 });
 
-export const { handlers, signIn, signOut, auth } = nextAuth;
+export const { handlers } = nextAuth;
+export const auth: typeof nextAuth.auth = nextAuth.auth;
+export const signIn: typeof nextAuth.signIn = nextAuth.signIn;
+export const signOut: typeof nextAuth.signOut = nextAuth.signOut;
 
 /** True if the route is protected and the user has a valid token. API enforces permissions. */
 export function hasAccessToRoute(route: string, token?: string): boolean {

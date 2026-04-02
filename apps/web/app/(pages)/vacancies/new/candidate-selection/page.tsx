@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -55,15 +55,16 @@ function CandidatePickerSkeleton() {
 export default function EditVacancyCandidateSelectionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const {
     data: vacancy,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: [VACANCY_API_KEY, params.id],
-    queryFn: () => getVacancyById(params.id),
+    queryKey: [VACANCY_API_KEY, id],
+    queryFn: () => getVacancyById(id),
   });
 
   const { data: candidates } = useQuery({

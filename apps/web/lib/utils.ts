@@ -35,12 +35,12 @@ export const normalizeString = (str: string) => {
 
 export function parseJwt(token: string): AuthTokenData {
   return JSON.parse(
-    Buffer.from(token.split(".")[1], "base64").toString()
+    Buffer.from(token.split(".")[1] ?? "", "base64").toString(),
   ) as AuthTokenData;
 }
 
 export function candidateVacancyFiltersAdapter(
-  vacancyF?: VacancyFiltersType
+  vacancyF?: VacancyFiltersType,
 ): CandidateFilters {
   if (!vacancyF) return {};
   return {
@@ -128,14 +128,14 @@ export function stringToColor(str: string): string {
   }, 0);
 
   const colorIndex = Math.abs(hash) % tailwindColors.length;
-  const color = tailwindColors[colorIndex];
+  const color = tailwindColors[colorIndex] ?? "gray";
 
-  return colorRGBMap[color];
+  return colorRGBMap[color] ?? "rgb(231, 229, 228)";
 }
 
 export function getColumnGradientColor(
   index: number,
-  totalColumns: number
+  totalColumns: number,
 ): string {
   if (totalColumns <= 1) {
     return "rgba(34, 197, 94, 0.3)";
@@ -205,7 +205,7 @@ export function sortingToTanstack(sort?: string): SortingState {
 }
 
 export function vacancyFilterToCandidateFilter(
-  vacancyFilter?: VacancyFiltersType
+  vacancyFilter?: VacancyFiltersType,
 ): CandidateParams {
   if (!vacancyFilter) return {};
 
@@ -234,11 +234,11 @@ export function translateGender(gender: string): string {
 
 export function mergeCandidatesWithVacancies(
   candidates: Candidate[],
-  candidateVacancies: CandidateVacancy[]
+  candidateVacancies: CandidateVacancy[],
 ): Candidate[] {
   return candidates.map((candidate) => {
     const candidateVacancyRelations = candidateVacancies.filter(
-      (cv) => cv.candidate.id === candidate.id
+      (cv) => cv.candidate.id === candidate.id,
     );
 
     const vacancies = candidateVacancyRelations.map((cv) => cv.vacancy);

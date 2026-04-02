@@ -61,10 +61,10 @@ export function useFilters<TFilters extends PaginationFilters, TParams>({
     (updaterOrValue: Updater<SortingState>) => {
       if (typeof updaterOrValue === "function") {
         const currentSort = filters.order
-          ? {
-            id: filters.order.split(":")[0],
-            desc: filters.order.split(":")[1] === "desc",
-          }
+          ? (() => {
+            const [id, dir] = filters.order.split(":");
+            return { id: id!, desc: dir === "desc" };
+          })()
           : undefined;
         const newSorting = updaterOrValue(currentSort ? [currentSort] : []);
         const orderString = newSorting[0]

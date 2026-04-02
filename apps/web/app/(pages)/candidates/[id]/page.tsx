@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -11,12 +12,13 @@ import { CANDIDATE_API_KEY, getCandidateById } from "@/lib/api/candidate";
 export default function NextCandidateDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const router = useRouter();
   const { data, isLoading } = useQuery({
-    queryKey: [CANDIDATE_API_KEY, params.id],
-    queryFn: () => getCandidateById(parseInt(params.id)),
+    queryKey: [CANDIDATE_API_KEY, id],
+    queryFn: () => getCandidateById(parseInt(id)),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",

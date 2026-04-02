@@ -41,6 +41,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "@workspace/typescript-config": "workspace:*",
     "typescript": "latest"
   }

@@ -4,7 +4,7 @@ import { CompanyStatusEnum } from "@workspace/shared/types/company";
 
 export const companyFormSchema = z.object({
   status: z.nativeEnum(CompanyStatusEnum, {
-    required_error: "El estado es requerido",
+    error: "El estado es requerido",
   }),
   name: z.string().min(2, {
     message: "El nombre debe tener al menos 2 caracteres.",

@@ -2,10 +2,11 @@
 
 import { type ReactNode } from "react";
 import { usePermissions } from "@/contexts/permission-context";
+import type { PermissionCode } from "@workspace/shared/enums";
 
 interface PermissionGuardProps {
   /** Require at least one of these permission codes to render children. */
-  permissions: string[];
+  permissions: PermissionCode[];
   children: ReactNode;
 }
 

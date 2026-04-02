@@ -170,7 +170,7 @@ export default function CandidateVacancyStatusesSettings() {
 
   const { mutate: handleEditStatus } = useMutation({
     mutationFn: (status: CandidateVacancyStatus) =>
-      updateCandidateVacancyStatus(status.id.toString(), { name: status.name }),
+      updateCandidateVacancyStatus(status.id, { name: status.name }),
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: [CANDIDATE_VACANCY_STATUS_API_KEY] })
@@ -201,7 +201,7 @@ export default function CandidateVacancyStatusesSettings() {
 
   const { mutate: handleUpdateSort } = useMutation({
     mutationFn: async (status: CandidateVacancyStatus) =>
-      updateCandidateVacancyStatus(status.id.toString(), status),
+      updateCandidateVacancyStatus(status.id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [CANDIDATE_VACANCY_STATUS_API_KEY],
@@ -221,7 +221,7 @@ export default function CandidateVacancyStatusesSettings() {
       const newIndex = data.items.findIndex((item) => item.id === over.id);
       const newItems = [...data.items];
       const [movedItem] = newItems.splice(oldIndex, 1);
-      newItems.splice(newIndex, 0, movedItem);
+      newItems.splice(newIndex, 0, movedItem!);
 
       queryClient.setQueryData(
         [
@@ -234,7 +234,7 @@ export default function CandidateVacancyStatusesSettings() {
         })
       );
 
-      handleUpdateSort({ ...newItems[newIndex], sort: newIndex });
+      handleUpdateSort({ ...newItems[newIndex]!, sort: newIndex });
     }
   };
 

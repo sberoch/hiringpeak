@@ -72,7 +72,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue={tabsConfig[0].id} className="w-full">
+      <Tabs defaultValue={tabsConfig[0]!.id} className="w-full">
         <TabsList className="grid w-full h-fit grid-cols-2 lg:grid-cols-3 mb-8">
           {tabsConfig.map((tab) => (
             <TabsTrigger key={tab.id} value={tab.id}>

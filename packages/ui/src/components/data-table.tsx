@@ -68,12 +68,10 @@ export function DataTable<TData, TValue>({
     manualPagination: !!pagination,
     state: {
       sorting: sorting?.order
-        ? [
-          {
-            id: sorting.order.split(":")[0],
-            desc: sorting.order.split(":")[1] === "desc",
-          },
-        ]
+        ? (() => {
+            const [id = "", dir] = sorting.order.split(":");
+            return [{ id, desc: dir === "desc" }];
+          })()
         : [],
       columnFilters,
       ...(pagination && {
@@ -129,9 +127,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                     </TableHead>
                   );
                 })}
@@ -159,7 +157,7 @@ export function DataTable<TData, TValue>({
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
