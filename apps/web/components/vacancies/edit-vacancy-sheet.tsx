@@ -212,10 +212,10 @@ export function EditVacancySheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto">
+      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto bg-surface border-brand-border">
         <SheetHeader>
-          <SheetTitle>Editar vacante</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-xl font-bold text-ink">Editar vacante</SheetTitle>
+          <SheetDescription className="text-slate-brand">
             Modifique los datos de la vacante {vacancyDisplayLabel(vacancy)}.
           </SheetDescription>
         </SheetHeader>

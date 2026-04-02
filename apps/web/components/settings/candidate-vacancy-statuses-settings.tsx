@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { GripVertical, Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import {
   closestCenter,
   DndContext,
@@ -42,14 +42,6 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   CANDIDATE_VACANCY_STATUS_API_KEY,
@@ -63,15 +55,23 @@ import type { PaginatedResponse } from "@workspace/shared/types/api";
 
 function SortableStatusRow({
   status,
+  index,
   onEdit,
   onDelete,
 }: {
   status: CandidateVacancyStatus;
+  index: number;
   onEdit: (status: CandidateVacancyStatus) => void;
   onDelete: (id: number) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: status.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: status.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -79,36 +79,40 @@ function SortableStatusRow({
   };
 
   return (
-    <TableRow ref={setNodeRef} style={style}>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <button
-            className="cursor-grab active:cursor-grabbing"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </button>
-          {status.name}
-        </div>
-      </TableCell>
-      <TableCell className="text-right">
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(status)}>
-            <Pencil className="h-4 w-4" />
-            <span className="sr-only">Editar</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete(status.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Eliminar</span>
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`group flex items-center justify-between px-4 py-3 transition-colors duration-150 hover:bg-brand-border-light/50 ${
+        index !== 0 ? "border-t border-brand-border" : ""
+      } ${isDragging ? "z-10 bg-surface shadow-[0_4px_12px_rgba(0,0,0,0.08)] rounded-lg" : ""}`}
+    >
+      <div className="flex items-center gap-2.5">
+        <button
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-brand cursor-grab transition-colors hover:text-slate-brand hover:bg-brand-border-light active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+        <span className="text-sm font-medium text-ink">{status.name}</span>
+      </div>
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={() => onEdit(status)}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-brand transition-colors hover:bg-electric/10 hover:text-electric"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          <span className="sr-only">Editar</span>
+        </button>
+        <button
+          onClick={() => onDelete(status.id)}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-brand transition-colors hover:bg-red-50 hover:text-red-500"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          <span className="sr-only">Eliminar</span>
+        </button>
+      </div>
+    </li>
   );
 }
 
@@ -133,7 +137,7 @@ export default function CandidateVacancyStatusesSettings() {
 
   const filteredStatuses = useMemo(() => {
     return data?.items.filter((status) =>
-      status.name.toLowerCase().includes(searchTerm.toLowerCase())
+      status.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [data, searchTerm]);
 
@@ -141,7 +145,7 @@ export default function CandidateVacancyStatusesSettings() {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const { mutate: handleAddStatus } = useMutation({
@@ -231,7 +235,7 @@ export default function CandidateVacancyStatusesSettings() {
         (oldData: PaginatedResponse<CandidateVacancyStatus> | undefined) => ({
           ...oldData,
           items: newItems,
-        })
+        }),
       );
 
       handleUpdateSort({ ...newItems[newIndex]!, sort: newIndex });
@@ -239,31 +243,46 @@ export default function CandidateVacancyStatusesSettings() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="w-full sm:w-1/2">
-          <Input
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-brand" />
+          <input
             placeholder="Buscar estados de candidato..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
+            className="w-full rounded-xl border border-brand-border bg-canvas py-2.5 pl-9 pr-4 text-sm text-ink outline-none placeholder:text-muted-brand transition-all duration-200 focus:border-electric focus:shadow-[0_0_0_4px_rgba(0,102,255,0.08)]"
           />
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Agregar Estado
-        </Button>
+        <button
+          onClick={() => setIsAddDialogOpen(true)}
+          className="inline-flex shrink-0 items-center gap-2 rounded-md bg-electric px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:bg-electric-light hover:shadow-[0_12px_32px_-8px_rgba(0,102,255,0.4)]"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar
+        </button>
       </div>
 
-      <div className="border rounded-md">
+      {data && !isLoading && (
+        <p className="text-xs text-muted-brand">Arrastra para reordenar</p>
+      )}
+
+      <div className="rounded-xl border border-brand-border overflow-hidden">
         {!data && isLoading ? (
-          <div className="p-4">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
+          <div className="p-3 space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-11 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : filteredStatuses?.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-border-light mb-3">
+              <Search className="h-5 w-5 text-muted-brand" />
             </div>
+            <p className="text-sm font-medium text-ink">Sin resultados</p>
+            <p className="text-xs text-muted-brand mt-0.5">
+              No se encontraron estados con ese nombre.
+            </p>
           </div>
         ) : (
           <DndContext
@@ -271,68 +290,64 @@ export default function CandidateVacancyStatusesSettings() {
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead className="w-[100px] text-right">
-                    Acciones
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <SortableContext
-                  items={filteredStatuses?.map((status) => status.id) || []}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {filteredStatuses?.map((status) => (
-                    <SortableStatusRow
-                      key={status.id}
-                      status={status}
-                      onEdit={setEditingStatus}
-                      onDelete={setStatusToDelete}
-                    />
-                  ))}
-                </SortableContext>
-              </TableBody>
-            </Table>
+            <ul>
+              <SortableContext
+                items={filteredStatuses?.map((status) => status.id) || []}
+                strategy={verticalListSortingStrategy}
+              >
+                {filteredStatuses?.map((status, index) => (
+                  <SortableStatusRow
+                    key={status.id}
+                    status={status}
+                    index={index}
+                    onEdit={setEditingStatus}
+                    onDelete={setStatusToDelete}
+                  />
+                ))}
+              </SortableContext>
+            </ul>
           </DndContext>
         )}
       </div>
 
       {isAddDialogOpen && (
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle>Agregar Estado de Candidato</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-ink">
+                Agregar Estado de Candidato
+              </DialogTitle>
+              <DialogDescription className="text-slate-brand">
                 Ingresa el nombre del nuevo estado de candidato.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                  id="name"
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  placeholder="Nombre del estado"
-                />
-              </div>
+            <div className="py-4">
+              <Label htmlFor="name" className="text-sm font-semibold text-ink">
+                Nombre
+              </Label>
+              <Input
+                id="name"
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                placeholder="Nombre del estado"
+                className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
+              />
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setIsAddDialogOpen(false)}
+                className="rounded-md border-brand-border text-ink hover:bg-brand-border-light"
               >
                 Cancelar
               </Button>
-              <Button
+              <button
                 onClick={() => handleAddStatus(newStatus)}
-                disabled={isLoading}
+                disabled={isLoading || !newStatus.trim()}
+                className="inline-flex items-center justify-center rounded-md bg-electric px-4 py-2 text-sm font-semibold text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-electric-light hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.4)] disabled:opacity-50 disabled:pointer-events-none"
               >
                 {isLoading ? "Guardando..." : "Guardar"}
-              </Button>
+              </button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -343,40 +358,51 @@ export default function CandidateVacancyStatusesSettings() {
           open={!!editingStatus}
           onOpenChange={() => setEditingStatus(null)}
         >
-          <DialogContent>
+          <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle>Editar Estado de Candidato</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-ink">
+                Editar Estado de Candidato
+              </DialogTitle>
+              <DialogDescription className="text-slate-brand">
                 Modifica el nombre del estado de candidato.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Nombre</Label>
-                <Input
-                  id="edit-name"
-                  value={editingStatus?.name || ""}
-                  onChange={(e) =>
-                    setEditingStatus(
-                      editingStatus
-                        ? { ...editingStatus, name: e.target.value }
-                        : null
-                    )
-                  }
-                  placeholder="Nombre del estado"
-                />
-              </div>
+            <div className="py-4">
+              <Label
+                htmlFor="edit-name"
+                className="text-sm font-semibold text-ink"
+              >
+                Nombre
+              </Label>
+              <Input
+                id="edit-name"
+                value={editingStatus?.name || ""}
+                onChange={(e) =>
+                  setEditingStatus(
+                    editingStatus
+                      ? { ...editingStatus, name: e.target.value }
+                      : null,
+                  )
+                }
+                placeholder="Nombre del estado"
+                className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
+              />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingStatus(null)}>
+              <Button
+                variant="outline"
+                onClick={() => setEditingStatus(null)}
+                className="rounded-md border-brand-border text-ink hover:bg-brand-border-light"
+              >
                 Cancelar
               </Button>
-              <Button
+              <button
                 onClick={() => handleEditStatus(editingStatus!)}
-                disabled={isLoading}
+                disabled={isLoading || !editingStatus?.name.trim()}
+                className="inline-flex items-center justify-center rounded-md bg-electric px-4 py-2 text-sm font-semibold text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-electric-light hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.4)] disabled:opacity-50 disabled:pointer-events-none"
               >
                 {isLoading ? "Guardando..." : "Guardar"}
-              </Button>
+              </button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -389,18 +415,23 @@ export default function CandidateVacancyStatusesSettings() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogTitle className="text-ink">
+                ¿Estás seguro?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-brand">
                 Esta acción no se puede deshacer. Esto eliminará permanentemente
                 el estado de candidato y podría afectar a los candidatos que lo
                 tengan asignado.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel className="rounded-md border-brand-border">
+                Cancelar
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => handleDeleteStatus(statusToDelete!)}
                 disabled={isLoading}
+                className="rounded-md bg-red-500 text-white hover:bg-red-600"
               >
                 {isLoading ? "Eliminando..." : "Eliminar"}
               </AlertDialogAction>

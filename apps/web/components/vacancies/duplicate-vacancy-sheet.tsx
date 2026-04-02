@@ -51,10 +51,10 @@ export function DuplicateVacancySheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto">
+      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto bg-surface border-brand-border">
         <SheetHeader>
-          <SheetTitle>Duplicar vacante</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-xl font-bold text-ink">Duplicar vacante</SheetTitle>
+          <SheetDescription className="text-slate-brand">
             Se creará una nueva vacante basada en &quot;
             {vacancyDisplayLabel(vacancy)}&quot;. Puede modificar los datos
             antes de confirmar.

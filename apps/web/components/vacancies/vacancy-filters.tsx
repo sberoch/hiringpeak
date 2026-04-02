@@ -98,10 +98,10 @@ export function VacancyFilters({
   });
 
   return (
-    <Card className={cn(isCollapsed && "gap-0")}>
+    <Card className={cn("rounded-2xl border-brand-border bg-surface", isCollapsed && "gap-0")}>
       <CardHeader className={cn("pb-0 gap-0 relative flex flex-row items-center w-full justify-between", !isCollapsed && "pt-4 px-4")}>
-        <CardTitle className="text-lg font-medium">
-          <span className="mr-2">🔍</span> Filtros y Búsqueda
+        <CardTitle className="text-lg font-medium text-ink">
+          <Search className="inline-block mr-2 h-4 w-4 text-electric" /> Filtros y Búsqueda
         </CardTitle>
         <Button
           variant="ghost"
@@ -121,12 +121,12 @@ export function VacancyFilters({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 lg:gap-4">
             <div>
               <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-brand" />
                 <Input
                   id="search"
                   type="search"
                   placeholder="Buscar por nombre o número..."
-                  className="pl-8"
+                  className="pl-8 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
                   value={filters.title}
                   onChange={(event) =>
                     onFiltersChange({
@@ -435,7 +435,7 @@ export function VacancyFilters({
                 variant="outline"
                 size="sm"
                 onClick={resetFilters}
-                className="flex items-center"
+                className="flex items-center rounded-xl border-brand-border hover:border-electric/30 transition-all"
               >
                 <RotateCcw className="h-4 w-4" />
                 Limpiar

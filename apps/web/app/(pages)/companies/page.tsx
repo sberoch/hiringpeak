@@ -1,11 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Building2 } from "lucide-react";
 
 import { columns } from "@/components/companies/company-table-columns";
 import { NewCompanySheet } from "@/components/companies/new-company-sheet";
 import { DataTable } from "@workspace/ui/components/data-table";
-import { Heading } from "@workspace/ui/components/heading";
 import { useCompanyFilters } from "@/hooks/use-company-filters";
 import { COMPANIES_API_KEY, getAllCompanies } from "@/lib/api/company";
 
@@ -20,9 +20,21 @@ export default function Companies() {
     queryFn: () => getAllCompanies(params),
   });
   return (
-    <div className="container flex flex-col">
-      <div className="flex items-center justify-between">
-        <Heading>Empresas</Heading>
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]">
+            <Building2 className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-ink">
+              Empresas
+            </h1>
+            <p className="text-sm text-slate-brand leading-relaxed">
+              Gestiona las empresas y sus datos de contacto.
+            </p>
+          </div>
+        </div>
         <NewCompanySheet />
       </div>
       <div className="w-full pb-4">

@@ -8,7 +8,7 @@ export const CandidateStars = ({ stars = 0 }: CandidateStarsProps) => {
       {Array.from({ length: 5 }).map((_, i) => (
         <svg
           key={i}
-          className={`h-4 w-4 ${i < stars ? "text-yellow-400" : "text-gray-300"}`}
+          className={`h-4 w-4 ${i < stars ? "text-amber-400" : "text-brand-border"}`}
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="currentColor"
@@ -20,7 +20,7 @@ export const CandidateStars = ({ stars = 0 }: CandidateStarsProps) => {
           />
         </svg>
       ))}
-      <span className="ml-1 text-sm text-muted-foreground">
+      <span className="ml-1 text-sm text-muted-brand">
         {Math.round(stars)}
       </span>
     </div>
