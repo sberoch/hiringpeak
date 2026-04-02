@@ -227,7 +227,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
                     >
                       <SidebarGroupLabel
                         asChild
-                        className={`group/label text-[13px] font-medium transition-all duration-200 relative rounded-lg px-3 py-2.5 ${
+                        className={`group/label w-full text-[13px] font-medium transition-all duration-200 relative rounded-lg px-3 py-2.5 ${
                           isActive || hasActiveSubItem
                             ? "bg-sidebar-primary/10 text-sidebar-primary font-semibold"
                             : "text-slate-brand hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -298,7 +298,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
           );
         })}
       </SidebarContent>
-      <SidebarFooter className="p-0 border-t border-sidebar-border">
+      <SidebarFooter className="p-0 border-t border-sidebar-border shrink-0">
         <LogoutButton />
       </SidebarFooter>
       <SidebarRail />
