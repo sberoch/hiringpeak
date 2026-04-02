@@ -9,9 +9,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="w-full">
-        <SidebarTrigger />
-        <div className="container p-4">
+      <SidebarInset className="relative w-full bg-canvas">
+        <SidebarTrigger className="absolute top-3 left-3 z-30 text-slate-brand hover:text-ink transition-colors" />
+        <div className="container p-6">
           {children}
         </div>
       </SidebarInset>
