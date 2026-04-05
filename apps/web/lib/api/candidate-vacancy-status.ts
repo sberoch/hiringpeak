@@ -3,6 +3,10 @@ import {
   CandidateVacancyStatus,
   CandidateVacancyStatusParams,
 } from "@workspace/shared/types/candidate-vacancy-status";
+import type {
+  CreateCandidateVacancyStatusDto,
+  UpdateCandidateVacancyStatusDto,
+} from "@workspace/shared/dtos";
 
 import api from ".";
 import { filtersToSearchParams } from "../utils";
@@ -20,7 +24,7 @@ export async function getCandidateVacancyStatus(
 }
 
 export async function createCandidateVacancyStatus(
-  candidateVacancyStatus: Omit<CandidateVacancyStatus, "id">
+  candidateVacancyStatus: CreateCandidateVacancyStatusDto
 ) {
   const response = await api.post<CandidateVacancyStatus>(
     "/candidateVacancyStatus",
@@ -31,7 +35,7 @@ export async function createCandidateVacancyStatus(
 
 export async function updateCandidateVacancyStatus(
   id: CandidateVacancyStatus["id"],
-  candidateVacancyStatus: Partial<Omit<CandidateVacancyStatus, "id">>
+  candidateVacancyStatus: UpdateCandidateVacancyStatusDto
 ) {
   const response = await api.patch<CandidateVacancyStatus>(
     `/candidateVacancyStatus/${id}`,

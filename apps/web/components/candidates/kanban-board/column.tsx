@@ -12,7 +12,7 @@ import { CandidateCard } from "./card";
 
 interface ColumnProps {
   column: {
-    id: string;
+    id: number;
     name: string;
     candidates: (ListedCandidateVacancy | CandidateVacancy)[];
   };
@@ -77,7 +77,7 @@ export const CandidateColumn = ({
       {isVisible ? (
         <div className={cn("flex-grow", { "pointer-events-none": isDragging })}>
           <SortableContext
-            id={column.id}
+            id={column.id.toString()}
             items={column.candidates.map((candidate) => candidate.id)}
             strategy={verticalListSortingStrategy}
           >

@@ -7,10 +7,16 @@ import {
 import { and, asc, count, desc, eq, ilike, inArray, SQL } from 'drizzle-orm';
 import {
   candidateVacancies,
-  CandidateVacancy,
+  Candidate,
+  CandidateVacancy as CandidateVacancySchema,
   candidateVacancyStatuses,
+  CandidateVacancyStatus,
   candidates,
+  Company,
+  Vacancy,
+  VacancyStatus,
 } from '@workspace/shared/schemas';
+import { CandidateVacancyState } from '@workspace/shared/enums';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -24,13 +30,29 @@ import {
   UpdateCandidateVacancyServiceDto,
 } from './candidatevacancy.dto';
 
+type CandidateVacancyQueryResult = CandidateVacancySchema & {
+  candidate: Candidate;
+  vacancy: Vacancy & {
+    company: Company;
+    status: VacancyStatus;
+  };
+  candidateVacancyStatus: CandidateVacancyStatus;
+};
+
+type CandidateVacancyApiResponse = Omit<
+  CandidateVacancyQueryResult,
+  'candidateVacancyStatus'
+> & {
+  status: CandidateVacancyStatus;
+};
+
 @Injectable()
 export class CandidateVacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
     params: CandidateVacancyFindAllServiceParams,
-  ): Promise<PaginatedResponse<CandidateVacancy>> {
+  ): Promise<PaginatedResponse<CandidateVacancyApiResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
     const orderClause = this.buildOrderBy(params);
@@ -45,6 +67,7 @@ export class CandidateVacancyService {
         vacancy: {
           with: {
             company: true,
+            status: true,
           },
         },
         candidateVacancyStatus: true,
@@ -60,7 +83,9 @@ export class CandidateVacancyService {
       itemsQuery,
       countQuery,
     ]);
-    return paginatedResponse(items, totalItems, paginationQuery);
+
+    const parsedItems = items.map((item) => this.transformQueryResult(item));
+    return paginatedResponse(parsedItems, totalItems, paginationQuery);
   }
 
   async findOne(id: number, organizationId: number) {
@@ -74,17 +99,18 @@ export class CandidateVacancyService {
         vacancy: {
           with: {
             company: true,
+            status: true,
           },
         },
         candidateVacancyStatus: true,
       },
     });
     if (!candidateVacancy) throw new NotFoundException('Not found');
-    return candidateVacancy;
+    return this.transformQueryResult(candidateVacancy);
   }
 
   async create(dto: CreateCandidateVacancyServiceDto) {
-    return await this.db.transaction(async (tx) => {
+    const createdCandidateVacancy = await this.db.transaction(async (tx) => {
       const existingCandidateVacancy =
         await tx.query.candidateVacancies.findFirst({
           where: and(
@@ -114,17 +140,42 @@ export class CandidateVacancyService {
           .where(eq(candidates.id, dto.candidateId));
       }
 
+      const candidateVacancyValues = {
+        ...dto,
+        rejectionReason: this.shouldPersistRejectionReason(status?.code ?? null)
+          ? this.normalizeRejectionReason(dto.rejectionReason)
+          : null,
+      } as typeof candidateVacancies.$inferInsert;
+
       const [candidateVacancy] = await tx
         .insert(candidateVacancies)
-        .values(dto)
+        .values(candidateVacancyValues)
         .returning();
 
       return candidateVacancy;
     });
+
+    return this.findOne(
+      createdCandidateVacancy.id,
+      createdCandidateVacancy.organizationId,
+    );
   }
 
   async update(id: number, dto: UpdateCandidateVacancyServiceDto) {
-    return await this.db.transaction(async (tx) => {
+    const candidateVacancy = await this.db.transaction(async (tx) => {
+      const currentCandidateVacancy = await tx.query.candidateVacancies.findFirst(
+        {
+          where: and(
+            eq(candidateVacancies.id, id),
+            eq(candidateVacancies.organizationId, dto.organizationId),
+          ),
+        },
+      );
+
+      if (!currentCandidateVacancy) {
+        throw new NotFoundException('Not found');
+      }
+
       if (dto.candidateVacancyStatusId) {
         const status = await tx.query.candidateVacancyStatuses.findFirst({
           where: eq(candidateVacancyStatuses.id, dto.candidateVacancyStatusId),
@@ -156,6 +207,27 @@ export class CandidateVacancyService {
       }
 
       const { organizationId, ...updateFields } = dto;
+      const nextStatusId =
+        dto.candidateVacancyStatusId ??
+        currentCandidateVacancy.candidateVacancyStatusId;
+      const nextStatus = await tx.query.candidateVacancyStatuses.findFirst({
+        where: eq(candidateVacancyStatuses.id, nextStatusId),
+      });
+      const isStatusChange =
+        dto.candidateVacancyStatusId !== undefined &&
+        dto.candidateVacancyStatusId !==
+          currentCandidateVacancy.candidateVacancyStatusId;
+
+      if (this.shouldPersistRejectionReason(nextStatus?.code ?? null)) {
+        if (dto.rejectionReason !== undefined || isStatusChange) {
+          updateFields.rejectionReason = this.normalizeRejectionReason(
+            dto.rejectionReason,
+          );
+        }
+      } else {
+        updateFields.rejectionReason = null;
+      }
+
       const [candidateVacancy] = await tx
         .update(candidateVacancies)
         .set(updateFields)
@@ -169,6 +241,8 @@ export class CandidateVacancyService {
 
       return candidateVacancy;
     });
+
+    return this.findOne(candidateVacancy.id, candidateVacancy.organizationId);
   }
 
   async remove(id: number, organizationId: number) {
@@ -236,6 +310,34 @@ export class CandidateVacancyService {
       filters.push(ilike(candidateVacancies.notes, params.notes));
     }
 
+    if (params.rejectionReason) {
+      filters.push(
+        ilike(candidateVacancies.rejectionReason, params.rejectionReason),
+      );
+    }
+
     return and(...filters);
+  }
+
+  private transformQueryResult(
+    result: CandidateVacancyQueryResult,
+  ): CandidateVacancyApiResponse {
+    const { candidateVacancyStatus, ...rest } = result;
+
+    return {
+      ...rest,
+      status: candidateVacancyStatus,
+    };
+  }
+
+  private normalizeRejectionReason(rejectionReason?: string | null) {
+    const normalizedRejectionReason = rejectionReason?.trim();
+    return normalizedRejectionReason ? normalizedRejectionReason : null;
+  }
+
+  private shouldPersistRejectionReason(
+    statusCode: CandidateVacancyState | null,
+  ) {
+    return statusCode === CandidateVacancyState.RECHAZADO;
   }
 }

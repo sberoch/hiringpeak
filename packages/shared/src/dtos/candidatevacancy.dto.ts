@@ -6,6 +6,7 @@ export const CreateCandidateVacancySchema = z.object({
   vacancyId: z.number().int(),
   candidateVacancyStatusId: z.number().int(),
   notes: z.string().optional(),
+  rejectionReason: z.string().nullable().optional(),
 });
 
 export const UpdateCandidateVacancySchema =
@@ -23,6 +24,7 @@ export const CandidateVacancyQueryParamsSchema = PaginationParamsSchema.extend({
   vacancyId: z.coerce.number().optional(),
   candidateVacancyStatusId: z.coerce.number().optional(),
   notes: z.string().optional(),
+  rejectionReason: z.string().nullable().optional(),
 });
 
 export type CreateCandidateVacancyDto = z.infer<

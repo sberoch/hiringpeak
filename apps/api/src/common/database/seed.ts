@@ -277,21 +277,27 @@ async function main() {
       .insert(vacancyStatuses)
       .values({ name: 'Open', organizationId })
       .returning({ id: vacancyStatuses.id });
+    const appliedCandidateVacancyStatusValues = {
+      name: CandidateVacancyState.APLICADO,
+      code: CandidateVacancyState.APLICADO,
+      sort: 1,
+      isInitial: true,
+      organizationId,
+    } as typeof candidateVacancyStatuses.$inferInsert;
     const [appliedCandidateVacancyStatus] = await tx
       .insert(candidateVacancyStatuses)
-      .values({
-        name: CandidateVacancyState.APLICADO,
-        sort: 1,
-        isInitial: true,
-        organizationId,
-      })
+      .values(appliedCandidateVacancyStatusValues)
       .returning({ id: candidateVacancyStatuses.id });
-    await tx.insert(candidateVacancyStatuses).values({
+    const rejectedCandidateVacancyStatusValues = {
       name: CandidateVacancyState.RECHAZADO,
+      code: CandidateVacancyState.RECHAZADO,
       sort: 2,
       isInitial: false,
       organizationId,
-    });
+    } as typeof candidateVacancyStatuses.$inferInsert;
+    await tx
+      .insert(candidateVacancyStatuses)
+      .values(rejectedCandidateVacancyStatusValues);
     const [candidateSource] = await tx
       .insert(candidateSources)
       .values({ name: 'LinkedIn', organizationId })

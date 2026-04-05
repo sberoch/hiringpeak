@@ -55,9 +55,13 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
           ) : (
             <div className="space-y-4">
               {candidateVacancies?.items.map((candidateVacancy) => {
-                const color = stringToColor(
-                  candidateVacancy?.status?.name ?? ""
-                );
+                const candidateStatusName = candidateVacancy?.status?.name ?? "";
+                const vacancyStatusName =
+                  candidateVacancy?.vacancy?.status?.name ?? "";
+                const candidateStatusColor = stringToColor(candidateStatusName);
+                const vacancyStatusColor = stringToColor(vacancyStatusName);
+                const rejectionReason =
+                  candidateVacancy?.rejectionReason?.trim() ?? "";
 
                 return (
                   <div
@@ -71,12 +75,22 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
                       >
                         {vacancyDisplayLabel(candidateVacancy?.vacancy)}
                       </Link>
-                      <Badge
-                        variant="secondary"
-                        style={{ backgroundColor: color ?? "gray" }}
-                      >
-                        {candidateVacancy?.status?.name ?? ""}
-                      </Badge>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Badge
+                          variant="secondary"
+                          style={{
+                            backgroundColor: candidateStatusColor ?? "gray",
+                          }}
+                        >
+                          {candidateStatusName}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          style={{ backgroundColor: vacancyStatusColor ?? "gray" }}
+                        >
+                          {vacancyStatusName}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -110,6 +124,17 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
                         </p>
                       </div>
                     )}
+
+                    {rejectionReason ? (
+                      <div className="mt-2 text-sm">
+                        <span className="text-muted-foreground font-medium">
+                          Motivo de rechazo:
+                        </span>
+                        <p className="mt-1 italic text-muted-foreground">
+                          {rejectionReason}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}

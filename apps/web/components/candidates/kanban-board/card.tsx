@@ -27,7 +27,7 @@ export const CandidateCard = ({
   vacancyId,
 }: {
   candidate: CandidateVacancy | ListedCandidateVacancy;
-  columnId?: string;
+  columnId?: number;
   vacancyId?: string;
 }) => {
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
