@@ -115,6 +115,14 @@ export default function NewCandidateForm() {
   const vacancyId = searchParams.get("vacancyId");
   const returnTo = searchParams.get("returnTo");
 
+  function leaveNewCandidateFlow(fallback: () => void) {
+    if (returnTo) {
+      router.push(returnTo);
+    } else {
+      fallback();
+    }
+  }
+
   const linkedinData = useMemo(() => {
     const pageUrl = searchParams.get("pageUrl");
     const fullName = searchParams.get("fullName");
@@ -360,11 +368,7 @@ export default function NewCandidateForm() {
 
       toast.success("Candidato creado exitosamente");
 
-      if (returnTo) {
-        router.push(returnTo);
-      } else {
-        router.push(`/candidates/${newCandidate.id}`);
-      }
+      leaveNewCandidateFlow(() => router.push(`/candidates/${newCandidate.id}`));
     } catch (error) {
       console.error("Error creating candidate:", error);
       toast.error(
@@ -1038,7 +1042,9 @@ export default function NewCandidateForm() {
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={() => form.reset(getDefaultValues())}
+                  onClick={() =>
+                    leaveNewCandidateFlow(() => form.reset(getDefaultValues()))
+                  }
                 >
                   Cancelar
                 </Button>
