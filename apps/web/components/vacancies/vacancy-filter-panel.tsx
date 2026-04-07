@@ -479,7 +479,8 @@ export function VacancyFilterPanel({
           </Button>
           <Button
             onClick={() => onOpenChange(false)}
-            className="flex-1 !rounded-xl bg-electric hover:bg-electric-light text-white font-semibold hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.3)] transition-all py-2.5"
+            variant="brand"
+            className="flex-1 py-2.5"
           >
             Aplicar filtros
           </Button>

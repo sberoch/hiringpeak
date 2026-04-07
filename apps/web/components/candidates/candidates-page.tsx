@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { PageHeading } from "@workspace/ui/components/page-heading";
 
 import { Button } from "@workspace/ui/components/button";
 import { DataTable } from "@workspace/ui/components/data-table";
@@ -94,19 +95,11 @@ export const CandidatesPage = () => {
     <>
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]">
-            <Users className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-ink">
-              Postulantes
-            </h1>
-            <p className="text-sm text-slate-brand leading-relaxed">
-              Gestiona y busca postulantes en tu base de datos.
-            </p>
-          </div>
-        </div>
+        <PageHeading
+          icon={Users}
+          title="Postulantes"
+          description="Gestiona y busca postulantes en tu base de datos."
+        />
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-xl border border-brand-border bg-surface px-3 py-1.5">
             <ImageIcon className="h-4 w-4 text-slate-brand" />

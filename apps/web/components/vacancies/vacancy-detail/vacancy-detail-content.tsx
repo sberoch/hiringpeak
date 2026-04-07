@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Users } from "lucide-react";
 
 import { KanbanBoard } from "@/components/candidates/kanban-board/board";
 import { VacancyDetailHeader } from "@/components/vacancies/vacancy-detail/vacancy-detail-header";
@@ -10,13 +11,13 @@ import { getVacancyById, VACANCY_API_KEY } from "@/lib/api/vacancy";
 
 function VacancyDetailSkeleton() {
   return (
-    <div className="container mx-auto p-4 mb-20">
-      <div className="h-8 w-full bg-gray-200 animate-pulse rounded mb-4" />
-      <div className="w-full h-48 bg-gray-200 animate-pulse rounded-lg mb-6" />
+    <div className="mb-20">
+      <div className="h-10 w-72 bg-brand-border-light animate-pulse rounded-xl mb-4" />
+      <div className="w-full h-48 bg-brand-border-light animate-pulse rounded-2xl mb-6" />
 
       <div className="w-full">
-        <div className="h-8 w-48 bg-gray-200 animate-pulse rounded mb-4" />
-        <div className="w-full h-[600px] bg-gray-200 animate-pulse rounded-lg" />
+        <div className="h-8 w-48 bg-brand-border-light animate-pulse rounded-xl mb-4" />
+        <div className="w-full h-[600px] bg-brand-border-light animate-pulse rounded-2xl" />
       </div>
     </div>
   );
@@ -40,7 +41,7 @@ export function VacancyDetailContent({ vacancyId }: { vacancyId: string }) {
   }
   if (!data || (!data && isLoading)) return <VacancyDetailSkeleton />;
   return (
-    <div className="container mx-auto p-4 mb-20">
+    <div className="mb-20">
       <VacancyDetailHeader
         vacancy={data}
         onDialogClose={() => {
@@ -49,8 +50,15 @@ export function VacancyDetailContent({ vacancyId }: { vacancyId: string }) {
           });
         }}
       />
-      <div className="mt-6 flex flex-col">
-        <h2 className="text-2xl font-bold mb-2">Postulantes</h2>
+      <div className="mt-8 flex flex-col">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-electric/10 text-electric">
+            <Users className="h-4 w-4" />
+          </div>
+          <h2 className="text-xl font-bold tracking-tight text-ink">
+            Postulantes
+          </h2>
+        </div>
         <KanbanBoard candidates={data.candidates} vacancyId={vacancyId} />
       </div>
     </div>

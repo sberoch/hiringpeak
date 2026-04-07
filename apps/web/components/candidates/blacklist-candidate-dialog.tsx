@@ -69,11 +69,11 @@ export function BlacklistCandidateDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl rounded-2xl border-brand-border bg-surface">
         <DialogHeader>
-          <DialogTitle>Añadir a Blacklist</DialogTitle>
-          <DialogDescription>
-            Esto enviará a <span className="font-medium">{candidate.name}</span>{" "}
+          <DialogTitle className="text-xl font-bold text-ink">Añadir a Blacklist</DialogTitle>
+          <DialogDescription className="text-slate-brand">
+            Esto enviará a <span className="font-semibold text-ink">{candidate.name}</span>{" "}
             a la blacklist y no aparecerá en búsquedas regulares.
           </DialogDescription>
         </DialogHeader>
@@ -88,12 +88,13 @@ export function BlacklistCandidateDialog({
               name="reason"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Motivo</FormLabel>
+                  <FormLabel className="text-ink font-medium">Motivo</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Ingrese el motivo para añadir a este candidato a la blacklist"
                       {...field}
                       rows={4}
+                      className="rounded-xl border-brand-border bg-canvas text-ink placeholder:text-muted-brand focus:border-electric focus:ring-electric/10"
                     />
                   </FormControl>
                   <FormMessage />
@@ -104,13 +105,17 @@ export function BlacklistCandidateDialog({
             <DialogFooter className="mt-6">
               <Button
                 type="button"
-                variant="outline"
+                variant="brand-ghost"
                 onClick={onClose}
                 disabled={isLoading}
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="destructive" disabled={isLoading}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-red-600 hover:bg-red-700 rounded-xl text-white"
+              >
                 {isLoading ? "Procesando..." : "Añadir a blacklist"}
               </Button>
             </DialogFooter>

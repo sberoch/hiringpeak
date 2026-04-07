@@ -102,27 +102,27 @@ export const AddToVacancyDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] rounded-2xl border-brand-border bg-surface">
         <DialogHeader>
-          <DialogTitle>Agregar a vacante</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl font-bold text-ink">Agregar a vacante</DialogTitle>
+          <DialogDescription className="text-slate-brand">
             Selecciona la vacante a la cual agregar a {candidateName}.
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
           <div className="mb-4">
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-sm font-medium text-ink mb-2 block">
               Seleccionar vacante
             </label>
             <Select
               value={selectedVacancyId}
               onValueChange={setSelectedVacancyId}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full rounded-xl border-brand-border bg-canvas text-ink focus:border-electric focus:ring-electric/10">
                 <SelectValue placeholder="Selecciona una vacante" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl border-brand-border bg-surface">
                 {data?.items.map((vacancy) => (
                   <SelectItem key={vacancy.id} value={vacancy.id.toString()}>
                     {vacancyDisplayLabel(vacancy)}
@@ -134,13 +134,17 @@ export const AddToVacancyDialog = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel} disabled={isPending}>
+          <Button
+            variant="brand-ghost"
+            onClick={handleCancel}
+            disabled={isPending}
+          >
             Cancelar
           </Button>
           <Button
-            variant="default"
             disabled={!selectedVacancyId || isPending}
             onClick={handleConfirm}
+            variant="brand"
           >
             {isPending ? "Agregando..." : "Agregar a vacante"}
           </Button>

@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import type { Candidate } from "@workspace/shared/types/candidate";
 import type { BaseComment, Comment } from "@workspace/shared/types/comment";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
@@ -160,23 +159,28 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Comentarios sobre {candidate.name}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="rounded-2xl border border-brand-border bg-surface">
+      <div className="p-6 lg:p-8">
+        <h3 className="text-lg font-bold tracking-tight text-ink">
+          Comentarios sobre {candidate.name}
+        </h3>
+      </div>
+      <div className="px-6 pb-6 lg:px-8 lg:pb-8">
         <div className="space-y-6">
-          <div className="space-y-4">
+          {/* New comment form */}
+          <div className="space-y-3">
             <Textarea
               placeholder="Añadir un comentario..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               rows={3}
+              className="rounded-xl border-brand-border bg-canvas text-ink placeholder:text-muted-brand focus:border-electric focus:ring-electric/10 transition-all"
             />
             <div className="flex justify-end">
               <Button
                 onClick={handleSubmitComment}
                 disabled={!newComment.trim() || createCommentMutation.isPending}
+                variant="brand"
               >
                 {createCommentMutation.isPending
                   ? "Publicando..."
@@ -185,35 +189,39 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
             </div>
           </div>
 
-          <div className="space-y-6">
+          {/* Comments list */}
+          <div className="space-y-4">
             {isLoading ? (
-              <div className="text-center text-muted-foreground">
+              <div className="text-center py-8 text-muted-brand">
                 Cargando comentarios...
               </div>
             ) : comments?.items?.length === 0 ? (
-              <div className="text-center text-muted-foreground">
+              <div className="text-center py-8 text-muted-brand rounded-xl border border-brand-border-light bg-canvas">
                 No hay comentarios aún. ¡Sé el primero en comentar!
               </div>
             ) : (
               comments?.items?.map((comment) => (
-                <div key={comment.id} className="flex space-x-4">
-                  <Avatar>
+                <div
+                  key={comment.id}
+                  className="flex space-x-4 p-4 rounded-xl border border-brand-border-light hover:border-brand-border transition-colors ease-[cubic-bezier(0.16,1,0.3,1)]"
+                >
+                  <Avatar className="border border-brand-border">
                     <AvatarImage
                       src={`https://api.dicebear.com/7.x/initials/svg?seed=${comment.user?.name || "Unknown"
                         }`}
                       alt={comment.user?.name || "Usuario"}
                     />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-electric/5 text-electric text-xs font-semibold">
                       {comment.user?.name?.substring(0, 2).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-1">
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="font-medium">
+                        <span className="font-semibold text-ink">
                           {comment.user?.name || "Usuario desconocido"}
                         </span>
-                        <span className="text-sm text-muted-foreground ml-2">
+                        <span className="text-xs text-muted-brand ml-2">
                           {formatDate(comment.createdAt)}
                         </span>
                       </div>
@@ -224,6 +232,7 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="text-electric hover:bg-electric/5 rounded-lg"
                                 onClick={() => handleUpdateComment(comment.id)}
                                 disabled={updateCommentMutation.isPending}
                               >
@@ -232,6 +241,7 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="rounded-lg"
                                 onClick={handleCancelEdit}
                               >
                                 Cancelar
@@ -242,7 +252,7 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 hover:bg-electric/5 hover:text-electric rounded-lg transition-colors"
                                 onClick={() => handleEditComment(comment)}
                               >
                                 <Edit className="h-4 w-4" />
@@ -250,7 +260,7 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-red-500"
+                                className="h-8 w-8 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 onClick={() => handleDeleteComment(comment.id)}
                                 disabled={deleteCommentMutation.isPending}
                               >
@@ -266,10 +276,12 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
                         value={editingText}
                         onChange={(e) => setEditingText(e.target.value)}
                         rows={3}
-                        className="mt-2"
+                        className="mt-2 rounded-xl border-brand-border bg-canvas text-ink focus:border-electric focus:ring-electric/10"
                       />
                     ) : (
-                      <p className="text-sm">{comment.comment}</p>
+                      <p className="text-sm text-slate-brand leading-relaxed">
+                        {comment.comment}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -277,7 +289,7 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
             )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

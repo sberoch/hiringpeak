@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { File as FileIcon, Upload } from "lucide-react";
+import { File as FileIcon, Upload, UserRoundPlus } from "lucide-react";
+import { PageHeading } from "@workspace/ui/components/page-heading";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type UseFormReturn } from "react-hook-form";
@@ -56,13 +57,6 @@ import type {
 } from "@workspace/shared/types/candidate";
 
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { FileInput, FileUploader } from "@workspace/ui/components/file-upload";
 import {
@@ -73,7 +67,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@workspace/ui/components/form";
-import { Heading } from "@workspace/ui/components/heading";
 import { Input } from "@workspace/ui/components/input";
 import {
   MultiSelector,
@@ -376,20 +369,16 @@ export default function NewCandidateForm() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <Heading>Nuevo Postulante</Heading>
+    <div className="flex flex-col gap-6">
+      <PageHeading
+        icon={UserRoundPlus}
+        title="Nuevo Postulante"
+        description="Ingrese los datos del nuevo candidato. Los campos con * son obligatorios."
+      />
 
-      <Card>
-        <CardHeader className="pb-0">
-          <CardTitle>Información del Postulante</CardTitle>
-          <CardDescription>
-            Ingrese los datos del nuevo candidato. Los campos con * son
-            obligatorios.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="rounded-2xl border border-brand-border bg-surface p-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 mt-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
               <input type="hidden" name="removeAutocomplete" />
               <div className="flex flex-col lg:flex-row gap-3">
                 <div className="flex justify-center lg:justify-start">
@@ -432,10 +421,10 @@ export default function NewCandidateForm() {
                           alt="Imagen del candidato"
                           width={400}
                           height={400}
-                          className="w-full h-full lg:w-[196px] lg:h-[196px] object-cover rounded-lg"
+                          className="w-full h-full lg:w-[196px] lg:h-[196px] object-cover rounded-xl"
                         />
                         <div
-                          className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg cursor-pointer mt-1"
+                          className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl cursor-pointer mt-1"
                           onClick={() => {
                             setImage(null);
                             setImageUrl(null);
@@ -446,12 +435,12 @@ export default function NewCandidateForm() {
                         </div>
                       </div>
                     ) : (
-                      <FileInput className="min-h-32 h-full flex flex-col items-center justify-center w-full border-2 border-dashed rounded-lg bg-muted/50 hover:bg-muted p-4">
-                        <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                        <p className="mb-2 text-sm text-muted-foreground">
+                      <FileInput className="min-h-32 h-full flex flex-col items-center justify-center w-full border-2 border-dashed border-brand-border rounded-xl bg-canvas hover:bg-brand-border-light transition-colors p-4">
+                        <Upload className="w-8 h-8 mb-4 text-muted-brand" />
+                        <p className="mb-2 text-sm text-slate-brand">
                           Haga clic para cargar
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-brand">
                           JPG, PNG (MAX. 5MB)
                         </p>
                       </FileInput>
@@ -659,7 +648,7 @@ export default function NewCandidateForm() {
                                 <MultiSelectorInput placeholder="Seleccione países" />
                               </MultiSelectorTrigger>
                               <MultiSelectorContent>
-                                <MultiSelectorList className="bg-white">
+                                <MultiSelectorList className="bg-surface">
                                   {countries.map((country) => (
                                     <MultiSelectorItem
                                       key={country.name}
@@ -690,7 +679,7 @@ export default function NewCandidateForm() {
                                 <MultiSelectorInput placeholder="Seleccione provincias" />
                               </MultiSelectorTrigger>
                               <MultiSelectorContent>
-                                <MultiSelectorList className="bg-white">
+                                <MultiSelectorList className="bg-surface">
                                   {availableProvinces.map((province) => (
                                     <MultiSelectorItem
                                       key={province}
@@ -721,7 +710,7 @@ export default function NewCandidateForm() {
                                 <MultiSelectorInput placeholder="Seleccione idiomas" />
                               </MultiSelectorTrigger>
                               <MultiSelectorContent>
-                                <MultiSelectorList className="bg-white">
+                                <MultiSelectorList className="bg-surface">
                                   {languages.map((language) => (
                                     <MultiSelectorItem
                                       key={language.name}
@@ -819,12 +808,12 @@ export default function NewCandidateForm() {
                             <MultiSelectorInput placeholder="Seleccione seniorities" />
                           </MultiSelectorTrigger>
                           <MultiSelectorContent>
-                            <MultiSelectorList className="bg-white">
+                            <MultiSelectorList className="bg-surface">
                               {seniorities?.items.map((seniority) => (
                                 <MultiSelectorItem
                                   key={seniority.id}
                                   value={seniority.name}
-                                  className="bg-white my-1"
+                                  className="bg-surface my-1"
                                 >
                                   {seniority.name}
                                 </MultiSelectorItem>
@@ -858,12 +847,12 @@ export default function NewCandidateForm() {
                             <MultiSelectorInput placeholder="Seleccione áreas" />
                           </MultiSelectorTrigger>
                           <MultiSelectorContent>
-                            <MultiSelectorList className="bg-white">
+                            <MultiSelectorList className="bg-surface">
                               {areas?.items.map((area) => (
                                 <MultiSelectorItem
                                   key={area.id}
                                   value={area.name}
-                                  className="bg-white my-1"
+                                  className="bg-surface my-1"
                                 >
                                   {area.name}
                                 </MultiSelectorItem>
@@ -897,12 +886,12 @@ export default function NewCandidateForm() {
                             <MultiSelectorInput placeholder="Seleccione industrias" />
                           </MultiSelectorTrigger>
                           <MultiSelectorContent>
-                            <MultiSelectorList className="bg-white">
+                            <MultiSelectorList className="bg-surface">
                               {industries?.items.map((industry) => (
                                 <MultiSelectorItem
                                   key={industry.id}
                                   value={industry.name}
-                                  className="bg-white my-1"
+                                  className="bg-surface my-1"
                                 >
                                   {industry.name}
                                 </MultiSelectorItem>
@@ -927,9 +916,10 @@ export default function NewCandidateForm() {
                         placeholder="Comentarios"
                         {...field}
                         autoComplete="removeAutocomplete"
-                        className={`transition-all duration-200 ${isCommentFocused ? "min-h-64" : "min-h-24"
+                        className={`rounded-xl border-brand-border bg-canvas transition-all duration-200 focus:border-electric focus:ring-electric/10 ${isCommentFocused ? "min-h-64" : "min-h-24"
                           }`}
                         onFocus={() => setIsCommentFocused(true)}
+                        onBlur={() => setIsCommentFocused(false)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -937,8 +927,8 @@ export default function NewCandidateForm() {
                 )}
               />
 
-              <div className="space-y-1">
-                <FormLabel className="ml-[2px]">
+              <div className="space-y-1.5">
+                <FormLabel className="ml-[2px] text-sm font-medium text-ink">
                   Archivos (CV, psicotécnico, etc.)
                 </FormLabel>
                 <div className="flex flex-wrap gap-4">
@@ -981,12 +971,12 @@ export default function NewCandidateForm() {
                     }}
                     className="w-full lg:w-44 h-32 flex-shrink-0"
                   >
-                    <FileInput className="w-full lg:w-44 h-32 flex flex-col items-center justify-center border-2 border-dashed rounded-lg bg-muted/50 hover:bg-muted p-2">
-                      <Upload className="w-6 h-6 mb-2 text-muted-foreground" />
-                      <p className="text-xs text-center text-muted-foreground font-semibold">
+                    <FileInput className="w-full lg:w-44 h-32 flex flex-col items-center justify-center border-2 border-dashed border-brand-border rounded-xl bg-canvas hover:bg-brand-border-light transition-colors p-2">
+                      <Upload className="w-6 h-6 mb-2 text-muted-brand" />
+                      <p className="text-xs text-center text-slate-brand font-semibold">
                         Cargar archivos
                       </p>
-                      <p className="text-xs text-center text-muted-foreground">
+                      <p className="text-xs text-center text-muted-brand">
                         PDF, DOCX, JPG
                       </p>
                     </FileInput>
@@ -996,18 +986,18 @@ export default function NewCandidateForm() {
                       {files.map((file, index) => (
                         <div
                           key={index}
-                          className="w-full lg:w-44 h-32 flex flex-col items-center justify-center border-2 border-solid rounded-lg bg-background p-2 relative group cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="w-full lg:w-44 h-32 flex flex-col items-center justify-center border border-brand-border rounded-xl bg-surface p-2 relative group cursor-pointer hover:bg-brand-border-light transition-colors"
                           onClick={() => {
                             if (fileUrls[index]) {
                               window.open(fileUrls[index], "_blank");
                             }
                           }}
                         >
-                          <FileIcon className="h-8 w-8 mb-2 text-muted-foreground" />
-                          <span className="text-xs text-center font-medium truncate w-full px-1 text-blue-700 hover:text-blue-500">
+                          <FileIcon className="h-8 w-8 mb-2 text-muted-brand" />
+                          <span className="text-xs text-center font-medium truncate w-full px-1 text-electric hover:text-electric-light">
                             {file.name}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-brand">
                             {(file.size / 1024).toFixed(0)} KB
                           </span>
                           <button
@@ -1034,35 +1024,38 @@ export default function NewCandidateForm() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-4">
+              <div className="flex justify-end space-x-3 pt-4">
                 <Button
-                  variant="outline"
                   type="button"
+                  variant="brand-ghost"
                   onClick={() => form.reset(getDefaultValues())}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isLoading}>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  variant="brand"
+                >
                   {isLoading ? "Creando..." : "Crear postulante"}
                 </Button>
               </div>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+      </div>
 
       <Dialog open={showDuplicateModal} onOpenChange={setShowDuplicateModal}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl border-brand-border bg-surface">
           <DialogHeader>
-            <DialogTitle>Candidato existente</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-bold text-ink">Candidato existente</DialogTitle>
+            <DialogDescription className="text-slate-brand">
               Ya existe un candidato con el nombre &quot;{linkedinData?.name}
               &quot;. Puede ver el perfil existente o editar el candidato con la
               información actualizada de LinkedIn.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button variant="outline" asChild>
+            <Button variant="brand-ghost" asChild>
               <Link
                 href={`/candidates/${duplicateCandidate?.id}`}
                 target="_blank"
@@ -1070,7 +1063,7 @@ export default function NewCandidateForm() {
                 Ver perfil
               </Link>
             </Button>
-            <Button asChild>
+            <Button variant="brand" asChild>
               <Link
                 href={`/candidates/${duplicateCandidate?.id}/edit?${new URLSearchParams({
                   ...(searchParams.get("pageUrl") && {

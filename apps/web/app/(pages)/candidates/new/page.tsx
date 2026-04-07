@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function NewCandidate() {
   return (
-    <div className="container mx-auto py-6">
+    <div className="flex flex-col">
       <Suspense fallback={null}>
         <NewCandidateForm />
       </Suspense>
