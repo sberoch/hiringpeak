@@ -89,7 +89,6 @@ export function LatestVacancies({
         </div>
       ) : vacancies.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 text-muted-brand">
-          <Briefcase className="h-8 w-8 mb-2 opacity-40" />
           <p className="text-sm">Sin búsquedas recientes</p>
         </div>
       ) : (
@@ -100,10 +99,6 @@ export function LatestVacancies({
               href={`/vacancies/${vacancy.id}`}
               className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-electric/[0.03] group"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-electric/5 text-electric flex-shrink-0">
-                <Briefcase className="h-4 w-4" />
-              </div>
-
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-ink truncate group-hover:text-electric transition-colors">
                   {vacancyDisplayLabel(vacancy)}

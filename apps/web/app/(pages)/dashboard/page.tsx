@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import {
   Briefcase,
+  Clock,
   ExternalLink,
   FileSpreadsheet,
   TrendingUp,
@@ -10,6 +11,7 @@ import {
 import { StatCard } from "@workspace/ui/components/stat-card";
 import { LatestVacancies } from "@/components/vacancies/latest-vacancies";
 import { LatestCandidates } from "@/components/candidates/latest-candidates";
+import { RecruiterStatsTable } from "@/components/dashboard/recruiter-stats";
 import { getMePermissions } from "@/lib/api/auth";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
@@ -95,7 +97,7 @@ export default async function Dashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <StatCard
           icon={Briefcase}
           value={dashboardData.activeVacancies}
@@ -108,7 +110,25 @@ export default async function Dashboard() {
           label="Postulantes activos"
           monthlyVariation={dashboardData.monthlyCandidates}
         />
+        <StatCard
+          icon={Clock}
+          value={
+            dashboardData.avgDaysOpen != null
+              ? `${dashboardData.avgDaysOpen} días`
+              : "—"
+          }
+          label="Prom. días de gestión"
+          iconClassName="bg-teal shadow-[0_2px_8px_-2px_rgba(13,148,136,0.4)]"
+        />
       </div>
+
+      {/* Recruiter performance */}
+      <RecruiterStatsTable
+        currentUserId={data.id}
+        isManager={
+          permissions?.roleName !== "Reclutador"
+        }
+      />
 
       {/* Main content: vacancies + candidates side by side */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
