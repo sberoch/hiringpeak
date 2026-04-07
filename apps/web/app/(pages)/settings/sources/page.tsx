@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import SourcesSettings from "@/components/settings/sources-settings";
+
+export const metadata: Metadata = {
+  title: "Fuentes",
+};
 
 export default function SourcesPage() {
   return (

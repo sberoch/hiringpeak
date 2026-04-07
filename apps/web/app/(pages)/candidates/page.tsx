@@ -2,7 +2,7 @@ import { CandidatesPage } from "@/components/candidates/candidates-page";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Postulantes | PRATT FIT",
+  title: "Postulantes",
 };
 
 export default function CandidatesNextPage() {

@@ -4,6 +4,7 @@ import {
   Briefcase,
   Building2,
   ChevronRight,
+  Landmark,
   LayoutDashboard,
   Settings,
   Users,
@@ -115,7 +116,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
         id: "organization-settings",
         title: "Organización",
         url: "/organization-settings",
-        icon: <Building2 className="w-4 h-4" />,
+        icon: <Landmark className="w-4 h-4" />,
         requiredPermissions: [PermissionCode.SETTINGS_READ],
         items: [
           {

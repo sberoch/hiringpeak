@@ -4,7 +4,7 @@ import { Metadata } from "next";
 import NewCandidateForm from "@/components/candidates/new-candidate-form";
 
 export const metadata: Metadata = {
-  title: "Nuevo postulante | PRATT FIT",
+  title: "Nuevo postulante",
 };
 
 export default function NewCandidate() {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
@@ -6,6 +7,9 @@ import { Users, Shield, FileText, Building2, ChevronRight } from "lucide-react";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import { PermissionCode } from "@workspace/shared/enums";
 
+export const metadata: Metadata = {
+  title: "Configuración de organización",
+};
 
 export default async function OrganizationSettingsPage() {
   const session = await auth();

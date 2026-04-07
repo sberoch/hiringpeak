@@ -8,7 +8,7 @@ import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
 import type { VacancyFiltersType } from "@workspace/shared/types/vacancy";
 
 export const metadata: Metadata = {
-  title: "Vacantes | PRATT FIT",
+  title: "Vacantes",
 };
 
 interface VacanciesProps {

@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import SenioritiesSettings from "@/components/settings/seniorities-settings";
+
+export const metadata: Metadata = {
+  title: "Seniorities",
+};
 
 export default function SenioritiesPage() {
   return (

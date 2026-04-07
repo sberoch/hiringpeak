@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import AreasSettings from "@/components/settings/areas-settings";
+
+export const metadata: Metadata = {
+  title: "Áreas",
+};
 
 export default function AreasPage() {
   return (

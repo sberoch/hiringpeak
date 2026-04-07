@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import VacancyStatusesSettings from "@/components/settings/vacancy-statuses-settings";
+
+export const metadata: Metadata = {
+  title: "Estados de vacante",
+};
 
 export default function VacancyStatusesPage() {
   return (

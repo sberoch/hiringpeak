@@ -24,57 +24,53 @@ export class DashboardService {
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    const activeCandidates = await this.db
-      .select({
-        count: count(candidates.id),
-      })
-      .from(candidates)
-      .where(eq(candidates.deleted, false));
-
-    const activeVacancies = await this.db
-      .select({
-        count: count(vacancies.id),
-      })
-      .from(vacancies)
-      .fullJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
-      .where(inArray(vacancyStatuses.name, OPEN_STATUS_POSSIBLE_VALUES));
-
-    const monthlyCandidates = await this.db
-      .select({
-        count: count(candidates.id),
-      })
-      .from(candidates)
-      .where(
-        and(
-          eq(candidates.deleted, false),
-          gte(candidates.createdAt, currentMonthStart),
-          lt(candidates.createdAt, nextMonthStart),
+    const [
+      activeCandidates,
+      activeVacancies,
+      monthlyCandidates,
+      monthlyVacancies,
+      avgDaysOpenResult,
+    ] = await Promise.all([
+      this.db
+        .select({ count: count(candidates.id) })
+        .from(candidates)
+        .where(eq(candidates.deleted, false)),
+      this.db
+        .select({ count: count(vacancies.id) })
+        .from(vacancies)
+        .fullJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
+        .where(inArray(vacancyStatuses.name, OPEN_STATUS_POSSIBLE_VALUES)),
+      this.db
+        .select({ count: count(candidates.id) })
+        .from(candidates)
+        .where(
+          and(
+            eq(candidates.deleted, false),
+            gte(candidates.createdAt, currentMonthStart),
+            lt(candidates.createdAt, nextMonthStart),
+          ),
         ),
-      );
-
-    const monthlyVacancies = await this.db
-      .select({
-        count: count(vacancies.id),
-      })
-      .from(vacancies)
-      .where(
-        and(
-          gte(vacancies.createdAt, currentMonthStart),
-          lt(vacancies.createdAt, nextMonthStart),
+      this.db
+        .select({ count: count(vacancies.id) })
+        .from(vacancies)
+        .where(
+          and(
+            gte(vacancies.createdAt, currentMonthStart),
+            lt(vacancies.createdAt, nextMonthStart),
+          ),
         ),
-      );
+      this.db
+        .select({
+          avg: avg(
+            sql`EXTRACT(EPOCH FROM (NOW() - ${vacancies.createdAt})) / 86400`,
+          ),
+        })
+        .from(vacancies)
+        .innerJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
+        .where(inArray(vacancyStatuses.name, OPEN_STATUS_POSSIBLE_VALUES)),
+    ]);
 
-    const avgDaysOpenResult = await this.db
-      .select({
-        avg: avg(
-          sql`EXTRACT(EPOCH FROM (NOW() - ${vacancies.createdAt})) / 86400`,
-        ),
-      })
-      .from(vacancies)
-      .innerJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
-      .where(inArray(vacancyStatuses.name, OPEN_STATUS_POSSIBLE_VALUES));
-
-    const dashboard: Dashboard = {
+    return {
       activeCandidates: activeCandidates[0].count,
       activeVacancies: activeVacancies[0].count,
       monthlyCandidates: monthlyCandidates[0].count,
@@ -83,8 +79,6 @@ export class DashboardService {
         ? Math.round(Number(avgDaysOpenResult[0].avg))
         : null,
     };
-
-    return dashboard;
   }
 
   async getRecruiterStats(): Promise<RecruiterStats[]> {
@@ -105,9 +99,10 @@ export class DashboardService {
       .filter((s) => CANCELLED_STATUS_POSSIBLE_VALUES.includes(s.name))
       .map((s) => s.id);
 
-    // Get all recruiters who have at least one vacancy assigned this year
+    // Get all vacancies assigned this year with recruiter info
     const recruiterVacancies = await this.db
       .select({
+        vacancyId: vacancies.id,
         userId: vacancies.assignedTo,
         userName: users.name,
         statusId: vacancies.statusId,
@@ -118,13 +113,7 @@ export class DashboardService {
       .innerJoin(users, eq(users.id, vacancies.assignedTo))
       .where(gte(vacancies.createdAt, yearStart));
 
-    // Get candidate counts per vacancy for this year's vacancies
-    const vacancyIds = await this.db
-      .select({ id: vacancies.id, assignedTo: vacancies.assignedTo })
-      .from(vacancies)
-      .where(gte(vacancies.createdAt, yearStart));
-
-    const vacancyIdList = vacancyIds.map((v) => v.id);
+    const vacancyIdList = recruiterVacancies.map((v) => v.vacancyId);
 
     let candidateCounts: { vacancyId: number; count: number }[] = [];
     if (vacancyIdList.length > 0) {
@@ -140,7 +129,7 @@ export class DashboardService {
 
     // Build a map: vacancyId -> assignedTo
     const vacancyToRecruiter = new Map(
-      vacancyIds.map((v) => [v.id, v.assignedTo]),
+      recruiterVacancies.map((v) => [v.vacancyId, v.userId]),
     );
 
     // Build candidate count per recruiter

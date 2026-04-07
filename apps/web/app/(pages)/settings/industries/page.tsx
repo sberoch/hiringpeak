@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import IndustriesSettings from "@/components/settings/industries-settings";
+
+export const metadata: Metadata = {
+  title: "Industrias",
+};
 
 export default function IndustriesPage() {
   return (

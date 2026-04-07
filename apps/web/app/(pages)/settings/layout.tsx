@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { SettingsSidebar } from "@/components/settings/settings-sidebar";
 import { Settings } from "lucide-react";
 import { PageHeading } from "@workspace/ui/components/page-heading";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Configuración",
+    template: "%s | PRATT FIT",
+  },
+};
 
 export default function SettingsLayout({
   children,
