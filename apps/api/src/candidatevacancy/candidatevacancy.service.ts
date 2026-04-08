@@ -7,9 +7,13 @@ import {
 import { and, asc, count, desc, eq, ilike, inArray, SQL } from 'drizzle-orm';
 import {
   candidateVacancies,
-  CandidateVacancy,
+  CandidateVacancy as CandidateVacancySchema,
   candidateVacancyStatuses,
+  CandidateVacancyStatus,
   candidates,
+  Candidate,
+  Vacancy,
+  Company,
 } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
@@ -24,13 +28,28 @@ import {
   UpdateCandidateVacancyServiceDto,
 } from './candidatevacancy.dto';
 
+type CandidateVacancyQueryResult = CandidateVacancySchema & {
+  candidate: Candidate;
+  vacancy: Vacancy & {
+    company: Company;
+  };
+  candidateVacancyStatus: CandidateVacancyStatus;
+};
+
+type CandidateVacancyApiResponse = Omit<
+  CandidateVacancyQueryResult,
+  'candidateVacancyStatus'
+> & {
+  status: CandidateVacancyStatus;
+};
+
 @Injectable()
 export class CandidateVacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
     params: CandidateVacancyFindAllServiceParams,
-  ): Promise<PaginatedResponse<CandidateVacancy>> {
+  ): Promise<PaginatedResponse<CandidateVacancyApiResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
     const orderClause = this.buildOrderBy(params);
@@ -60,7 +79,8 @@ export class CandidateVacancyService {
       itemsQuery,
       countQuery,
     ]);
-    return paginatedResponse(items, totalItems, paginationQuery);
+    const parsedItems = items.map((item) => this.transformQueryResult(item));
+    return paginatedResponse(parsedItems, totalItems, paginationQuery);
   }
 
   async findOne(id: number, organizationId: number) {
@@ -80,11 +100,11 @@ export class CandidateVacancyService {
       },
     });
     if (!candidateVacancy) throw new NotFoundException('Not found');
-    return candidateVacancy;
+    return this.transformQueryResult(candidateVacancy);
   }
 
   async create(dto: CreateCandidateVacancyServiceDto) {
-    return await this.db.transaction(async (tx) => {
+    const createdCandidateVacancy = await this.db.transaction(async (tx) => {
       const existingCandidateVacancy =
         await tx.query.candidateVacancies.findFirst({
           where: and(
@@ -114,17 +134,41 @@ export class CandidateVacancyService {
           .where(eq(candidates.id, dto.candidateId));
       }
 
+      const candidateVacancyValues = {
+        ...dto,
+        rejectionReason: status?.isRejection
+          ? this.normalizeRejectionReason(dto.rejectionReason)
+          : null,
+      } as typeof candidateVacancies.$inferInsert;
+
       const [candidateVacancy] = await tx
         .insert(candidateVacancies)
-        .values(dto)
+        .values(candidateVacancyValues)
         .returning();
 
       return candidateVacancy;
     });
+
+    return this.findOne(
+      createdCandidateVacancy.id,
+      createdCandidateVacancy.organizationId,
+    );
   }
 
   async update(id: number, dto: UpdateCandidateVacancyServiceDto) {
-    return await this.db.transaction(async (tx) => {
+    const candidateVacancy = await this.db.transaction(async (tx) => {
+      const currentCandidateVacancy =
+        await tx.query.candidateVacancies.findFirst({
+          where: and(
+            eq(candidateVacancies.id, id),
+            eq(candidateVacancies.organizationId, dto.organizationId),
+          ),
+        });
+
+      if (!currentCandidateVacancy) {
+        throw new NotFoundException('Not found');
+      }
+
       if (dto.candidateVacancyStatusId) {
         const status = await tx.query.candidateVacancyStatuses.findFirst({
           where: eq(candidateVacancyStatuses.id, dto.candidateVacancyStatusId),
@@ -139,12 +183,7 @@ export class CandidateVacancyService {
         if (status && maxSortStatus && status.sort === maxSortStatus.sort) {
           const candidateId =
             dto.candidateId ??
-            (
-              await tx.query.candidateVacancies.findFirst({
-                where: eq(candidateVacancies.id, id),
-                columns: { candidateId: true },
-              })
-            )?.candidateId;
+            currentCandidateVacancy.candidateId;
 
           if (candidateId) {
             await tx
@@ -156,7 +195,29 @@ export class CandidateVacancyService {
       }
 
       const { organizationId, ...updateFields } = dto;
-      const [candidateVacancy] = await tx
+
+      const nextStatusId =
+        dto.candidateVacancyStatusId ??
+        currentCandidateVacancy.candidateVacancyStatusId;
+      const nextStatus = await tx.query.candidateVacancyStatuses.findFirst({
+        where: eq(candidateVacancyStatuses.id, nextStatusId),
+      });
+
+      if (nextStatus?.isRejection) {
+        const isStatusChange =
+          dto.candidateVacancyStatusId !== undefined &&
+          dto.candidateVacancyStatusId !==
+            currentCandidateVacancy.candidateVacancyStatusId;
+        if (dto.rejectionReason !== undefined || isStatusChange) {
+          updateFields.rejectionReason = this.normalizeRejectionReason(
+            dto.rejectionReason,
+          );
+        }
+      } else {
+        updateFields.rejectionReason = null;
+      }
+
+      const [updatedCandidateVacancy] = await tx
         .update(candidateVacancies)
         .set(updateFields)
         .where(
@@ -167,8 +228,10 @@ export class CandidateVacancyService {
         )
         .returning();
 
-      return candidateVacancy;
+      return updatedCandidateVacancy;
     });
+
+    return this.findOne(candidateVacancy.id, candidateVacancy.organizationId);
   }
 
   async remove(id: number, organizationId: number) {
@@ -236,6 +299,27 @@ export class CandidateVacancyService {
       filters.push(ilike(candidateVacancies.notes, params.notes));
     }
 
+    if (params.rejectionReason) {
+      filters.push(
+        ilike(candidateVacancies.rejectionReason, params.rejectionReason),
+      );
+    }
+
     return and(...filters);
+  }
+
+  private transformQueryResult(
+    result: CandidateVacancyQueryResult,
+  ): CandidateVacancyApiResponse {
+    const { candidateVacancyStatus, ...rest } = result;
+    return {
+      ...rest,
+      status: candidateVacancyStatus,
+    };
+  }
+
+  private normalizeRejectionReason(rejectionReason?: string | null) {
+    const normalized = rejectionReason?.trim();
+    return normalized ? normalized : null;
   }
 }

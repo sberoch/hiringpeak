@@ -67,14 +67,15 @@ const candidateVacancyStatusesList: {
   name: string;
   sort: number;
   isInitial: boolean;
+  isRejection: boolean;
 }[] = [
-  { name: 'No es el perfil', sort: 0, isInitial: false },
-  { name: 'En revisión', sort: 1, isInitial: true },
-  { name: 'Entrevista Pratt', sort: 2, isInitial: false },
-  { name: 'Entrevista cliente 1', sort: 3, isInitial: false },
-  { name: 'Entrevista cliente 2', sort: 4, isInitial: false },
-  { name: 'Oferta', sort: 5, isInitial: false },
-  { name: 'Contratado', sort: 6, isInitial: false },
+  { name: 'No es el perfil', sort: 0, isInitial: false, isRejection: true },
+  { name: 'En revisión', sort: 1, isInitial: true, isRejection: false },
+  { name: 'Entrevista Pratt', sort: 2, isInitial: false, isRejection: false },
+  { name: 'Entrevista cliente 1', sort: 3, isInitial: false, isRejection: false },
+  { name: 'Entrevista cliente 2', sort: 4, isInitial: false, isRejection: false },
+  { name: 'Oferta', sort: 5, isInitial: false, isRejection: false },
+  { name: 'Contratado', sort: 6, isInitial: false, isRejection: false },
 ];
 const candidateSourcesList = ['LinkedIn', 'Interna', 'Referencia'];
 
@@ -143,13 +144,13 @@ export async function seedCatalogs(tx: SeedTx, organizationId: number) {
   // Candidate vacancy statuses with extra fields
   console.log('  Seeding candidate vacancy statuses...');
   const candidateVacancyStatusIds = new Map<string, number>();
-  for (const { name, sort, isInitial } of candidateVacancyStatusesList) {
+  for (const { name, sort, isInitial, isRejection } of candidateVacancyStatusesList) {
     const id = await findOrCreateByName(
       tx,
       candidateVacancyStatuses,
       name,
       organizationId,
-      { sort, isInitial },
+      { sort, isInitial, isRejection },
     );
     candidateVacancyStatusIds.set(name, id);
   }

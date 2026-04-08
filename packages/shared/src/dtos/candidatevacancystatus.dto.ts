@@ -5,6 +5,7 @@ export const CreateCandidateVacancyStatusSchema = z.object({
   name: z.string().min(1),
   sort: z.number().int().optional(),
   isInitial: z.boolean(),
+  isRejection: z.boolean().optional().default(false),
 });
 
 export const UpdateCandidateVacancyStatusSchema =

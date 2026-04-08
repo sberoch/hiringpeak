@@ -15,6 +15,13 @@
       "when": 1775671297006,
       "tag": "0001_flaky_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775686825832,
+      "tag": "0002_free_junta",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ export type BaseCandidateVacancyStatus = {
   name: string;
   sort: number;
   isInitial: boolean;
+  isRejection: boolean;
 };
 
 export type CandidateVacancyStatus = BaseCandidateVacancyStatus & {

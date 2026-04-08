@@ -5,6 +5,7 @@ export const CreateCandidateVacancySchema = z.object({
   vacancyId: z.number(),
   candidateVacancyStatusId: z.number(),
   notes: z.string().optional(),
+  rejectionReason: z.string().nullable().optional(),
 });
 
 export type CreateCandidateVacancySchema = z.infer<

@@ -22,6 +22,7 @@ export const candidateVacancies = pgTable("candidate_vacancies", {
       onDelete: "cascade",
     }),
   notes: text("notes"),
+  rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

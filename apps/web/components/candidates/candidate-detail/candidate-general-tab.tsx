@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import dayjs from "dayjs";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, Briefcase } from "lucide-react";
 
@@ -12,7 +13,11 @@ import {
   CANDIDATE_VACANCY_API_KEY,
   getCandidateVacancies,
 } from "@/lib/api/candidate-vacancy";
-import { CATALOG_TYPE_COLORS, getVacancyFilterTags, stringToColor, vacancyDisplayLabel } from "@/lib/utils";
+import {
+  CANDIDATE_VACANCY_STATUS_API_KEY,
+  getCandidateVacancyStatus,
+} from "@/lib/api/candidate-vacancy-status";
+import { CATALOG_TYPE_COLORS, getCandidateStatusColor, getVacancyFilterTags, stringToColor, vacancyDisplayLabel } from "@/lib/utils";
 
 interface CandidateGeneralTabProps {
   candidate: Candidate;
@@ -23,6 +28,23 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
     queryKey: [CANDIDATE_VACANCY_API_KEY, { candidateId: candidate.id }],
     queryFn: () => getCandidateVacancies({ candidateId: candidate.id }),
   });
+
+  const { data: statusesData } = useQuery({
+    queryKey: [
+      CANDIDATE_VACANCY_STATUS_API_KEY,
+      { order: "sort:asc", limit: 1e9, page: 1 },
+    ],
+    queryFn: () =>
+      getCandidateVacancyStatus({ order: "sort:asc", limit: 1e9, page: 1 }),
+  });
+
+  const statusIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    statusesData?.items.forEach((status, index) => {
+      map.set(status.id, index);
+    });
+    return map;
+  }, [statusesData]);
 
   return (
     <div className="rounded-2xl border border-brand-border bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)] h-full">
@@ -57,12 +79,10 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
               const vacancyStatusColor = stringToColor(
                 candidateVacancy?.vacancy?.status?.name ?? ""
               );
-              const cvStatus =
-                (candidateVacancy as any)?.candidateVacancyStatus ??
-                candidateVacancy?.status;
-              const candidateStatusColor = stringToColor(
-                cvStatus?.name ?? ""
-              );
+              const statusIndex = statusIndexMap.get(candidateVacancy?.status?.id ?? 0) ?? 0;
+              const candidateStatusColors = getCandidateStatusColor(statusIndex);
+              const rejectionReason =
+                candidateVacancy?.rejectionReason?.trim() ?? "";
               const vacancy = candidateVacancy?.vacancy;
               const daysDiff = vacancy?.createdAt
                 ? dayjs().diff(dayjs(vacancy.createdAt), "day")
@@ -124,10 +144,9 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
                     </span>
                     <Badge
                       variant="secondary"
-                      className="text-[11px] font-semibold rounded-md"
-                      style={{ backgroundColor: candidateStatusColor }}
+                      className={`text-[11px] font-semibold rounded-md border-0 px-1.5 py-0 ${candidateStatusColors.bg} ${candidateStatusColors.text}`}
                     >
-                      {cvStatus?.name ?? "Sin estado"}
+                      {candidateVacancy?.status?.name ?? "Sin estado"}
                     </Badge>
                   </div>
 
@@ -136,6 +155,17 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
                       {candidateVacancy.notes}
                     </p>
                   )}
+
+                  {rejectionReason ? (
+                    <div className="mt-2 text-xs border-t border-brand-border-light pt-2">
+                      <span className="text-muted-brand font-medium">
+                        Motivo de rechazo:
+                      </span>
+                      <p className="mt-1 italic text-slate-brand">
+                        {rejectionReason}
+                      </p>
+                    </div>
+                  ) : null}
                 </Link>
               );
             })}

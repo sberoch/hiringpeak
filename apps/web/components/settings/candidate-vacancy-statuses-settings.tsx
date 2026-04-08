@@ -43,6 +43,7 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Switch } from "@workspace/ui/components/switch";
 import {
   CANDIDATE_VACANCY_STATUS_API_KEY,
   createCandidateVacancyStatus,
@@ -58,11 +59,13 @@ function SortableStatusRow({
   index,
   onEdit,
   onDelete,
+  onToggleRejection,
 }: {
   status: CandidateVacancyStatus;
   index: number;
   onEdit: (status: CandidateVacancyStatus) => void;
   onDelete: (id: number) => void;
+  onToggleRejection: (status: CandidateVacancyStatus) => void;
 }) {
   const {
     attributes,
@@ -96,7 +99,15 @@ function SortableStatusRow({
         </button>
         <span className="text-sm font-medium text-ink">{status.name}</span>
       </div>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 mr-2">
+          <Switch
+            checked={status.isRejection}
+            onCheckedChange={() => onToggleRejection(status)}
+            className="data-[state=checked]:bg-electric data-[state=unchecked]:bg-brand-border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          />
+          <span className="text-xs text-muted-brand">Rechazo</span>
+        </div>
         <button
           onClick={() => onEdit(status)}
           className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-brand transition-colors hover:bg-electric/10 hover:text-electric"
@@ -154,6 +165,7 @@ export default function CandidateVacancyStatusesSettings() {
         name,
         sort: 0,
         isInitial: false,
+        isRejection: false,
       });
       setNewStatus("");
       return status;
@@ -200,6 +212,46 @@ export default function CandidateVacancyStatusesSettings() {
     },
     onError: () => {
       toast.error("Error al eliminar el estado de candidato");
+    },
+  });
+
+  const statusQueryKey = [
+    CANDIDATE_VACANCY_STATUS_API_KEY,
+    { order: "sort:asc", limit: 1e9, page: 1 },
+  ];
+
+  const { mutate: handleToggleRejection } = useMutation({
+    mutationFn: (status: CandidateVacancyStatus) =>
+      updateCandidateVacancyStatus(status.id, {
+        isRejection: !status.isRejection,
+      }),
+    onMutate: async (status) => {
+      await queryClient.cancelQueries({ queryKey: statusQueryKey });
+      const previous = queryClient.getQueryData<PaginatedResponse<CandidateVacancyStatus>>(statusQueryKey);
+      queryClient.setQueryData<PaginatedResponse<CandidateVacancyStatus>>(
+        statusQueryKey,
+        (old) =>
+          old
+            ? {
+                ...old,
+                items: old.items.map((s) =>
+                  s.id === status.id
+                    ? { ...s, isRejection: !s.isRejection }
+                    : s,
+                ),
+              }
+            : old,
+      );
+      return { previous };
+    },
+    onError: (_error, _status, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(statusQueryKey, context.previous);
+      }
+      toast.error("Error al actualizar el estado de rechazo");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [CANDIDATE_VACANCY_STATUS_API_KEY] });
     },
   });
 
@@ -302,6 +354,7 @@ export default function CandidateVacancyStatusesSettings() {
                     index={index}
                     onEdit={setEditingStatus}
                     onDelete={setStatusToDelete}
+                    onToggleRejection={handleToggleRejection}
                   />
                 ))}
               </SortableContext>

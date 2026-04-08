@@ -11,6 +11,7 @@ import type { CandidateVacancyStatus } from "./candidate-vacancy-status.js";
 export type BaseCandidateVacancy = {
   status: CandidateVacancyStatus;
   notes?: string;
+  rejectionReason?: string | null;
 };
 
 export type CandidateVacancy = BaseCandidateVacancy & {
@@ -26,6 +27,7 @@ export type CandidateVacancyParams = PaginationFilters & {
   candidateIds?: number[];
   vacancyId?: number;
   candidateVacancyStatusId?: number;
+  rejectionReason?: string;
 };
 
 export type CreateCandidateVacancyDto = BaseCandidateVacancy & {

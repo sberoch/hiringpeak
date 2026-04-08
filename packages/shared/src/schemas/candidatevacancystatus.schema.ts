@@ -7,6 +7,7 @@ export const candidateVacancyStatuses = pgTable('candidate_vacancy_statuses', {
   name: text('name').notNull(),
   sort: integer('sort').notNull(),
   isInitial: boolean('is_initial').notNull(),
+  isRejection: boolean('is_rejection').notNull().default(false),
   organizationId: integer('organization_id')
     .notNull()
     .references(() => organizations.id, {
