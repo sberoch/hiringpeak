@@ -15,6 +15,7 @@ import {
 import type { PaginatedResponse } from "@workspace/shared/types/api";
 import type { Candidate } from "@workspace/shared/types/candidate";
 import { CANDIDATE_API_KEY, getAllCandidates } from "@/lib/api/candidate";
+import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { getInitials } from "@/lib/utils";
 
 dayjs.extend(relativeTime);
@@ -55,7 +56,7 @@ export function LatestCandidates() {
         <div className="divide-y divide-brand-border-light">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-              <div className="h-9 w-9 rounded-full bg-brand-border-light animate-pulse" />
+              <div className="h-10 w-10 rounded-full bg-brand-border-light animate-pulse" />
               <div className="flex-1 space-y-1.5">
                 <div className="h-3.5 w-28 rounded bg-brand-border-light animate-pulse" />
                 <div className="h-3 w-20 rounded bg-brand-border-light animate-pulse" />
@@ -76,7 +77,7 @@ export function LatestCandidates() {
               href={`/candidates/${candidate.id}`}
               className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-electric/[0.03] group"
             >
-              <Avatar className="h-9 w-9 border border-brand-border">
+              <Avatar className="h-10 w-10 border border-brand-border shrink-0">
                 {candidate.image && (
                   <AvatarImage src={candidate.image} alt={candidate.name} />
                 )}
@@ -89,16 +90,23 @@ export function LatestCandidates() {
                 <p className="text-sm font-semibold text-ink truncate group-hover:text-electric transition-colors">
                   {candidate.name}
                 </p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  {candidate.areas.length > 0 ? (
-                    <span className="text-xs text-slate-brand truncate">
-                      {candidate.areas.map((a) => a.name).join(", ")}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-brand italic">
-                      Sin área
-                    </span>
-                  )}
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                  {candidate.seniorities?.map((s) => (
+                    <CatalogBadge key={s.id} label={s.name} type="seniority" />
+                  ))}
+                  {candidate.areas?.map((a) => (
+                    <CatalogBadge key={a.id} label={a.name} type="area" />
+                  ))}
+                  {candidate.industries?.map((i) => (
+                    <CatalogBadge key={i.id} label={i.name} type="industry" />
+                  ))}
+                  {!candidate.seniorities?.length &&
+                    !candidate.areas?.length &&
+                    !candidate.industries?.length && (
+                      <span className="text-xs text-muted-brand italic">
+                        Sin área
+                      </span>
+                    )}
                 </div>
               </div>
 

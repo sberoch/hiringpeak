@@ -7,8 +7,14 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { PermissionGuard } from "@/components/auth/permission-guard";
+import { CATALOG_TYPE_COLORS, type CatalogTagType, getInitials } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
 import type { Candidate } from "@workspace/shared/types/candidate";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -64,6 +70,41 @@ const CellActions = ({ candidate }: CellActionsProps) => {
   );
 };
 
+function CatalogBadges({
+  items,
+  variant,
+}: {
+  items: { id: number; name: string }[];
+  variant: CatalogTagType;
+}) {
+  if (!items.length) return null;
+
+  if (items.length === 1) {
+    return (
+      <span
+        className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ${CATALOG_TYPE_COLORS[variant]}`}
+      >
+        {items[0]!.name}
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <span
+        className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ${CATALOG_TYPE_COLORS[variant]}`}
+      >
+        {items[0]!.name}
+      </span>
+      <span
+        className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ${CATALOG_TYPE_COLORS[variant]}`}
+      >
+        +{items.length - 1}
+      </span>
+    </div>
+  );
+}
+
 export const columns: ColumnDef<Candidate>[] = [
   {
     accessorKey: "name",
@@ -80,38 +121,49 @@ export const columns: ColumnDef<Candidate>[] = [
       );
     },
     cell: ({ row }) => (
-      <div className="flex items-center">
-        <Link
-          href={`/candidates/${row.original.id}`}
-          className="font-medium text-ink hover:text-electric transition-colors"
-        >
-          {row.original.name}
-        </Link>
-        {row.original.blacklist && (
-          <Badge variant="destructive" className="ml-2 rounded-lg text-xs font-semibold">
-            BL
-          </Badge>
-        )}
-        {Boolean(row.original.isInCompanyViaPratt && !row.original.blacklist) && (
-          <Badge variant="secondary" className="ml-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
-            P
-          </Badge>
-        )}
-        {row.original.linkedin && (
+      <div className="flex items-center gap-2.5">
+        <Avatar className="size-10 shrink-0">
+          {row.original.image && (
+            <AvatarImage src={row.original.image} alt={row.original.name} />
+          )}
+          <AvatarFallback className="bg-brand-border-light text-[10px] font-semibold text-slate-brand">
+            {getInitials(row.original.name)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex items-center min-w-0">
           <Link
-            href={row.original.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`/candidates/${row.original.id}`}
+            className="font-medium text-ink hover:text-electric transition-colors truncate"
           >
-            <Image
-              src="/images/linkedin.svg"
-              alt="LinkedIn"
-              width={20}
-              height={20}
-              className="inline-block ml-2"
-            />
+            {row.original.name}
           </Link>
-        )}
+          {row.original.blacklist && (
+            <Badge variant="destructive" className="ml-2 rounded-lg text-xs font-semibold shrink-0">
+              BL
+            </Badge>
+          )}
+          {Boolean(row.original.isInCompanyViaPratt && !row.original.blacklist) && (
+            <Badge variant="secondary" className="ml-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-50 shrink-0">
+              P
+            </Badge>
+          )}
+          {row.original.linkedin && (
+            <Link
+              href={row.original.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0"
+            >
+              <Image
+                src="/images/linkedin.svg"
+                alt="LinkedIn"
+                width={18}
+                height={18}
+                className="inline-block ml-2"
+              />
+            </Link>
+          )}
+        </div>
       </div>
     ),
   },
@@ -156,11 +208,7 @@ export const columns: ColumnDef<Candidate>[] = [
       <span className="pl-4 font-semibold text-slate-brand">Seniority</span>
     ),
     cell: ({ row }) => (
-      <span className="text-slate-brand">
-        {row.original.seniorities.length > 1
-          ? row.original.seniorities.length + " Seniorities"
-          : row.original.seniorities[0]?.name || ""}
-      </span>
+      <CatalogBadges items={row.original.seniorities} variant="seniority" />
     ),
   },
   {
@@ -169,11 +217,7 @@ export const columns: ColumnDef<Candidate>[] = [
       <span className="pl-4 font-semibold text-slate-brand">Áreas</span>
     ),
     cell: ({ row }) => (
-      <span className="text-slate-brand">
-        {row.original.areas.length > 1
-          ? row.original.areas.length + " Áreas"
-          : row.original.areas[0]?.name || ""}
-      </span>
+      <CatalogBadges items={row.original.areas} variant="area" />
     ),
   },
   {
@@ -182,11 +226,7 @@ export const columns: ColumnDef<Candidate>[] = [
       <span className="pl-4 font-semibold text-slate-brand">Industrias</span>
     ),
     cell: ({ row }) => (
-      <span className="text-slate-brand">
-        {row.original.industries.length > 1
-          ? row.original.industries.length + " Industrias"
-          : row.original.industries[0]?.name || ""}
-      </span>
+      <CatalogBadges items={row.original.industries} variant="industry" />
     ),
   },
   {
@@ -203,7 +243,7 @@ export const columns: ColumnDef<Candidate>[] = [
         </Button>
       );
     },
-    cell: ({ row }) => <CandidateStars stars={+row.original.stars} />,
+    cell: ({ row }) => <CandidateStars stars={+row.original.stars} size="sm" />,
   },
   {
     id: "actions",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Edit, Trash } from "lucide-react";
+import { Edit, MessageCircle, Trash } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -159,13 +159,16 @@ export const CandidateCommentsTab = ({ candidate }: CandidateCommentsTabProps) =
   };
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-surface">
-      <div className="p-6 lg:p-8">
-        <h3 className="text-lg font-bold tracking-tight text-ink">
-          Comentarios sobre {candidate.name}
-        </h3>
+    <div className="rounded-2xl border border-brand-border bg-surface h-full shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <MessageCircle className="h-4 w-4 text-electric" />
+          <h3 className="text-sm font-semibold text-ink">
+            Comentarios sobre {candidate.name}
+          </h3>
+        </div>
       </div>
-      <div className="px-6 pb-6 lg:px-8 lg:pb-8">
+      <div className="px-6 pb-6">
         <div className="space-y-6">
           {/* New comment form */}
           <div className="space-y-3">

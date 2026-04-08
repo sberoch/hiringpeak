@@ -1,22 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Image as ImageIcon,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  Table,
-  Users,
-} from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 
 import { Button } from "@workspace/ui/components/button";
 import { DataTable } from "@workspace/ui/components/data-table";
 import { Input } from "@workspace/ui/components/input";
-import { Switch } from "@workspace/ui/components/switch";
 import {
   ActiveFilterChips,
   CandidateFilterPanel,
@@ -31,10 +23,7 @@ import {
 } from "@/lib/api/candidate-vacancy";
 import { mergeCandidatesWithVacancies } from "@/lib/utils";
 
-import { CandidateCards } from "./candidate-cards";
-
 export const CandidatesPage = () => {
-  const [view, setView] = useState<"table" | "images">("table");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const {
@@ -76,19 +65,6 @@ export const CandidatesPage = () => {
     return mergeCandidatesWithVacancies(data.items, candidateVacancies.items);
   }, [data?.items, candidateVacancies?.items]);
 
-  useEffect(() => {
-    const savedView = localStorage.getItem("preferred-candidate-view");
-    if (savedView === "table" || savedView === "images") {
-      setView(savedView);
-    }
-  }, []);
-
-  const handleViewChange = () => {
-    const newView = view === "table" ? "images" : "table";
-    setView(newView);
-    localStorage.setItem("preferred-candidate-view", newView);
-  };
-
   const activeFilterCount = useActiveFilterCount(filters);
 
   return (
@@ -101,14 +77,6 @@ export const CandidatesPage = () => {
           description="Gestiona y busca postulantes en tu base de datos."
         />
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-xl border border-brand-border bg-surface px-3 py-1.5">
-            <ImageIcon className="h-4 w-4 text-slate-brand" />
-            <Switch
-              checked={view === "table"}
-              onCheckedChange={handleViewChange}
-            />
-            <Table className="h-4 w-4 text-slate-brand" />
-          </div>
           <Link href="/candidates/new">
             <Button className="bg-electric hover:bg-electric-light text-white rounded-md font-semibold hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.3)] transition-all hover:-translate-y-0.5">
               <Plus className="h-4 w-4" />
@@ -127,9 +95,7 @@ export const CandidatesPage = () => {
             placeholder="Buscar por nombre..."
             className="pl-9 rounded-xl border-brand-border bg-surface focus:border-electric focus:ring-electric/10 placeholder:text-muted-brand"
             value={filters.name}
-            onChange={(e) =>
-              setFilters({ ...filters, name: e.target.value })
-            }
+            onChange={(e) => setFilters({ ...filters, name: e.target.value })}
           />
         </div>
         <Button
@@ -165,26 +131,22 @@ export const CandidatesPage = () => {
 
       {/* Content */}
       <div className="mb-12">
-        {view === "table" ? (
-          <DataTable
-            columns={columns}
-            data={candidatesWithVacancies}
-            pagination={{
-              totalItems: data?.meta.totalItems || 1,
-              pageCount: data?.meta.totalPages || 1,
-              pageIndex: (filters.page || 1) - 1,
-              pageSize: filters.limit || 10,
-              onPaginationChange,
-            }}
-            sorting={{
-              order: filters.order,
-              onSortingChange,
-            }}
-            loading={isLoading && !data}
-          />
-        ) : (
-          <CandidateCards candidates={candidatesWithVacancies} />
-        )}
+        <DataTable
+          columns={columns}
+          data={candidatesWithVacancies}
+          pagination={{
+            totalItems: data?.meta.totalItems || 1,
+            pageCount: data?.meta.totalPages || 1,
+            pageIndex: (filters.page || 1) - 1,
+            pageSize: filters.limit || 10,
+            onPaginationChange,
+          }}
+          sorting={{
+            order: filters.order,
+            onSortingChange,
+          }}
+          loading={isLoading && !data}
+        />
       </div>
     </>
   );

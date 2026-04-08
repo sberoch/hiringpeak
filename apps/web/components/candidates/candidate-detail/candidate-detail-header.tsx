@@ -14,13 +14,14 @@ import {
   User,
 } from "lucide-react";
 import Image from "next/image";
-import { PageHeading } from "@workspace/ui/components/page-heading";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { PermissionGuard } from "@/components/auth/permission-guard";
+import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { CANDIDATE_API_KEY, updateCandidate } from "@/lib/api/candidate";
+import { calculateAge } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
 import type { Candidate } from "@workspace/shared/types/candidate";
 import { Badge } from "@workspace/ui/components/badge";
@@ -35,7 +36,7 @@ interface CandidateDetailHeaderProps {
   candidate: Candidate;
 }
 
-export const CandidateDetailHeader = ({
+export const CandidateDetailToolbar = ({
   candidate,
 }: CandidateDetailHeaderProps) => {
   const router = useRouter();
@@ -43,6 +44,90 @@ export const CandidateDetailHeader = ({
   const [isBlacklistDialogOpen, setIsBlacklistDialogOpen] = useState(false);
   const [isAddToVacancyDialogOpen, setIsAddToVacancyDialogOpen] =
     useState(false);
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="brand-ghost"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4 mr-1.5" />
+          Volver
+        </Button>
+        <Link href={`/candidates/${candidate.id}/edit`}>
+          <Button size="sm" variant="brand-ghost">
+            <Edit className="h-4 w-4 mr-1.5" />
+            Editar
+          </Button>
+        </Link>
+        <Button
+          size="sm"
+          variant="brand-ghost"
+          onClick={() => setIsAddToVacancyDialogOpen(true)}
+        >
+          <Briefcase className="h-4 w-4 mr-1.5" />
+          Agregar a vacante
+        </Button>
+        {!candidate.blacklist ? (
+          <Button
+            size="sm"
+            variant="brand-ghost"
+            className="text-amber-600 hover:bg-amber-50 hover:border-amber-200"
+            onClick={() => setIsBlacklistDialogOpen(true)}
+          >
+            <AlertTriangle className="h-4 w-4 mr-1.5" />
+            Blacklist
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="brand-ghost"
+            className="text-amber-600 hover:bg-amber-50 hover:border-amber-200"
+          >
+            <ClipboardList className="h-4 w-4 mr-1.5" />
+            Quitar de blacklist
+          </Button>
+        )}
+        <PermissionGuard permissions={[PermissionCode.CANDIDATE_MANAGE]}>
+          <Button
+            size="sm"
+            variant="brand-ghost"
+            className="text-red-600 hover:bg-red-50 hover:border-red-200"
+            onClick={() => setIsDeleteDialogOpen(true)}
+          >
+            <Trash className="h-4 w-4 mr-1.5" />
+            Eliminar
+          </Button>
+        </PermissionGuard>
+      </div>
+
+      <DeleteCandidateDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        candidate={candidate}
+      />
+
+      <BlacklistCandidateDialog
+        isOpen={isBlacklistDialogOpen}
+        onClose={() => setIsBlacklistDialogOpen(false)}
+        candidate={candidate}
+      />
+
+      <AddToVacancyDialog
+        open={isAddToVacancyDialogOpen}
+        onOpenChange={setIsAddToVacancyDialogOpen}
+        candidateId={candidate.id}
+        candidateName={candidate.name}
+      />
+    </>
+  );
+};
+
+export const CandidateProfileCard = ({
+  candidate,
+}: CandidateDetailHeaderProps) => {
   const queryClient = useQueryClient();
   const [stars, setStars] = useState(+candidate.stars);
 
@@ -112,335 +197,241 @@ export const CandidateDetailHeader = ({
     }
   };
 
-  const calculateAge = (dateOfBirth: string) => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age -= 1;
-    }
-
-    return age;
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="brand-outline"
-          className="flex items-center gap-2 w-full lg:w-fit bg-white"
-          onClick={() => router.back()}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver
-        </Button>
-        <Link
-          href={`/candidates/${candidate.id}/edit`}
-          className="w-full lg:w-fit"
-        >
-          <Button
-            size="sm"
-            variant="brand-outline"
-            className="flex items-center gap-2 w-full lg:w-fit bg-white"
-          >
-            <Edit className="h-4 w-4" />
-            Editar candidato
-          </Button>
-        </Link>
-        <Button
-          size="sm"
-          variant="brand-outline"
-          className="flex items-center gap-2 w-full lg:w-fit bg-white"
-          onClick={() => setIsAddToVacancyDialogOpen(true)}
-        >
-          <Briefcase className="h-4 w-4" />
-          Agregar a vacante
-        </Button>
-        {!candidate.blacklist ? (
-          <Button
-            variant="brand-outline"
-            size="sm"
-            className="flex items-center gap-2 text-amber-600 hover:border-amber-400 hover:bg-amber-50 w-full lg:w-fit bg-white"
-            onClick={() => setIsBlacklistDialogOpen(true)}
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Añadir a blacklist
-          </Button>
-        ) : (
-          <Button
-            variant="brand-outline"
-            size="sm"
-            className="flex items-center gap-2 text-amber-600 hover:border-amber-400 hover:bg-amber-50 w-full lg:w-fit bg-white"
-          >
-            <ClipboardList className="h-4 w-4" />
-            Eliminar de blacklist
-          </Button>
+    <div className="rounded-2xl border border-brand-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] h-full">
+      <div className="flex flex-col items-center">
+        {/* Circular avatar */}
+        <div className="relative mb-4">
+          <div className="h-36 w-36 overflow-hidden rounded-full border-2 border-brand-border shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)]">
+            <Image
+              src={candidate.image || "/images/placeholder.svg"}
+              alt={candidate.name}
+              width={144}
+              height={144}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          {candidate.blacklist && (
+            <Badge
+              variant="destructive"
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-lg text-[10px]"
+            >
+              Blacklist
+            </Badge>
+          )}
+          {Boolean(candidate.isInCompanyViaPratt && !candidate.blacklist) && (
+            <Badge
+              variant="secondary"
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-white bg-emerald-500/90 rounded-lg text-[10px]"
+            >
+              via Pratt
+            </Badge>
+          )}
+        </div>
+
+        {/* Name + LinkedIn */}
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-lg font-bold tracking-tight text-ink text-center">
+            {candidate.name}
+          </h2>
+          {candidate.linkedin && (
+            <Link
+              href={candidate.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:scale-110 transition-transform ease-[cubic-bezier(0.16,1,0.3,1)] shrink-0"
+            >
+              <Image
+                src="/images/linkedin.svg"
+                alt="LinkedIn"
+                width={20}
+                height={20}
+              />
+            </Link>
+          )}
+        </div>
+
+        {/* Short description */}
+        {candidate.shortDescription && (
+          <p className="text-sm text-slate-brand leading-relaxed text-center mb-3">
+            {candidate.shortDescription}
+          </p>
         )}
-        <PermissionGuard permissions={[PermissionCode.CANDIDATE_MANAGE]}>
-          <Button
-            variant="brand-outline"
-            size="sm"
-            className="flex items-center gap-2 text-red-600 hover:border-red-400 hover:bg-red-50 w-full lg:w-fit bg-white"
-            onClick={() => setIsDeleteDialogOpen(true)}
-          >
-            <Trash className="h-4 w-4" />
-            Eliminar candidato
-          </Button>
-        </PermissionGuard>
       </div>
 
-      {/* Profile card */}
-      <div className="rounded-2xl border border-brand-border bg-surface p-6 lg:p-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Photo */}
-          <div className="relative w-full lg:w-1/6 shrink-0">
-            <div className="aspect-square overflow-hidden rounded-2xl border border-brand-border">
-              <Image
-                src={candidate.image || "/images/placeholder.svg"}
-                alt={candidate.name}
-                width={200}
-                height={200}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {candidate.blacklist && (
-              <Badge
-                variant="destructive"
-                className="absolute top-2 right-2 rounded-lg"
-              >
-                Blacklist
-              </Badge>
-            )}
-            {Boolean(candidate.isInCompanyViaPratt && !candidate.blacklist) && (
-              <Badge
-                variant="secondary"
-                className="absolute text-white top-2 right-2 bg-emerald-500/90 rounded-lg"
-              >
-                via Pratt
-              </Badge>
-            )}
-          </div>
+      <Separator className="my-4 bg-brand-border-light" />
 
-          {/* Main info */}
-          <div className="flex-1 space-y-3 w-full lg:w-1/2">
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <h2 className="text-2xl font-bold tracking-tight text-ink">
-                  {candidate.name}
-                </h2>
-                {candidate.linkedin && (
-                  <Link
-                    href={candidate.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:scale-110 transition-transform ease-[cubic-bezier(0.16,1,0.3,1)]"
-                  >
-                    <Image
-                      src="/images/linkedin.svg"
-                      alt="LinkedIn"
-                      width={24}
-                      height={24}
-                      className="inline-block"
-                    />
-                  </Link>
-                )}
-              </div>
-              {candidate.shortDescription && (
-                <p className="text-sm text-slate-brand leading-relaxed">
-                  {candidate.shortDescription}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-brand">
-                {candidate.countries && candidate.countries.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    <span>{candidate.countries.map((c) => c).join(", ")}</span>
-                  </div>
-                )}
-                {candidate.dateOfBirth && (
-                  <span>{calculateAge(candidate.dateOfBirth)} años</span>
-                )}
-              </div>
-              {candidate.email && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-3 w-3 text-muted-brand" />
-                  <a
-                    className="hover:underline text-electric"
-                    href={`mailto:${candidate.email}`}
-                  >
-                    {candidate.email}
-                  </a>
-                </div>
-              )}
-              {candidate.phone && (
-                <div className="flex items-center gap-2 text-sm text-slate-brand">
-                  <Phone className="h-3 w-3 text-muted-brand" />
-                  <span>{candidate.phone}</span>
-                </div>
-              )}
-              <Separator className="!my-4 w-[300px] bg-brand-border" />
-              <div className="flex flex-col gap-4">
-                {candidate.languages && candidate.languages.length > 0 && (
-                  <div className="text-sm flex items-center gap-2">
-                    <span className="text-xs text-muted-brand block w-1/5 lg:w-[10%]">
-                      Idiomas
-                    </span>
-                    <div className="flex flex-wrap gap-1 w-4/5 lg:w-[90%]">
-                      {candidate.languages.map((language) => (
-                        <Badge
-                          key={language}
-                          variant="outline"
-                          className="text-xs h-5 rounded-lg border-brand-border text-slate-brand"
-                        >
-                          {language}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {candidate.provinces && candidate.provinces.length > 0 && (
-                  <div className="text-sm flex items-center gap-2">
-                    <span className="text-xs text-muted-brand block w-1/5 lg:w-[10%]">
-                      Provincias
-                    </span>
-                    <div className="flex flex-wrap gap-1 w-4/5 lg:w-[90%]">
-                      {candidate.provinces.map((province) => (
-                        <Badge
-                          key={province}
-                          variant="outline"
-                          className="text-xs h-5 rounded-lg border-brand-border text-slate-brand"
-                        >
-                          {province}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+      {/* Contact info */}
+      <div className="space-y-2.5 text-sm">
+        {candidate.countries && candidate.countries.length > 0 && (
+          <div className="flex items-center gap-2">
+            <MapPin className="h-3.5 w-3.5 text-muted-brand shrink-0" />
+            <span className="text-slate-brand">
+              {candidate.countries.join(", ")}
+            </span>
           </div>
+        )}
+        {candidate.dateOfBirth && (
+          <div className="flex items-center gap-2">
+            <User className="h-3.5 w-3.5 text-muted-brand shrink-0" />
+            <span className="text-slate-brand">
+              {calculateAge(candidate.dateOfBirth)} años
+            </span>
+          </div>
+        )}
+        {candidate.email && (
+          <div className="flex items-center gap-2">
+            <Mail className="h-3.5 w-3.5 text-muted-brand shrink-0" />
+            <a
+              className="text-electric hover:underline truncate"
+              href={`mailto:${candidate.email}`}
+            >
+              {candidate.email}
+            </a>
+          </div>
+        )}
+        {candidate.phone && (
+          <div className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5 text-muted-brand shrink-0" />
+            <span className="text-slate-brand">{candidate.phone}</span>
+          </div>
+        )}
+      </div>
 
-          {/* Sidebar info */}
-          <div className="flex flex-col gap-4 text-sm w-full lg:w-1/3">
-            {candidate.seniorities && candidate.seniorities.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="text-muted-brand text-xs w-1/5">Seniority</div>
-                <div className="flex flex-wrap gap-1 mt-1 w-4/5">
-                  {candidate.seniorities.map((seniority) => (
+      {/* Languages & Provinces */}
+      {((candidate.languages && candidate.languages.length > 0) ||
+        (candidate.provinces && candidate.provinces.length > 0)) && (
+        <>
+          <Separator className="my-4 bg-brand-border-light" />
+          <div className="space-y-3">
+            {candidate.languages && candidate.languages.length > 0 && (
+              <div>
+                <span className="text-xs text-muted-brand block mb-1.5">
+                  Idiomas
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {candidate.languages.map((language) => (
                     <Badge
-                      key={seniority.id}
+                      key={language}
                       variant="outline"
-                      className="text-xs rounded-lg border-brand-border bg-electric/5 text-electric"
+                      className="text-[11px] h-5 rounded-lg border-brand-border text-slate-brand"
                     >
-                      {seniority.name}
+                      {language}
                     </Badge>
                   ))}
                 </div>
               </div>
             )}
-
-            {candidate.areas && candidate.areas.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="text-muted-brand text-xs w-1/5">Áreas</div>
-                <div className="flex flex-wrap gap-1 mt-1 w-4/5">
-                  {candidate.areas.map((area) => (
+            {candidate.provinces && candidate.provinces.length > 0 && (
+              <div>
+                <span className="text-xs text-muted-brand block mb-1.5">
+                  Provincias
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {candidate.provinces.map((province) => (
                     <Badge
-                      key={area.id}
+                      key={province}
                       variant="outline"
-                      className="text-xs rounded-lg border-brand-border bg-electric/5 text-electric"
+                      className="text-[11px] h-5 rounded-lg border-brand-border text-slate-brand"
                     >
-                      {area.name}
+                      {province}
                     </Badge>
                   ))}
                 </div>
               </div>
             )}
+          </div>
+        </>
+      )}
 
-            {candidate.industries && candidate.industries.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="text-muted-brand text-xs w-1/5">Industrias</div>
-                <div className="flex flex-wrap gap-1 mt-1 w-4/5">
-                  {candidate.industries.map((industry) => (
-                    <Badge
-                      key={industry.id}
-                      variant="outline"
-                      className="text-xs rounded-lg border-brand-border bg-electric/5 text-electric"
-                    >
-                      {industry.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {candidate.source && (
-              <div className="flex items-center gap-2">
-                <div className="text-muted-brand text-xs w-1/5">Fuente</div>
-                <div className="flex flex-wrap gap-1 mt-1 w-4/5">
-                  <Badge
-                    variant="outline"
-                    className="text-xs rounded-lg border-brand-border text-slate-brand"
-                  >
-                    {candidate.source.name}
-                  </Badge>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <div className="text-muted-brand text-xs w-1/5">Calificación</div>
-              <div className="flex items-center gap-4 w-4/5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-electric/5 hover:text-electric transition-colors"
-                  onClick={decrementStars}
-                  disabled={stars <= 0}
-                >
-                  <MinusCircle className="h-4 w-4" />
-                </Button>
-
-                <CandidateStars stars={stars} />
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-electric/5 hover:text-electric transition-colors"
-                  onClick={incrementStars}
-                  disabled={stars >= 5}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                </Button>
-              </div>
+      {/* Catalog badges */}
+      <Separator className="my-4 bg-brand-border-light" />
+      <div className="space-y-3">
+        {candidate.seniorities && candidate.seniorities.length > 0 && (
+          <div>
+            <span className="text-xs text-muted-brand block mb-1.5">
+              Seniority
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {candidate.seniorities.map((s) => (
+                <CatalogBadge key={s.id} label={s.name} type="seniority" />
+              ))}
             </div>
           </div>
+        )}
+
+        {candidate.areas && candidate.areas.length > 0 && (
+          <div>
+            <span className="text-xs text-muted-brand block mb-1.5">
+              Áreas
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {candidate.areas.map((a) => (
+                <CatalogBadge key={a.id} label={a.name} type="area" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {candidate.industries && candidate.industries.length > 0 && (
+          <div>
+            <span className="text-xs text-muted-brand block mb-1.5">
+              Industrias
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {candidate.industries.map((i) => (
+                <CatalogBadge key={i.id} label={i.name} type="industry" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {candidate.source && (
+          <div>
+            <span className="text-xs text-muted-brand block mb-1.5">
+              Fuente
+            </span>
+            <Badge
+              variant="outline"
+              className="text-[11px] rounded-lg border-brand-border text-slate-brand"
+            >
+              {candidate.source.name}
+            </Badge>
+          </div>
+        )}
+      </div>
+
+      {/* Star rating */}
+      <Separator className="my-4 bg-brand-border-light" />
+      <div>
+        <span className="text-xs text-muted-brand block mb-2">
+          Calificación
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-electric/5 hover:text-electric transition-colors"
+            onClick={decrementStars}
+            disabled={stars <= 0}
+          >
+            <MinusCircle className="h-3.5 w-3.5" />
+          </Button>
+          <CandidateStars stars={stars} size="sm" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-electric/5 hover:text-electric transition-colors"
+            onClick={incrementStars}
+            disabled={stars >= 5}
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
-
-      <DeleteCandidateDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        candidate={candidate}
-      />
-
-      <BlacklistCandidateDialog
-        isOpen={isBlacklistDialogOpen}
-        onClose={() => setIsBlacklistDialogOpen(false)}
-        candidate={candidate}
-      />
-
-      <AddToVacancyDialog
-        open={isAddToVacancyDialogOpen}
-        onOpenChange={setIsAddToVacancyDialogOpen}
-        candidateId={candidate.id}
-        candidateName={candidate.name}
-      />
     </div>
   );
 };
+
+// Keep backward-compatible default export name
+export const CandidateDetailHeader = CandidateDetailToolbar;

@@ -11,17 +11,20 @@ export const CandidateFilesTab = ({ candidate }: CandidateFilesTabProps) => {
   const candidateFiles = candidate.files || [];
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-surface">
-      <div className="p-6 lg:p-8">
-        <h3 className="text-lg font-bold tracking-tight text-ink">
-          Archivos del Candidato
-        </h3>
-        <p className="text-sm text-slate-brand mt-1">
+    <div className="rounded-2xl border border-brand-border bg-surface h-full shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <FileIcon className="h-4 w-4 text-electric" />
+          <h3 className="text-sm font-semibold text-ink">
+            Archivos del Candidato
+          </h3>
+        </div>
+        <p className="text-sm text-slate-brand">
           Los archivos asociados a {candidate.name} están disponibles para
           descargar.
         </p>
       </div>
-      <div className="px-6 pb-6 lg:px-8 lg:pb-8">
+      <div className="px-6 pb-6">
         {candidateFiles.length > 0 ? (
           <div className="rounded-xl border border-brand-border divide-y divide-brand-border">
             {candidateFiles.map((file) => (

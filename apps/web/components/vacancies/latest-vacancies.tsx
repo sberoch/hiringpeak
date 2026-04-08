@@ -5,13 +5,15 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Briefcase, Clock, Users } from "lucide-react";
+import { ArrowRight, Briefcase, Building2, Clock, Users } from "lucide-react";
 
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import type { PaginatedResponse } from "@workspace/shared/types/api";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 import { VACANCY_API_KEY, getAllVacancies } from "@/lib/api/vacancy";
-import { stringToColor, vacancyDisplayLabel } from "@/lib/utils";
+import { CATALOG_TYPE_COLORS, getVacancyFilterTags, stringToColor, vacancyDisplayLabel } from "@/lib/utils";
+import { CandidateAvatarStack } from "@/components/ui/candidate-avatar-stack";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
@@ -93,48 +95,79 @@ export function LatestVacancies({
         </div>
       ) : (
         <div className="divide-y divide-brand-border-light">
-          {vacancies.map((vacancy) => (
-            <Link
-              key={vacancy.id}
-              href={`/vacancies/${vacancy.id}`}
-              className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-electric/[0.03] group"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink truncate group-hover:text-electric transition-colors">
-                  {vacancyDisplayLabel(vacancy)}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-slate-brand truncate">
-                    {vacancy.company.name}
-                  </span>
-                  <span
-                    className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                    style={{
-                      backgroundColor: `${stringToColor(vacancy.status.name)}20`,
-                      color: stringToColor(vacancy.status.name),
-                    }}
-                  >
-                    {vacancy.status.name}
-                  </span>
-                </div>
-              </div>
+          {vacancies.map((vacancy) => {
+            const statusColor = stringToColor(vacancy.status.name);
+            const candidateCount = vacancy.candidates.length;
+            const tags = getVacancyFilterTags(vacancy.filters);
 
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <div className="flex items-center gap-1 text-muted-brand">
-                  <Users className="h-3 w-3" />
-                  <span className="text-[11px] font-medium">
-                    {vacancy.candidates.length}
-                  </span>
+            return (
+              <Link
+                key={vacancy.id}
+                href={`/vacancies/${vacancy.id}`}
+                className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-electric/[0.03] group"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-ink truncate group-hover:text-electric transition-colors">
+                      {vacancyDisplayLabel(vacancy)}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] font-semibold rounded-md border-0 px-1.5 py-0 shrink-0"
+                      style={{ backgroundColor: statusColor }}
+                    >
+                      {vacancy.status.name}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-slate-brand">
+                      <Building2 className="h-3 w-3 text-muted-brand" />
+                      <span className="truncate">{vacancy.company.name}</span>
+                    </div>
+                    {tags.length > 0 && (
+                      <>
+                        <span className="text-brand-border text-[10px]">|</span>
+                        <div className="flex items-center gap-1 overflow-hidden">
+                          {tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={`${tag.type}-${tag.label}`}
+                              className={`inline-flex items-center rounded-md px-1.5 py-0 text-[10px] font-medium shrink-0 ${CATALOG_TYPE_COLORS[tag.type]}`}
+                            >
+                              {tag.label}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-muted-brand">
-                  <Clock className="h-3 w-3" />
-                  <span className="text-[11px]">
-                    {dayjs(vacancy.createdAt).fromNow()}
-                  </span>
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {candidateCount > 0 && (
+                    <div className="hidden sm:block">
+                      <CandidateAvatarStack candidates={vacancy.candidates} />
+                    </div>
+                  )}
+
+
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1 text-muted-brand">
+                      <Users className="h-3 w-3" />
+                      <span className="text-[11px] font-medium">
+                        {candidateCount}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-brand">
+                      <Clock className="h-3 w-3" />
+                      <span className="text-[11px]">
+                        {dayjs(vacancy.createdAt).fromNow()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
