@@ -195,6 +195,52 @@ export class VacancyService {
     return this.transformQueryResult(vacancy);
   }
 
+  async findAllByCompanyId(
+    companyId: number,
+    organizationId: number,
+  ): Promise<VacancyApiResponse[]> {
+    const vacancyItems = await this.db.query.vacancies.findMany({
+      where: and(
+        eq(vacancies.companyId, companyId),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      orderBy: [desc(vacancies.id)],
+      with: {
+        status: true,
+        filters: {
+          with: {
+            areaIds: {
+              with: {
+                area: true,
+              },
+            },
+            industryIds: {
+              with: {
+                industry: true,
+              },
+            },
+            seniorityIds: {
+              with: {
+                seniority: true,
+              },
+            },
+          },
+        },
+        company: true,
+        candidateVacancies: {
+          with: {
+            candidate: true,
+            candidateVacancyStatus: true,
+          },
+        },
+        createdBy: true,
+        assignedTo: true,
+      },
+    });
+
+    return vacancyItems.map((vacancy) => this.transformQueryResult(vacancy));
+  }
+
   async create(dto: CreateVacancyServiceDto) {
     const { organizationId, ...createVacancyDto } = dto;
     return this.db.transaction(async (tx) => {

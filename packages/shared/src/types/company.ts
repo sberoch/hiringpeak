@@ -21,8 +21,7 @@ export type BaseCompany = {
 export type Company = BaseCompany & {
   id: number;
   vacancyCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
 };
 
 export type CompanyFilters = PaginationFilters & {

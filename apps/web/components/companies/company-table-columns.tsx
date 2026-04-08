@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 
@@ -90,6 +91,16 @@ export const columns: ColumnDef<Company>[] = [
           Nombre
           <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
         </Button>
+      );
+    },
+    cell: ({ row }) => {
+      return (
+        <Link
+          href={`/companies/${row.original.id}`}
+          className="font-medium text-ink hover:text-electric transition-colors"
+        >
+          {row.original.name}
+        </Link>
       );
     },
   },

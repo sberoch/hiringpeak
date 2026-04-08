@@ -25,7 +25,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, cleanupOpenApiDoc(document));
 
-  app.enableCors();
+  app.enableCors({
+    exposedHeaders: ['Content-Disposition'],
+  });
   await app.listen(process.env.SERVER_PORT || '5000');
   console.log(`Server is running on port ${process.env.SERVER_PORT || '5000'}`);
 }
