@@ -65,6 +65,7 @@ export type VacancyFiltersType = Omit<
 export type BaseVacancy = {
   title: string;
   description?: string;
+  salary?: string | null;
   status: VacancyStatus;
   filters?: BaseVacancyFilters;
   createdBy?: User["id"] | string;
@@ -83,6 +84,7 @@ export type Vacancy = Omit<
   company: Company;
   filters: VacancyFiltersType;
   candidates: ListedCandidateVacancy[];
+  closedAt: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy: User;

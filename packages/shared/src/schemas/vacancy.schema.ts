@@ -39,6 +39,8 @@ export const vacancies = pgTable("vacancies", {
     .references(() => organizations.id, {
       onDelete: "cascade",
     }),
+  salary: text("salary"),
+  closedAt: timestamp("closed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

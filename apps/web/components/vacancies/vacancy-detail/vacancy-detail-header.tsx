@@ -4,9 +4,7 @@ import dayjs from "dayjs";
 import {
   Briefcase,
   Edit,
-  FileText,
   Plus,
-  Search,
   Trash,
   UserPlus,
 } from "lucide-react";
@@ -24,7 +22,6 @@ import { PermissionGuard } from "../../auth/permission-guard";
 import { DeleteVacancyDialog } from "../delete-vacancy-dialog";
 import { EditVacancySheet } from "../edit-vacancy-sheet";
 import { AddCandidatesDialog } from "./add-candidates-dialog";
-import { VacancyDetailHeaderFilters } from "./vacancy-detail-header-filters";
 
 interface VacancyDetailHeaderProps {
   vacancy: Vacancy;
@@ -65,13 +62,12 @@ export const VacancyDetailHeader = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page heading */}
+    <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button
             variant="brand-ghost"
-            className="h-10 px-4 text-sm font-medium"
+            className="bg-white h-10 px-4 text-sm font-medium"
             onClick={() => router.back()}
           >
             ← Volver
@@ -87,6 +83,11 @@ export const VacancyDetailHeader = ({
                 >
                   {vacancy.status.name}
                 </Badge>
+                {vacancy.closedAt && (
+                  <span className="text-xs text-muted-brand font-normal">
+                    Cerrada {dayjs(vacancy.closedAt).format("DD/MM/YY")}
+                  </span>
+                )}
               </span>
             }
             description={
@@ -103,6 +104,7 @@ export const VacancyDetailHeader = ({
           <Button
             size="sm"
             variant="brand-ghost"
+            className="bg-white"
             onClick={() => setIsEditSheetOpen(true)}
           >
             <Edit className="h-4 w-4 mr-1.5" />
@@ -111,6 +113,7 @@ export const VacancyDetailHeader = ({
           <Button
             size="sm"
             variant="brand-ghost"
+            className="bg-white"
             onClick={() => setIsAddCandidatesDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-1.5" />
@@ -126,9 +129,9 @@ export const VacancyDetailHeader = ({
           </Button>
           <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
             <Button
-              variant="outline"
+              variant="brand-ghost"
               size="sm"
-              className="rounded-xl border-brand-border text-red-600 hover:bg-red-50 hover:border-red-200 transition-all ease-[cubic-bezier(0.16,1,0.3,1)]"
+              className="bg-white text-red-600 hover:bg-red-50 hover:border-red-200"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
               <Trash className="h-4 w-4 mr-1.5" />
@@ -136,81 +139,6 @@ export const VacancyDetailHeader = ({
             </Button>
           </PermissionGuard>
         </div>
-      </div>
-
-      {/* Cards grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Description card */}
-        <div className="rounded-2xl border border-brand-border bg-surface p-6 col-span-1 lg:col-span-2 order-first">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
-              <FileText className="h-3.5 w-3.5" />
-            </div>
-            <h3 className="text-sm font-semibold text-ink">
-              Descripción
-            </h3>
-          </div>
-          {vacancy.description ? (
-            <div className="whitespace-pre-wrap text-sm text-slate-brand leading-relaxed">
-              {vacancy.description}
-            </div>
-          ) : (
-            <div className="text-muted-brand text-sm italic">
-              No hay descripción disponible
-            </div>
-          )}
-        </div>
-
-        {/* Metadata card */}
-        <div className="rounded-2xl border border-brand-border bg-surface p-6 col-span-1">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
-              <Search className="h-3.5 w-3.5" />
-            </div>
-            <h3 className="text-sm font-semibold text-ink">
-              Detalles
-            </h3>
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Creación</span>
-              <span className="text-ink font-medium">
-                {dayjs(vacancy.createdAt).toDate().toLocaleDateString()}
-              </span>
-            </div>
-            <div className="h-px bg-brand-border-light" />
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Actualización</span>
-              <span className="text-ink font-medium">
-                {dayjs(vacancy.updatedAt).toDate().toLocaleDateString()}
-              </span>
-            </div>
-            <div className="h-px bg-brand-border-light" />
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Empresa</span>
-              <span className="text-ink font-medium">
-                {vacancy.company.name}
-              </span>
-            </div>
-            <div className="h-px bg-brand-border-light" />
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Creado por</span>
-              <span className="text-ink font-medium">
-                {vacancy.createdBy.name}
-              </span>
-            </div>
-            <div className="h-px bg-brand-border-light" />
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Asignado a</span>
-              <span className="text-ink font-medium">
-                {vacancy.assignedTo.name}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters card */}
-        <VacancyDetailHeaderFilters vacancy={vacancy} />
       </div>
 
       <DeleteVacancyDialog
@@ -247,6 +175,6 @@ export const VacancyDetailHeader = ({
         showDontShowAgain={true}
         storageKey="pratt-hide-new-candidate-info"
       />
-    </div>
+    </>
   );
 };

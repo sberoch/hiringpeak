@@ -230,6 +230,18 @@ export const columns: ColumnDef<Vacancy>[] = [
     cell: ({ row }) => <CandidatesCell vacancy={row.original} />,
   },
   {
+    accessorKey: "salary",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Compensación</span>
+    ),
+    cell: ({ row }) => {
+      const salary = row.original.salary;
+      return (
+        <div className="text-ink">{salary ?? "-"}</div>
+      );
+    },
+  },
+  {
     accessorKey: "createdAt",
     header: ({ column }) => {
       return (

@@ -103,6 +103,7 @@ function transformFormUpdate(
     statusId: form.status.id,
     title: form.title,
     description: form.description,
+    salary: form.salary || null,
     filters: {
       gender: form.filters?.gender,
       maxAge: form.filters?.maxAge,
@@ -185,6 +186,7 @@ export function EditVacancySheet({
     defaultValues: {
       title: vacancy.title,
       description: vacancy.description || "",
+      salary: vacancy.salary || "",
       status: vacancy.status,
       company: vacancy.company,
       assignedTo: vacancy.assignedTo,
@@ -258,6 +260,23 @@ export function EditVacancySheet({
                           <Textarea
                             placeholder="Descripción de la vacante"
                             className="min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="salary"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Compensación</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="$10,000,000"
                             {...field}
                           />
                         </FormControl>

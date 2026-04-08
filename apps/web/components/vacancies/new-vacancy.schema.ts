@@ -20,6 +20,7 @@ export const createVacancyFormSchema = z.object({
     message: "El título debe tener al menos 2 caracteres.",
   }),
   description: z.string().optional(),
+  salary: z.string().optional(),
   status: z.string({ error: "Seleccione estado" }),
   company: z.string({ error: "Seleccione companía" }),
   filters: z
@@ -47,6 +48,7 @@ export const createVacancySchema = z.object({
     message: "El título debe tener al menos 2 caracteres.",
   }),
   description: z.string().optional(),
+  salary: z.string().optional().nullable(),
   statusId: z.number({
     error: "El estado es requerido.",
   }),

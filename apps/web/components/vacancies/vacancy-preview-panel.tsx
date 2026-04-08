@@ -6,8 +6,10 @@ import dayjs from "dayjs";
 import {
   ArrowRight,
   Calendar,
+  CalendarCheck,
   Clock,
   Copy,
+  DollarSign,
   Edit,
   FileText,
   Filter,
@@ -25,6 +27,7 @@ import {
   AvatarImage,
 } from "@workspace/ui/components/avatar";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { getInitials, stringToColor, translateGender } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
@@ -196,6 +199,24 @@ export function VacancyPreviewPanel({
                 {vacancy.assignedTo?.name ?? "-"}
               </span>
             </div>
+            {vacancy.salary && (
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5 text-muted-brand" />
+                <span className="text-muted-brand">Compensación</span>
+                <span className="text-ink font-medium ml-auto truncate max-w-[120px]">
+                  {vacancy.salary}
+                </span>
+              </div>
+            )}
+            {vacancy.closedAt && (
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="h-3.5 w-3.5 text-muted-brand" />
+                <span className="text-muted-brand">Cerrada</span>
+                <span className="text-ink font-medium ml-auto">
+                  {dayjs(vacancy.closedAt).format("DD/MM/YY")}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -228,23 +249,17 @@ export function VacancyPreviewPanel({
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Filter className="h-3.5 w-3.5 text-electric" />
-              <h3 className="text-sm font-semibold text-ink">Requisitos</h3>
+              <h3 className="text-sm font-semibold text-ink">Perfil buscado</h3>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {f.seniorities?.map((s) => (
-                <Badge key={s.id} variant="outline" className={filterBadgeCn}>
-                  {s.name}
-                </Badge>
+                <CatalogBadge key={s.id} label={s.name} type="seniority" />
               ))}
               {f.areas?.map((a) => (
-                <Badge key={a.id} variant="outline" className={filterBadgeCn}>
-                  {a.name}
-                </Badge>
+                <CatalogBadge key={a.id} label={a.name} type="area" />
               ))}
               {f.industries?.map((i) => (
-                <Badge key={i.id} variant="outline" className={filterBadgeCn}>
-                  {i.name}
-                </Badge>
+                <CatalogBadge key={i.id} label={i.name} type="industry" />
               ))}
               {f.minStars != null && (
                 <Badge variant="outline" className={filterBadgeCn}>

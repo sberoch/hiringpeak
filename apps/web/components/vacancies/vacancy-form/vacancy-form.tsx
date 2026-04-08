@@ -168,6 +168,7 @@ function transformCreateForm(
     statusId: parseInt(values.status),
     title: values.title,
     description: values.description,
+    salary: values.salary || null,
     filters: {
       areaIds: values.filters?.areas?.map((a) => a.id) || [],
       industryIds: values.filters?.industries?.map((i) => i.id) || [],
@@ -327,6 +328,23 @@ export function VacancyForm({
                     <Textarea
                       placeholder="Descripción de la vacante"
                       className="min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="salary"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Compensación</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="$10,000,000"
                       {...field}
                     />
                   </FormControl>

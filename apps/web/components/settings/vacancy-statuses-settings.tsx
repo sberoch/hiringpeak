@@ -27,6 +27,7 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Switch } from "@workspace/ui/components/switch";
 import {
   VACANCY_STATUS_API_KEY,
   createVacancyStatus,
@@ -40,6 +41,7 @@ export default function VacancyStatusesSettings() {
   const queryClient = useQueryClient();
 
   const [newStatus, setNewStatus] = useState("");
+  const [newStatusIsFinal, setNewStatusIsFinal] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingStatus, setEditingStatus] = useState<VacancyStatus | null>(
     null,
@@ -59,9 +61,10 @@ export default function VacancyStatusesSettings() {
   }, [data, searchTerm]);
 
   const { mutate: handleAddStatus } = useMutation({
-    mutationFn: async (name: string) => {
-      const status = createVacancyStatus({ name });
+    mutationFn: async ({ name, isFinal }: { name: string; isFinal: boolean }) => {
+      const status = createVacancyStatus({ name, isFinal });
       setNewStatus("");
+      setNewStatusIsFinal(false);
       return status;
     },
     onSuccess: () => {
@@ -69,6 +72,7 @@ export default function VacancyStatusesSettings() {
         .invalidateQueries({ queryKey: [VACANCY_STATUS_API_KEY] })
         .then(() => {
           setNewStatus("");
+          setNewStatusIsFinal(false);
           setIsAddDialogOpen(false);
           toast.success("Estado de vacante creado correctamente");
         });
@@ -80,7 +84,7 @@ export default function VacancyStatusesSettings() {
 
   const { mutate: handleEditStatus } = useMutation({
     mutationFn: (status: VacancyStatus) =>
-      updateVacancyStatus(status.id, { name: status.name }),
+      updateVacancyStatus(status.id, { name: status.name, isFinal: status.isFinal }),
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: [VACANCY_STATUS_API_KEY] })
@@ -159,7 +163,17 @@ export default function VacancyStatusesSettings() {
                 <span className="text-sm font-medium text-ink">
                   {status.name}
                 </span>
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 mr-2">
+                    <Switch
+                      checked={status.isFinal}
+                      onCheckedChange={(checked) =>
+                        handleEditStatus({ ...status, isFinal: checked })
+                      }
+                      className="data-[state=checked]:bg-electric data-[state=unchecked]:bg-brand-border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                    />
+                    <span className="text-xs text-muted-brand">Final</span>
+                  </div>
                   <button
                     onClick={() => setEditingStatus(status)}
                     className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-brand transition-colors hover:bg-electric/10 hover:text-electric"
@@ -192,17 +206,30 @@ export default function VacancyStatusesSettings() {
                 Ingresa el nombre del nuevo estado de vacante.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <Label htmlFor="name" className="text-sm font-semibold text-ink">
-                Nombre
-              </Label>
-              <Input
-                id="name"
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                placeholder="Nombre del estado"
-                className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
-              />
+            <div className="py-4 space-y-4">
+              <div>
+                <Label htmlFor="name" className="text-sm font-semibold text-ink">
+                  Nombre
+                </Label>
+                <Input
+                  id="name"
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  placeholder="Nombre del estado"
+                  className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
+                />
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Switch
+                  id="is-final"
+                  checked={newStatusIsFinal}
+                  onCheckedChange={setNewStatusIsFinal}
+                  className="data-[state=checked]:bg-electric data-[state=unchecked]:bg-brand-border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                />
+                <Label htmlFor="is-final" className="text-sm text-ink">
+                  Estado final (cierra la vacante automáticamente)
+                </Label>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -213,7 +240,7 @@ export default function VacancyStatusesSettings() {
                 Cancelar
               </Button>
               <button
-                onClick={() => handleAddStatus(newStatus)}
+                onClick={() => handleAddStatus({ name: newStatus, isFinal: newStatusIsFinal })}
                 disabled={isLoading || !newStatus.trim()}
                 className="inline-flex items-center justify-center rounded-md bg-electric px-4 py-2 text-sm font-semibold text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-electric-light hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.4)] disabled:opacity-50 disabled:pointer-events-none"
               >
@@ -238,26 +265,45 @@ export default function VacancyStatusesSettings() {
                 Modifica el nombre del estado de la vacante.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <Label
-                htmlFor="edit-name"
-                className="text-sm font-semibold text-ink"
-              >
-                Nombre
-              </Label>
-              <Input
-                id="edit-name"
-                value={editingStatus?.name || ""}
-                onChange={(e) =>
-                  setEditingStatus(
-                    editingStatus
-                      ? { ...editingStatus, name: e.target.value }
-                      : null,
-                  )
-                }
-                placeholder="Nombre del estado"
-                className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
-              />
+            <div className="py-4 space-y-4">
+              <div>
+                <Label
+                  htmlFor="edit-name"
+                  className="text-sm font-semibold text-ink"
+                >
+                  Nombre
+                </Label>
+                <Input
+                  id="edit-name"
+                  value={editingStatus?.name || ""}
+                  onChange={(e) =>
+                    setEditingStatus(
+                      editingStatus
+                        ? { ...editingStatus, name: e.target.value }
+                        : null,
+                    )
+                  }
+                  placeholder="Nombre del estado"
+                  className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
+                />
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Switch
+                  id="edit-is-final"
+                  checked={editingStatus?.isFinal ?? false}
+                  onCheckedChange={(checked) =>
+                    setEditingStatus(
+                      editingStatus
+                        ? { ...editingStatus, isFinal: checked }
+                        : null,
+                    )
+                  }
+                  className="data-[state=checked]:bg-electric data-[state=unchecked]:bg-brand-border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                />
+                <Label htmlFor="edit-is-final" className="text-sm text-ink">
+                  Estado final (cierra la vacante automáticamente)
+                </Label>
+              </div>
             </div>
             <DialogFooter>
               <Button

@@ -17,6 +17,7 @@ interface VacancySeed {
   area: string;
   industry: string;
   seniority: string;
+  salary?: string;
 }
 
 const vacanciesList: VacancySeed[] = [
@@ -28,6 +29,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Comercial',
     industry: 'Automotriz',
     seniority: 'Gerente',
+    salary: '$8,000,000',
   },
   {
     title: 'Director de Finanzas',
@@ -37,6 +39,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Finanzas',
     industry: 'Agro Negocios',
     seniority: 'Director',
+    salary: '$12,000,000',
   },
   {
     title: 'Jefe de Logística',
@@ -46,6 +49,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Logística',
     industry: 'Industria',
     seniority: 'Jefe - Team Lider',
+    salary: '$5,500,000',
   },
   {
     title: 'Gerente de RRHH',
@@ -55,6 +59,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'RRHH',
     industry: 'Laboratorio - Farma',
     seniority: 'Gerente',
+    salary: '$9,000,000',
   },
   {
     title: 'Director de Marketing Digital',
@@ -64,6 +69,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Digital-Ecommerce',
     industry: 'Laboratorio - Farma',
     seniority: 'Director',
+    salary: '$11,000,000',
   },
   {
     title: 'Jefe de Sistemas',
@@ -73,6 +79,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Sistemas - Tecnología',
     industry: 'Digital',
     seniority: 'Jefe - Team Lider',
+    salary: '$6,000,000',
   },
   {
     title: 'Gerente de Planta',
@@ -82,6 +89,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Producción - Planta',
     industry: 'Automotriz',
     seniority: 'Gerente',
+    salary: '$10,000,000',
   },
   {
     title: 'Asistente Ejecutiva CEO',
@@ -91,6 +99,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Administración',
     industry: 'Agro Negocios',
     seniority: 'Asistente Ejecutiva',
+    salary: '$4,000,000',
   },
   {
     title: 'Gerente de Supply Chain',
@@ -100,6 +109,7 @@ const vacanciesList: VacancySeed[] = [
     area: 'Supply Chain',
     industry: 'Industria',
     seniority: 'Gerente',
+    salary: '$8,500,000',
   },
   {
     title: 'Director Legal',
@@ -107,6 +117,7 @@ const vacanciesList: VacancySeed[] = [
     company: 'Hospital Británico',
     status: 'Standby',
     area: 'Legales',
+    salary: '$13,000,000',
     industry: 'Laboratorio - Farma',
     seniority: 'Director',
   },
@@ -180,6 +191,7 @@ export async function seedVacancies(
       .values({
         title: v.title,
         description: v.description,
+        salary: v.salary ?? null,
         statusId,
         vacancyFiltersId: vacancyFilter.id,
         companyId,

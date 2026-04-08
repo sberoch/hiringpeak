@@ -35,6 +35,7 @@ import {
   VacancyFiltersIndustry,
   vacancyFiltersSeniorities,
   VacancyFiltersSeniority,
+  vacancyStatuses,
   VacancyStatus,
   type NewVacancy,
 } from '@workspace/shared/schemas';
@@ -234,17 +235,25 @@ export class VacancyService {
         );
       }
 
+      // Check if the selected status is final to auto-set closedAt
+      const status = await tx.query.vacancyStatuses.findFirst({
+        where: eq(vacancyStatuses.id, createVacancyDto.statusId),
+      });
+      const closedAt = status?.isFinal ? new Date() : null;
+
       const [vacancy] = await tx
         .insert(vacancies)
         .values({
           title: createVacancyDto.title,
           description: createVacancyDto.description ?? '',
+          salary: createVacancyDto.salary ?? null,
           statusId: createVacancyDto.statusId,
           vacancyFiltersId: filters.id,
           companyId: createVacancyDto.companyId,
           createdBy: createVacancyDto.createdBy,
           assignedTo: createVacancyDto.assignedTo,
           organizationId,
+          closedAt,
         } as NewVacancy)
         .returning();
 
@@ -258,12 +267,21 @@ export class VacancyService {
     const { organizationId, ...updateVacancyDto } = dto;
     const { filters: _filters, ...vacancyFields } = updateVacancyDto;
     const vacancy = await this.db.transaction(async (tx) => {
+      // If status is changing, check if the new status is final to auto-set closedAt
+      const setFields: Record<string, unknown> = {
+        ...vacancyFields,
+        updatedAt: new Date(),
+      };
+      if (updateVacancyDto.statusId != null) {
+        const newStatus = await tx.query.vacancyStatuses.findFirst({
+          where: eq(vacancyStatuses.id, updateVacancyDto.statusId),
+        });
+        setFields.closedAt = newStatus?.isFinal ? new Date() : null;
+      }
+
       const [vacancy] = await tx
         .update(vacancies)
-        .set({
-          ...vacancyFields,
-          updatedAt: new Date(),
-        } as Partial<Vacancy>)
+        .set(setFields as Partial<Vacancy>)
         .where(
           and(
             eq(vacancies.id, id),

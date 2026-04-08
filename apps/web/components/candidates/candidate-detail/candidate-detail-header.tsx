@@ -51,13 +51,14 @@ export const CandidateDetailToolbar = ({
         <Button
           size="sm"
           variant="brand-ghost"
+          className="bg-white"
           onClick={() => router.back()}
         >
           <ArrowLeft className="h-4 w-4 mr-1.5" />
           Volver
         </Button>
         <Link href={`/candidates/${candidate.id}/edit`}>
-          <Button size="sm" variant="brand-ghost">
+          <Button size="sm" variant="brand-ghost" className="bg-white">
             <Edit className="h-4 w-4 mr-1.5" />
             Editar
           </Button>
@@ -65,6 +66,7 @@ export const CandidateDetailToolbar = ({
         <Button
           size="sm"
           variant="brand-ghost"
+          className="bg-white"
           onClick={() => setIsAddToVacancyDialogOpen(true)}
         >
           <Briefcase className="h-4 w-4 mr-1.5" />
@@ -74,7 +76,7 @@ export const CandidateDetailToolbar = ({
           <Button
             size="sm"
             variant="brand-ghost"
-            className="text-amber-600 hover:bg-amber-50 hover:border-amber-200"
+            className="bg-white text-amber-600 hover:bg-amber-50 hover:border-amber-200"
             onClick={() => setIsBlacklistDialogOpen(true)}
           >
             <AlertTriangle className="h-4 w-4 mr-1.5" />
@@ -84,7 +86,7 @@ export const CandidateDetailToolbar = ({
           <Button
             size="sm"
             variant="brand-ghost"
-            className="text-amber-600 hover:bg-amber-50 hover:border-amber-200"
+            className="bg-white text-amber-600 hover:bg-amber-50 hover:border-amber-200"
           >
             <ClipboardList className="h-4 w-4 mr-1.5" />
             Quitar de blacklist
@@ -94,7 +96,7 @@ export const CandidateDetailToolbar = ({
           <Button
             size="sm"
             variant="brand-ghost"
-            className="text-red-600 hover:bg-red-50 hover:border-red-200"
+            className="bg-white text-red-600 hover:bg-red-50 hover:border-red-200"
             onClick={() => setIsDeleteDialogOpen(true)}
           >
             <Trash className="h-4 w-4 mr-1.5" />

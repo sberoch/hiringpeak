@@ -123,7 +123,7 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className={(header.column.columnDef.meta as any)?.className}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -140,8 +140,8 @@ export function DataTable<TData, TValue>({
             {loading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={`skeleton-${index}`} className="animate-pulse">
-                  {columns.map((_, colIndex) => (
-                    <TableCell key={`skeleton-cell-${colIndex}`}>
+                  {columns.map((col, colIndex) => (
+                    <TableCell key={`skeleton-cell-${colIndex}`} className={(col.meta as any)?.className}>
                       <Skeleton className="h-4 w-full bg-brand-border-light rounded-md" />
                     </TableCell>
                   ))}
@@ -154,7 +154,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={(cell.column.columnDef.meta as any)?.className}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),

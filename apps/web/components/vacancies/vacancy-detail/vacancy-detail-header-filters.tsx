@@ -1,6 +1,7 @@
 import { Filter } from "lucide-react";
 
 import { Badge } from "@workspace/ui/components/badge";
+import { CatalogBadge } from "@/components/ui/catalog-badge";
 
 import { translateGender } from "@/lib/utils";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
@@ -48,22 +49,24 @@ export const VacancyDetailHeaderFilters = ({
   if (!hasFilters) return null;
 
   return (
-    <div className="rounded-2xl border border-brand-border bg-surface p-6 col-span-1 lg:col-span-3">
+    <div className="rounded-2xl border border-brand-border bg-surface p-6">
       <div className="flex items-center gap-2 mb-4">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
           <Filter className="h-3.5 w-3.5" />
         </div>
         <h3 className="text-sm font-semibold text-ink">
-          Filtros de la búsqueda
+          Perfil buscado
         </h3>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
+      <div className="space-y-3 text-sm">
         {!!f.seniorities?.length && (
           <FilterSection label="Seniority">
             {f.seniorities.map((seniority) => (
-              <Badge key={seniority.id} variant="outline" className={filterBadgeCn}>
-                {seniority.name}
-              </Badge>
+              <CatalogBadge
+                key={seniority.id}
+                label={seniority.name}
+                type="seniority"
+              />
             ))}
           </FilterSection>
         )}
@@ -71,9 +74,7 @@ export const VacancyDetailHeaderFilters = ({
         {!!f.areas?.length && (
           <FilterSection label="Áreas">
             {f.areas.map((area) => (
-              <Badge key={area.id} variant="outline" className={filterBadgeCn}>
-                {area.name}
-              </Badge>
+              <CatalogBadge key={area.id} label={area.name} type="area" />
             ))}
           </FilterSection>
         )}
@@ -81,9 +82,11 @@ export const VacancyDetailHeaderFilters = ({
         {!!f.industries?.length && (
           <FilterSection label="Industrias">
             {f.industries.map((industry) => (
-              <Badge key={industry.id} variant="outline" className={filterBadgeCn}>
-                {industry.name}
-              </Badge>
+              <CatalogBadge
+                key={industry.id}
+                label={industry.name}
+                type="industry"
+              />
             ))}
           </FilterSection>
         )}

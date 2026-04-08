@@ -57,11 +57,11 @@ const senioritiesList = [
   'Jefe - Team Lider',
   'Asistente Ejecutiva',
 ];
-const vacancyStatusesList = [
-  'Abierta',
-  'Cancelada',
-  'Cubierta',
-  'Standby',
+const vacancyStatusesList: { name: string; isFinal: boolean }[] = [
+  { name: 'Abierta', isFinal: false },
+  { name: 'Cancelada', isFinal: true },
+  { name: 'Cubierta', isFinal: true },
+  { name: 'Standby', isFinal: false },
 ];
 const candidateVacancyStatusesList: {
   name: string;
@@ -126,7 +126,19 @@ export async function seedCatalogs(tx: SeedTx, organizationId: number) {
   const areaIds = await seedList(tx, areas, areasList, organizationId, 'areas');
   const industryIds = await seedList(tx, industries, industriesList, organizationId, 'industries');
   const seniorityIds = await seedList(tx, seniorities, senioritiesList, organizationId, 'seniorities');
-  const vacancyStatusIds = await seedList(tx, vacancyStatuses, vacancyStatusesList, organizationId, 'vacancy statuses');
+  // Vacancy statuses with isFinal flag
+  console.log('  Seeding vacancy statuses...');
+  const vacancyStatusIds = new Map<string, number>();
+  for (const { name, isFinal } of vacancyStatusesList) {
+    const id = await findOrCreateByName(
+      tx,
+      vacancyStatuses,
+      name,
+      organizationId,
+      { isFinal },
+    );
+    vacancyStatusIds.set(name, id);
+  }
 
   // Candidate vacancy statuses with extra fields
   console.log('  Seeding candidate vacancy statuses...');
