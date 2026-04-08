@@ -204,7 +204,7 @@ export const KanbanBoard = ({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex py-2 px-4 gap-2 overflow-x-auto bg-gray-50 items-start min-h-[500px] rounded-md">
+      <div className="flex py-3 px-3 gap-2 overflow-x-auto bg-canvas items-start min-h-[500px] rounded-2xl border border-brand-border">
         {columns.map((column, index) => (
           <CandidateColumn
             key={column.id}
