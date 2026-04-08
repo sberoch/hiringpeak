@@ -10,7 +10,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="relative w-full bg-canvas">
-        <SidebarTrigger className="absolute top-3 left-3 z-30 text-slate-brand hover:text-ink transition-colors" />
+        {/* <SidebarTrigger className="absolute top-3 left-3 z-30 text-slate-brand hover:text-ink transition-colors" /> */}
         <div className="p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>

@@ -2,8 +2,9 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Building2, Download, Mail, Phone, UserRound } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -12,10 +13,15 @@ import {
   COMPANY_STATUS_NAMES,
   CompanyStatusEnum,
 } from "@workspace/shared/types/company";
+import { downloadFile } from "@/lib/download";
 import { cn } from "@/lib/utils";
 import { useVacancyFilters } from "@/hooks/use-vacancy-filters";
 import { columns as vacancyColumns } from "@/components/vacancies/vacancy-table-columns";
-import { COMPANIES_API_KEY, getCompanyById } from "@/lib/api/company";
+import {
+  COMPANIES_API_KEY,
+  downloadCompanyReportPdf,
+  getCompanyById,
+} from "@/lib/api/company";
 import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
 
 export default function CompanyDetailPage({
@@ -41,6 +47,16 @@ export default function CompanyDetailPage({
     queryKey: [VACANCY_API_KEY, { ...vacancyParams, companyId }],
     queryFn: () => getAllVacancies({ ...vacancyParams, companyId }),
     enabled: !!company,
+  });
+
+  const downloadReportMutation = useMutation({
+    mutationFn: () => downloadCompanyReportPdf(id),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte PDF.");
+    },
   });
 
   if (!Number.isFinite(companyId) || companyId <= 0) {
@@ -96,9 +112,14 @@ export default function CompanyDetailPage({
               {company?.description || "Sin descripcion"}
             </p>
           </div>
-          <Button disabled>
+          <Button
+            disabled={!company || downloadReportMutation.isPending}
+            onClick={() => downloadReportMutation.mutate()}
+          >
             <Download className="h-4 w-4" />
-            Extraer PDF
+            {downloadReportMutation.isPending
+              ? "Generando PDF..."
+              : "Descargar PDF"}
           </Button>
         </div>
 

@@ -5,7 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, asc, count, desc, eq, ilike, SQL } from 'drizzle-orm';
-import { companies, Company } from '@workspace/shared/schemas';
+import {
+  companies,
+  type Company as CompanyRecord,
+  type Vacancy as VacancyRecord,
+} from '@workspace/shared/schemas';
+import type { Company as CompanyResponse } from '@workspace/shared/types/company';
+import { CompanyStatusEnum } from '@workspace/shared/types/company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -14,18 +20,23 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
+  CompanyFindAllServiceParams,
   CompanyQueryParams,
   CreateCompanyServiceDto,
   UpdateCompanyServiceDto,
 } from './company.dto';
+
+interface CompanyQueryResult extends CompanyRecord {
+  vacancies: VacancyRecord[];
+}
 
 @Injectable()
 export class CompanyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
   async findAll(
-    params: CompanyQueryParams,
-  ): Promise<PaginatedResponse<Company>> {
+    params: CompanyFindAllServiceParams,
+  ): Promise<PaginatedResponse<CompanyResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
     const orderClause = this.buildOrderBy(params);
@@ -50,17 +61,23 @@ export class CompanyService {
       countQuery,
     ]);
 
-    const parsedItems = items.map(this.transformQueryResult);
+    const parsedItems = items.map((item) => this.transformQueryResult(item));
 
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, organizationId: number): Promise<CompanyResponse> {
     const company = await this.db.query.companies.findFirst({
-      where: eq(companies.id, id),
+      where: and(
+        eq(companies.id, id),
+        eq(companies.organizationId, organizationId),
+      ),
+      with: {
+        vacancies: true,
+      },
     });
     if (!company) throw new NotFoundException('Not found');
-    return company;
+    return this.transformQueryResult(company);
   }
 
   async create(dto: CreateCompanyServiceDto) {
@@ -83,18 +100,21 @@ export class CompanyService {
     return company;
   }
 
-  async remove(id: number) {
+  async remove(id: number, organizationId: number) {
     const [company] = await this.db
       .delete(companies)
-      .where(eq(companies.id, id))
+      .where(
+        and(eq(companies.id, id), eq(companies.organizationId, organizationId)),
+      )
       .returning();
     return company;
   }
 
-  private transformQueryResult(result) {
+  private transformQueryResult(result: CompanyQueryResult): CompanyResponse {
     const { vacancies, ...rest } = result;
     return {
       ...rest,
+      status: this.parseCompanyStatus(rest.status),
       vacancyCount: vacancies.length,
     };
   }
@@ -114,8 +134,9 @@ export class CompanyService {
     throw new BadRequestException('Invalid sortBy parameter');
   }
 
-  private buildWhereClause(params: CompanyQueryParams) {
+  private buildWhereClause(params: CompanyFindAllServiceParams) {
     const filters: SQL[] = [];
+    filters.push(eq(companies.organizationId, params.organizationId));
     if (params.id) {
       filters.push(eq(companies.id, params.id));
     }
@@ -129,5 +150,17 @@ export class CompanyService {
       filters.push(eq(companies.status, params.status));
     }
     return filters.length > 0 ? and(...filters) : undefined;
+  }
+
+  private parseCompanyStatus(status: string) {
+    if (status === CompanyStatusEnum.ACTIVE) {
+      return CompanyStatusEnum.ACTIVE;
+    }
+
+    if (status === CompanyStatusEnum.PROSPECT) {
+      return CompanyStatusEnum.PROSPECT;
+    }
+
+    throw new BadRequestException('Invalid company status');
   }
 }

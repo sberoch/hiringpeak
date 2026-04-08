@@ -10,6 +10,10 @@ export class CreateCompanyDto extends createZodDto(CreateCompanySchema) {}
 export class UpdateCompanyDto extends createZodDto(UpdateCompanySchema) {}
 export class CompanyQueryParams extends createZodDto(CompanyQueryParamsSchema) {}
 
+export type CompanyFindAllServiceParams = CompanyQueryParams & {
+  organizationId: number;
+};
+
 /** Service DTOs: organizationId injected by controller from request context */
 export type CreateCompanyServiceDto = CreateCompanyDto & {
   organizationId: number;

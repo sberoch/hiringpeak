@@ -4,9 +4,15 @@ import { PaginatedResponse } from "@workspace/shared/types/api";
 import { Company, CompanyParams } from "@workspace/shared/types/company";
 
 import api from ".";
+import {
+  DownloadableFile,
+  getFileNameFromContentDisposition,
+} from "../download";
 import { filtersToSearchParams } from "../utils";
 
 export const COMPANIES_API_KEY = "company";
+
+export interface CompanyReportDownload extends DownloadableFile {}
 
 export async function getAllCompanies(params: CompanyParams) {
   const searchParams = filtersToSearchParams(params);
@@ -19,6 +25,21 @@ export async function getAllCompanies(params: CompanyParams) {
 export async function getCompanyById(id: string) {
   const response = await api.get<Company>(`/company/${id}`);
   return response.data;
+}
+
+export async function downloadCompanyReportPdf(
+  id: string
+): Promise<CompanyReportDownload> {
+  const response = await api.get<Blob>(`/company/${id}/report/pdf`, {
+    responseType: "blob",
+  });
+
+  return {
+    blob: response.data,
+    fileName:
+      getFileNameFromContentDisposition(response.headers["content-disposition"]) ||
+      `reporte-empresa-${id}.pdf`,
+  };
 }
 
 export async function createCompany(company: CompanyFormSchema) {
