@@ -1,13 +1,14 @@
 import { Metadata } from "next";
+import { Briefcase } from "lucide-react";
+import { PageHeading } from "@workspace/ui/components/page-heading";
 
-import { Heading } from "@workspace/ui/components/heading";
 import { NewVacancySheetWithPermission } from "@/components/vacancies/new-vacancy-sheet-with-permission";
 import { VacancyTable } from "@/components/vacancies/vacancy-table";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
 import type { VacancyFiltersType } from "@workspace/shared/types/vacancy";
 
 export const metadata: Metadata = {
-  title: "Vacantes | PRATT FIT",
+  title: "Vacantes",
 };
 
 interface VacanciesProps {
@@ -51,9 +52,13 @@ export default async function Vacancies({ searchParams }: VacanciesProps) {
   }
 
   return (
-    <div className="container flex flex-col">
-      <div className="flex items-center justify-between">
-        <Heading>Vacantes</Heading>
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <PageHeading
+          icon={Briefcase}
+          title="Vacantes"
+          description="Gestiona las vacantes y su proceso de selección."
+        />
         <NewVacancySheetWithPermission />
       </div>
       <VacancyTable initialFilters={initialFilters} />

@@ -4,12 +4,12 @@ import { Metadata } from "next";
 import NewCandidateForm from "@/components/candidates/new-candidate-form";
 
 export const metadata: Metadata = {
-  title: "Nuevo postulante | PRATT FIT",
+  title: "Nuevo postulante",
 };
 
 export default function NewCandidate() {
   return (
-    <div className="container mx-auto py-6">
+    <div className="flex flex-col">
       <Suspense fallback={null}>
         <NewCandidateForm />
       </Suspense>

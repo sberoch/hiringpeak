@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMePermissions } from "@/lib/api/auth";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Configuración de organización",
+    template: "%s | PRATT FIT",
+  },
+};
 
 const ROLE_MANAGE = "ROLE_MANAGE";
 const USER_READ = "USER_READ";

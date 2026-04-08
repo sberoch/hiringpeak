@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -26,14 +26,6 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
   AREAS_API_KEY,
@@ -60,7 +52,7 @@ export default function AreasSettings() {
 
   const filteredAreas = useMemo(() => {
     return data?.items.filter((area) =>
-      area.name.toLowerCase().includes(searchTerm.toLowerCase())
+      area.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [data, searchTerm]);
 
@@ -108,142 +100,173 @@ export default function AreasSettings() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="w-full sm:w-1/2">
-          <Input
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-brand" />
+          <input
             placeholder="Buscar áreas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
+            className="w-full rounded-xl border border-brand-border bg-canvas py-2.5 pl-9 pr-4 text-sm text-ink outline-none placeholder:text-muted-brand transition-all duration-200 focus:border-electric focus:shadow-[0_0_0_4px_rgba(0,102,255,0.08)]"
           />
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Agregar Área
-        </Button>
+        <button
+          onClick={() => setIsAddDialogOpen(true)}
+          className="inline-flex shrink-0 items-center gap-2 rounded-md bg-electric px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:bg-electric-light hover:shadow-[0_12px_32px_-8px_rgba(0,102,255,0.4)]"
+        >
+          <Plus className="h-4 w-4" />
+          Agregar
+        </button>
       </div>
 
-      <div className="border rounded-md">
+      {/* List */}
+      <div className="rounded-xl border border-brand-border overflow-hidden">
         {!data && isLoading ? (
-          <div className="p-4">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
+          <div className="p-3 space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-11 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : filteredAreas?.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-border-light mb-3">
+              <Search className="h-5 w-5 text-muted-brand" />
             </div>
+            <p className="text-sm font-medium text-ink">Sin resultados</p>
+            <p className="text-xs text-muted-brand mt-0.5">
+              No se encontraron áreas con ese nombre.
+            </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead className="w-[100px] text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAreas?.map((area) => (
-                <TableRow key={area.id}>
-                  <TableCell>{area.name}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingArea(area)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Editar</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setAreaToDelete(area.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Eliminar</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ul>
+            {filteredAreas?.map((area, index) => (
+              <li
+                key={area.id}
+                className={`group flex items-center justify-between px-4 py-3 transition-colors duration-150 hover:bg-brand-border-light/50 ${
+                  index !== 0 ? "border-t border-brand-border" : ""
+                }`}
+              >
+                <span className="text-sm font-medium text-ink">
+                  {area.name}
+                </span>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setEditingArea(area)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-brand transition-colors hover:bg-electric/10 hover:text-electric"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span className="sr-only">Editar</span>
+                  </button>
+                  <button
+                    onClick={() => setAreaToDelete(area.id)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-brand transition-colors hover:bg-red-50 hover:text-red-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span className="sr-only">Eliminar</span>
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
+      {/* Add Dialog */}
       {isAddDialogOpen && (
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle>Agregar Área</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-ink">Agregar Área</DialogTitle>
+              <DialogDescription className="text-slate-brand">
                 Ingresa el nombre de la nueva área.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                  id="name"
-                  value={newArea}
-                  onChange={(e) => setNewArea(e.target.value)}
-                  placeholder="Nombre del área"
-                />
-              </div>
+            <div className="py-4">
+              <Label htmlFor="name" className="text-sm font-semibold text-ink">
+                Nombre
+              </Label>
+              <Input
+                id="name"
+                value={newArea}
+                onChange={(e) => setNewArea(e.target.value)}
+                placeholder="Nombre del área"
+                className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
+              />
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+                className="rounded-md border-brand-border text-ink hover:bg-brand-border-light"
+              >
                 Cancelar
               </Button>
-              <Button onClick={() => handleAddArea(newArea)} disabled={isLoading}>
+              <button
+                onClick={() => handleAddArea(newArea)}
+                disabled={isLoading || !newArea.trim()}
+                className="inline-flex items-center justify-center rounded-md bg-electric px-4 py-2 text-sm font-semibold text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-electric-light hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.4)] disabled:opacity-50 disabled:pointer-events-none"
+              >
                 {isLoading ? "Guardando..." : "Guardar"}
-              </Button>
+              </button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
+      {/* Edit Dialog */}
       {!!editingArea && (
         <Dialog open={!!editingArea} onOpenChange={() => setEditingArea(null)}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle>Editar Área</DialogTitle>
-              <DialogDescription>Modifica el nombre del área.</DialogDescription>
+              <DialogTitle className="text-ink">Editar Área</DialogTitle>
+              <DialogDescription className="text-slate-brand">
+                Modifica el nombre del área.
+              </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Nombre</Label>
-                <Input
-                  id="edit-name"
-                  value={editingArea?.name || ""}
-                  onChange={(e) =>
-                    setEditingArea(
-                      editingArea
-                        ? { ...editingArea, name: e.target.value }
-                        : null
-                    )
-                  }
-                  placeholder="Nombre del área"
-                />
-              </div>
+            <div className="py-4">
+              <Label
+                htmlFor="edit-name"
+                className="text-sm font-semibold text-ink"
+              >
+                Nombre
+              </Label>
+              <Input
+                id="edit-name"
+                value={editingArea?.name || ""}
+                onChange={(e) =>
+                  setEditingArea(
+                    editingArea
+                      ? { ...editingArea, name: e.target.value }
+                      : null,
+                  )
+                }
+                placeholder="Nombre del área"
+                className="mt-2 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
+              />
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setEditingArea(null)}
+                className="rounded-md border-brand-border text-ink hover:bg-brand-border-light"
               >
                 Cancelar
               </Button>
-              <Button onClick={() => handleEditArea(editingArea!)} disabled={isLoading}>
+              <button
+                onClick={() => handleEditArea(editingArea!)}
+                disabled={isLoading || !editingArea?.name.trim()}
+                className="inline-flex items-center justify-center rounded-md bg-electric px-4 py-2 text-sm font-semibold text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-electric-light hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.4)] disabled:opacity-50 disabled:pointer-events-none"
+              >
                 {isLoading ? "Guardando..." : "Guardar"}
-              </Button>
+              </button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
+      {/* Delete Confirmation */}
       {!!areaToDelete && (
         <AlertDialog
           open={!!areaToDelete}
@@ -251,15 +274,24 @@ export default function AreasSettings() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogTitle className="text-ink">
+                ¿Estás seguro?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-slate-brand">
                 Esta acción no se puede deshacer. Esto eliminará permanentemente
-                el área y podría afectar a los postulantes que la tengan asignada.
+                el área y podría afectar a los postulantes que la tengan
+                asignada.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleDeleteArea(areaToDelete!)} disabled={isLoading}>
+              <AlertDialogCancel className="rounded-md border-brand-border">
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleDeleteArea(areaToDelete!)}
+                disabled={isLoading}
+                className="rounded-md bg-red-500 text-white hover:bg-red-600"
+              >
                 {isLoading ? "Eliminando..." : "Eliminar"}
               </AlertDialogAction>
             </AlertDialogFooter>

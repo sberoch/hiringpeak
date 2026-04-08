@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { CandidateDetailHeader } from "@/components/candidates/candidate-detail/candidate-detail-header";
+import {
+  CandidateDetailToolbar,
+  CandidateProfileCard,
+} from "@/components/candidates/candidate-detail/candidate-detail-header";
 import { CandidateDetailTabs } from "@/components/candidates/candidate-detail/candidate-detail-tabs";
 import { CANDIDATE_API_KEY, getCandidateById } from "@/lib/api/candidate";
 
@@ -32,21 +35,38 @@ export default function NextCandidateDetailPage({
 
   if (!data) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded mb-4"></div>
+      <div className="space-y-6">
+        <div className="h-8 w-64 bg-brand-border-light animate-pulse rounded-xl" />
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="w-full lg:w-[320px] 2xl:w-[360px] shrink-0">
+            <div className="h-[500px] bg-brand-border-light animate-pulse rounded-2xl" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="h-10 w-48 bg-brand-border-light animate-pulse rounded-xl mb-4" />
+            <div className="h-64 bg-brand-border-light animate-pulse rounded-2xl" />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <CandidateDetailHeader candidate={data} />
-      <CandidateDetailTabs candidate={data} />
+    <div className="h-full">
+      <div className="mb-6">
+        <CandidateDetailToolbar candidate={data} />
+      </div>
+      <div className="grid lg:grid-cols-[320px_1fr] 2xl:grid-cols-[360px_1fr] gap-6 h-full">
+        {/* Left: profile card */}
+        <div className="h-full">
+          <div className="lg:sticky lg:top-6 h-full">
+            <CandidateProfileCard candidate={data} />
+          </div>
+        </div>
+        {/* Right: tabs — h-full chain ensures card stretches to match left */}
+        <div className="h-full flex flex-col">
+          <CandidateDetailTabs candidate={data} />
+        </div>
+      </div>
     </div>
   );
 }

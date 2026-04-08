@@ -103,6 +103,7 @@ function transformFormUpdate(
     statusId: form.status.id,
     title: form.title,
     description: form.description,
+    salary: form.salary || null,
     filters: {
       gender: form.filters?.gender,
       maxAge: form.filters?.maxAge,
@@ -185,6 +186,7 @@ export function EditVacancySheet({
     defaultValues: {
       title: vacancy.title,
       description: vacancy.description || "",
+      salary: vacancy.salary || "",
       status: vacancy.status,
       company: vacancy.company,
       assignedTo: vacancy.assignedTo,
@@ -212,10 +214,10 @@ export function EditVacancySheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto">
+      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto bg-surface border-brand-border">
         <SheetHeader>
-          <SheetTitle>Editar vacante</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-xl font-bold text-ink">Editar vacante</SheetTitle>
+          <SheetDescription className="text-slate-brand">
             Modifique los datos de la vacante {vacancyDisplayLabel(vacancy)}.
           </SheetDescription>
         </SheetHeader>
@@ -258,6 +260,23 @@ export function EditVacancySheet({
                           <Textarea
                             placeholder="Descripción de la vacante"
                             className="min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="salary"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Compensación</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="$10,000,000"
                             {...field}
                           />
                         </FormControl>

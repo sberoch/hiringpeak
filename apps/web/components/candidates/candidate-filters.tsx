@@ -74,15 +74,16 @@ export function CandidateFilters({
   }, [filters.countries]);
 
   return (
-    <Card className={cn(isCollapsed && "gap-0")}>
+    <Card className={cn("rounded-2xl border-brand-border bg-surface", isCollapsed && "gap-0")}>
       <CardHeader className={cn("pb-0 gap-0 relative flex flex-row items-center w-full justify-between", !isCollapsed && "pt-4 px-4")}>
-        <CardTitle className="text-lg font-medium">
-          <span className="mr-2">🔍</span> Filtros y Búsqueda
+        <CardTitle className="text-base font-semibold text-ink flex items-center gap-2">
+          <Search className="h-4 w-4 text-electric" />
+          Filtros y Búsqueda
         </CardTitle>
         <Button
           variant="ghost"
           size="sm"
-          className=""
+          className="text-slate-brand hover:text-ink hover:bg-brand-border-light transition-colors"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? (
@@ -98,12 +99,12 @@ export function CandidateFilters({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 lg:gap-4">
               <div>
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-brand" />
                   <Input
                     id="search"
                     type="search"
                     placeholder="Buscar por nombre..."
-                    className="pl-8"
+                    className="pl-8 rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
                     value={filters.name}
                     onChange={(e) =>
                       onFiltersChange({ ...filters, name: e.target.value })
@@ -334,6 +335,7 @@ export function CandidateFilters({
                       id="minAge"
                       type="number"
                       placeholder="Edad mínima"
+                      className="rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
                       value={filters.minimumAge ?? ""}
                       onChange={(v) => {
                         onFiltersChange({
@@ -351,6 +353,7 @@ export function CandidateFilters({
                       id="maxAge"
                       type="number"
                       placeholder="Edad máxima"
+                      className="rounded-xl border-brand-border bg-canvas focus:border-electric focus:ring-electric/10"
                       value={filters.maximumAge ?? ""}
                       onChange={(v) =>
                         onFiltersChange({
@@ -389,7 +392,7 @@ export function CandidateFilters({
                   variant="outline"
                   size="sm"
                   onClick={resetFilters}
-                  className="flex items-center"
+                  className="flex items-center rounded-xl border-brand-border text-slate-brand hover:text-ink hover:border-electric hover:bg-electric/5 transition-all"
                 >
                   <RotateCcw className="h-4 w-4" />
                   {clearFilters ? "Reiniciar" : "Limpiar"}
@@ -399,7 +402,7 @@ export function CandidateFilters({
                     variant="outline"
                     size="sm"
                     onClick={clearFilters}
-                    className="flex items-center"
+                    className="flex items-center rounded-xl border-brand-border text-slate-brand hover:text-ink hover:border-electric hover:bg-electric/5 transition-all"
                   >
                     <RotateCcw className="h-4 w-4" />
                     Limpiar

@@ -13,4 +13,10 @@ export class DashboardController {
   async getDashboard() {
     return this.dashboardService.getDashboard();
   }
+
+  @ApiOkResponse()
+  @Get('recruiter-stats')
+  async getRecruiterStats() {
+    return this.dashboardService.getRecruiterStats();
+  }
 }

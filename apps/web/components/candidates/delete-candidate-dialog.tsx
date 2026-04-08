@@ -50,20 +50,20 @@ export function DeleteCandidateDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
+      <AlertDialogContent className="rounded-2xl border-brand-border bg-surface">
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogTitle className="text-xl font-bold text-ink">¿Está seguro?</AlertDialogTitle>
+          <AlertDialogDescription className="text-slate-brand">
             Esta acción eliminará permanentemente el candidato{" "}
-            <span className="font-medium">{candidate?.name}</span> y no se puede
+            <span className="font-semibold text-ink">{candidate?.name}</span> y no se puede
             deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel className="rounded-xl border-brand-border">Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600 hover:bg-red-700 rounded-xl"
             disabled={deleteMutation.isPending}
           >
             {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}

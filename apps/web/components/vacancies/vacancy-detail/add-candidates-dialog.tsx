@@ -182,9 +182,9 @@ export const AddCandidatesDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[90%] max-w-none max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[90%] max-w-none max-h-[90vh] overflow-y-auto rounded-2xl border-brand-border bg-surface">
         <DialogHeader>
-          <DialogTitle className="!leading-tight">
+          <DialogTitle className="text-xl font-bold tracking-tight text-ink !leading-tight">
             Agregar postulantes a &quot;{vacancyDisplayLabel(vacancy)}&quot;
           </DialogTitle>
         </DialogHeader>
@@ -208,7 +208,7 @@ export const AddCandidatesDialog = ({
             </div>
           ) : (
             <>
-              <h3 className="font-medium mb-4">
+              <h3 className="font-semibold text-ink mb-4">
                 Resultados ({data?.items.length ?? 0})
               </h3>
               {data?.items.length === 0 && (
@@ -221,19 +221,20 @@ export const AddCandidatesDialog = ({
                     <Card
                       key={candidate.id}
                       className={cn(
-                        "overflow-hidden flex cursor-pointer relative",
+                        "overflow-hidden flex cursor-pointer relative rounded-2xl border border-brand-border bg-surface transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-md hover:border-electric/20",
                         {
-                          "border-red-500": candidate.blacklist,
-                          "border-green-500":
+                          "border-red-400 bg-red-50/30": candidate.blacklist,
+                          "border-emerald-400 bg-emerald-50/30":
                             candidate.isInCompanyViaPratt &&
                             !candidate.blacklist,
-                          "border-2 border-black": isSelected,
+                          "!border-2 !border-electric shadow-[0_0_0_2px_rgba(0,102,255,0.15)]":
+                            isSelected,
                         }
                       )}
                       onClick={() => toggleCandidateSelection(candidate.id)}
                     >
                       {isSelected && (
-                        <div className="absolute top-2 right-2 bg-black rounded-full p-1 z-10">
+                        <div className="absolute top-2 right-2 bg-electric rounded-full p-1 z-10 shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]">
                           <Check className="h-4 w-4 text-white" />
                         </div>
                       )}
@@ -284,7 +285,7 @@ export const AddCandidatesDialog = ({
                             <Link
                               href={`/candidates/${candidate.id}`}
                               target="_blank"
-                              className="font-bold text-lg hover:underline"
+                              className="font-bold text-base text-ink hover:text-electric transition-colors"
                             >
                               {candidate.name}
                             </Link>
@@ -293,9 +294,9 @@ export const AddCandidatesDialog = ({
                         <div className="mb-2">
                           <CandidateStars stars={+candidate.stars} />
                         </div>
-                        <div className="text-sm text-gray-500 mb-3">
+                        <div className="text-sm text-slate-brand mb-3">
                           {candidate.shortDescription && (
-                            <div className="text-sm">
+                            <div className="text-sm leading-relaxed">
                               {candidate.shortDescription}
                             </div>
                           )}
@@ -310,14 +311,17 @@ export const AddCandidatesDialog = ({
         </div>
 
         <div className="flex flex-col lg:flex-row justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            variant="brand-ghost"
+            onClick={onClose}
+          >
             Cancelar
           </Button>
 
           <Button
-            variant="default"
             onClick={handleAddSelected}
             disabled={selectedCandidates.length === 0}
+            variant="brand"
           >
             Guardar cambios ({selectedCandidates.length})
           </Button>

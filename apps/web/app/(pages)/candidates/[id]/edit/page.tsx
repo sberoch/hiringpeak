@@ -2,8 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { UserPen } from "lucide-react";
+import { PageHeading } from "@workspace/ui/components/page-heading";
 
-import { Heading } from "@workspace/ui/components/heading";
 import { Button } from "@workspace/ui/components/button";
 import { CANDIDATE_API_KEY, getCandidateById } from "@/lib/api/candidate";
 import EditCandidateForm from "@/components/candidates/edit-candidate-form";
@@ -31,12 +32,20 @@ export default function EditCandidatePage() {
   }
 
   return (
-    <div className="container mx-auto p-4 mb-12">
-      <div className="flex items-center mb-6 gap-4">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
+    <div className="flex flex-col">
+      <div className="flex items-center gap-3 mb-6">
+        <Button
+          variant="brand-ghost"
+          className="h-10 px-4 text-sm font-medium"
+          onClick={() => router.back()}
+        >
           ← Volver
         </Button>
-        <Heading>Editar Postulante</Heading>
+        <PageHeading
+          icon={UserPen}
+          title="Editar Postulante"
+          description="Modifique los datos del postulante. Los campos con * son obligatorios."
+        />
       </div>
       <EditCandidateForm candidate={candidate} />
     </div>

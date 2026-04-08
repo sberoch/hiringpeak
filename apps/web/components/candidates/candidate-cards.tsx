@@ -38,11 +38,14 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
         {candidates.map((candidate) => (
           <Card
             key={candidate.id}
-            className={cn(`overflow-hidden flex`, {
-              "border-red-500": candidate.blacklist,
-              "border-green-500":
-                candidate.isInCompanyViaPratt && !candidate.blacklist,
-            })}
+            className={cn(
+              "overflow-hidden flex rounded-2xl border-brand-border bg-surface hover:border-electric/20 hover:-translate-y-1 transition-all ease-[cubic-bezier(0.16,1,0.3,1)] duration-300",
+              {
+                "border-red-400": candidate.blacklist,
+                "border-emerald-400":
+                  candidate.isInCompanyViaPratt && !candidate.blacklist,
+              }
+            )}
           >
             <div className="relative w-1/4 lg:w-1/3">
               <Image
@@ -53,7 +56,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
                 className="w-full h-full object-cover"
               />
               {candidate.blacklist && (
-                <Badge variant="destructive" className="absolute top-2 right-2">
+                <Badge variant="destructive" className="absolute top-2 right-2 rounded-lg text-xs font-semibold">
                   Blacklist
                 </Badge>
               )}
@@ -62,7 +65,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
               ) && (
                   <Badge
                     variant="secondary"
-                    className="absolute text-white top-2 right-2 bg-green-500/90 hover:bg-green-500"
+                    className="absolute top-2 right-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
                   >
                     via Pratt
                   </Badge>
@@ -88,7 +91,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
                   )}
                   <Link
                     href={`/candidates/${candidate.id}`}
-                    className="font-bold text-lg hover:underline"
+                    className="font-bold text-lg text-ink hover:text-electric transition-colors"
                   >
                     {candidate.name}
                   </Link>
@@ -127,7 +130,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
               <div className="mb-2">
                 <CandidateStars stars={+candidate.stars} />
               </div>
-              <div className="text-sm text-gray-500 mb-3">
+              <div className="text-sm text-slate-brand mb-3">
                 {candidate.shortDescription && (
                   <div className="truncate">{candidate.shortDescription}</div>
                 )}
@@ -147,6 +150,12 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
               <div className="flex justify-between items-center">
                 <Badge
                   variant={!candidate?.vacancies?.length ? "outline" : "secondary"}
+                  className={cn(
+                    "rounded-lg text-xs font-semibold",
+                    !candidate?.vacancies?.length
+                      ? "border-brand-border text-muted-brand"
+                      : "bg-electric/5 text-electric border-0"
+                  )}
                 >
                   {!candidate?.vacancies?.length
                     ? "Base general"
@@ -154,12 +163,10 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
                       ? candidate.vacancies[0]!.title
                       : `${candidate.vacancies.length} vacantes`}
                 </Badge>
-                {candidate.comments.length > 0 && (
-                  <Badge variant="outline">
-                    <MessageSquare className="h-3 w-3 mr-1" />
-                    <span>{candidate.comments.length}</span>
-                  </Badge>
-                )}
+                <Badge variant="outline" className="rounded-lg text-xs font-semibold border-brand-border text-slate-brand">
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  <span>{candidate.comments.length}</span>
+                </Badge>
               </div>
             </CardContent>
           </Card>

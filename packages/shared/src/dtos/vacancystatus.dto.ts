@@ -3,6 +3,7 @@ import { PaginationParamsSchema } from "./pagination.dto.js";
 
 export const CreateVacancyStatusSchema = z.object({
   name: z.string().min(1),
+  isFinal: z.boolean().optional().default(false),
 });
 
 export const UpdateVacancyStatusSchema = CreateVacancyStatusSchema.partial();

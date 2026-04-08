@@ -1,12 +1,13 @@
-import Link from "next/link";
 import { Metadata } from "next";
-import { Briefcase, FileSpreadsheet, Users } from "lucide-react";
-
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
-import { Heading } from "@workspace/ui/components/heading";
-import { StatCard } from "@workspace/ui/components/stat-card";
-import { VacancyTableHeadless } from "@/components/vacancies/vacancy-table-headless";
+import {
+  ExternalLink,
+  FileSpreadsheet,
+  TrendingUp,
+} from "lucide-react";
+import { LatestVacancies } from "@/components/vacancies/latest-vacancies";
+import { LatestCandidates } from "@/components/candidates/latest-candidates";
+import { DashboardStatCards } from "@/components/dashboard/dashboard-stat-cards";
+import { RecruiterStatsTable } from "@/components/dashboard/recruiter-stats";
 import { getMePermissions } from "@/lib/api/auth";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
@@ -14,7 +15,7 @@ import { auth } from "@/lib/auth";
 import { parseJwt } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Dashboard | PRATT FIT",
+  title: "Dashboard",
 };
 
 export default async function Dashboard() {
@@ -40,66 +41,75 @@ export default async function Dashboard() {
       status.name.toLowerCase().includes("finalizado")
   );
 
+  const currentHour = new Date().getHours();
+  const greeting =
+    currentHour < 12
+      ? "Buenos días"
+      : currentHour < 18
+        ? "Buenas tardes"
+        : "Buenas noches";
+
   return (
-    <div className="container mx-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <Heading>¡Hola {data.name}! 👋</Heading>
-        {permissions?.roleName && (
-          <Badge className="ml-4 bg-[#445cb4]/10 text-[#445cb4] hover:bg-[#445cb4]/10">
-            {permissions.roleName}
-          </Badge>
-        )}
-        <Badge className="bg-[#445cb4] hover:bg-[#445cb4]/70">Pratt</Badge>
+    <div className="flex flex-col gap-8">
+      {/* Hero header */}
+      <div className="relative overflow-hidden rounded-2xl border border-brand-border bg-surface p-6 md:p-8">
+        {/* Subtle background orbs */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-electric/[0.04] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-teal/[0.04] blur-3xl" />
+
+        <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-electric text-white shadow-[0_4px_12px_-2px_rgba(0,102,255,0.35)]">
+              <TrendingUp className="h-5 w-5" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+                {greeting}, {data.name}
+              </h1>
+              <p className="mt-0.5 text-sm text-slate-brand">
+                Resumen de tu actividad
+                {permissions?.roleName && (
+                  <span className="ml-2 inline-flex items-center rounded-md bg-electric/[0.08] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-electric">
+                    {permissions.roleName}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {spreadsheetUrl && (
+            <a
+              href={spreadsheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-brand-border bg-canvas px-4 py-2.5 text-sm font-semibold text-ink transition-all hover:border-electric/30 hover:shadow-[0_2px_8px_-2px_rgba(0,102,255,0.15)] group"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-teal" />
+              Ver spreadsheet
+              <ExternalLink className="h-3 w-3 text-muted-brand transition-colors group-hover:text-electric" />
+            </a>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        <StatCard
-          icon={Briefcase}
-          value={dashboardData.activeVacancies}
-          label="Busquedas activas"
-          monthlyVariation={dashboardData.monthlyVacancies}
+      {/* Stat cards */}
+      <DashboardStatCards data={dashboardData} />
+
+      {/* Recruiter performance */}
+      <RecruiterStatsTable
+        currentUserId={data.id}
+        isManager={
+          permissions?.roleName !== "Reclutador"
+        }
+      />
+
+      {/* Main content: vacancies + candidates side by side */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <LatestVacancies
+          openStatusId={String(openStatus?.id || "abierta")}
+          closedStatusId={String(closedStatus?.id || "cubierta")}
         />
-        <StatCard
-          icon={Users}
-          value={dashboardData.activeCandidates}
-          label="Postulantes activos"
-          monthlyVariation={dashboardData.monthlyCandidates}
-        />
-        {spreadsheetUrl && (
-          <a
-            href={spreadsheetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-blue-50 border border-blue-200 h-fit text-blue-800 rounded-xl
-           p-6 shadow-none hover:bg-blue-100/50 transition-colors block"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <FileSpreadsheet size={24} className="text-blue-600" />
-              </div>
-              <div className="flex flex-col">
-                <div className="font-medium text-base underline">Status</div>
-              </div>
-            </div>
-          </a>
-        )}
-      </div>
-      <div className="mt-10">
-        <div className="flex justify-between w-full items-center">
-          <h2 className="text-xl font-semibold mb-4">Últimas busquedas</h2>
-          <div className="flex gap-2">
-            <Link href={`/vacancies?status=${openStatus?.id || "abierta"}`}>
-              <Button>Busquedas abiertas</Button>
-            </Link>
-            <Link href={`/vacancies?status=${closedStatus?.id || "cubierta"}`}>
-              <Button>Busquedas cerradas</Button>
-            </Link>
-            <Link href="/vacancies">
-              <Button>Ver todas las busquedas </Button>
-            </Link>
-          </div>
-        </div>
-        <VacancyTableHeadless />
+        <LatestCandidates />
       </div>
     </div>
   );

@@ -76,7 +76,7 @@ export function getColumns(roleIdToName: Record<number, string>): ColumnDef<User
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+            className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
           >
             Nombre
             <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
@@ -91,7 +91,7 @@ export function getColumns(roleIdToName: Record<number, string>): ColumnDef<User
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+            className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
           >
             Email
             <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
@@ -101,18 +101,23 @@ export function getColumns(roleIdToName: Record<number, string>): ColumnDef<User
     },
     {
       accessorKey: "roleId",
-      header: "Rol",
+      header: () => <span className="pl-4 font-semibold text-slate-brand">Rol</span>,
       cell: ({ row }) => {
         const roleId = row.original.roleId;
-        return <div>{roleId != null ? roleIdToName[roleId] ?? roleId : "—"}</div>;
+        const roleName = roleId != null ? roleIdToName[roleId] ?? roleId : "—";
+        return (
+          <span className="inline-flex items-center rounded-lg bg-electric/5 px-2.5 py-0.5 text-xs font-semibold text-electric">
+            {roleName}
+          </span>
+        );
       },
     },
     {
       accessorKey: "createdAt",
-      header: "Fecha de creación",
+      header: () => <span className="pl-4 font-semibold text-slate-brand">Fecha de creación</span>,
       cell: ({ row }) => {
         const createdAt = new Date(row.getValue("createdAt"));
-        return <div>{createdAt.toLocaleDateString()}</div>;
+        return <div className="text-slate-brand">{createdAt.toLocaleDateString()}</div>;
       },
     },
     {

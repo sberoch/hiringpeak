@@ -96,11 +96,11 @@ export function DataTable<TData, TValue>({
               placeholder="Buscar..."
               value={search.value}
               onChange={(event) => search.onSearchChange(event.target.value)}
-              className="pl-10 pr-4 py-2 bg-white border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
+              className="pl-10 pr-4 py-2.5 bg-white border-brand-border rounded-md shadow-none focus:border-electric focus:ring-0 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.1)] transition-all"
             />
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
               <svg
-                className="w-4 h-4 text-gray-400"
+                className="w-4 h-4 text-muted-brand"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -116,14 +116,14 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       )}
-      <div className="rounded-xl border border-gray-200 shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+      <div className="rounded-2xl border border-brand-border bg-surface overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className={(header.column.columnDef.meta as any)?.className}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -140,9 +140,9 @@ export function DataTable<TData, TValue>({
             {loading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={`skeleton-${index}`} className="animate-pulse">
-                  {columns.map((_, colIndex) => (
-                    <TableCell key={`skeleton-cell-${colIndex}`}>
-                      <Skeleton className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded-md" />
+                  {columns.map((col, colIndex) => (
+                    <TableCell key={`skeleton-cell-${colIndex}`} className={(col.meta as any)?.className}>
+                      <Skeleton className="h-4 w-full bg-brand-border-light rounded-md" />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -154,7 +154,7 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={(cell.column.columnDef.meta as any)?.className}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -167,23 +167,16 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-32 text-center"
+                  className="text-center"
                 >
-                  <div className="flex flex-col items-center justify-center space-y-3">
-                    <svg
-                      className="w-8 h-8 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">
+                  <div className="flex flex-col items-center justify-center min-h-[320px] space-y-4">
+                    <img
+                      src="/images/search.png"
+                      alt=""
+                      className="w-44 h-44 opacity-20 select-none pointer-events-none"
+                      draggable={false}
+                    />
+                    <p className="text-muted-brand font-medium text-base">
                       No hay resultados.
                     </p>
                   </div>
@@ -194,14 +187,14 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       {!hidePagination && (
-        <div className="flex items-center justify-between mt-8 px-2">
-          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex items-center justify-between mt-6 px-1">
+          <div className="flex items-center text-sm text-slate-brand">
             <span>Mostrando</span>
-            <span className="mx-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md font-semibold text-gray-900 dark:text-gray-100">
+            <span className="mx-1 px-2 py-0.5 bg-brand-border-light rounded-md font-semibold text-ink">
               {data.length}
             </span>
             <span>de</span>
-            <span className="mx-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md font-semibold text-gray-900 dark:text-gray-100">
+            <span className="mx-1 px-2 py-0.5 bg-brand-border-light rounded-md font-semibold text-ink">
               {pagination?.totalItems}
             </span>
             <span>registros</span>
@@ -212,10 +205,10 @@ export function DataTable<TData, TValue>({
               size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="px-4 py-2 bg-white hover:bg-gray-50 border-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600"
+              className="px-4 py-2 bg-surface hover:bg-canvas border-brand-border rounded-md shadow-none hover:border-electric/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
-                className="w-4 h-4 mr-2"
+                className="w-4 h-4 mr-1"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -229,7 +222,7 @@ export function DataTable<TData, TValue>({
               </svg>
               Anterior
             </Button>
-            <div className="flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center space-x-1 text-sm text-slate-brand">
               <span>
                 Página {(pagination?.pageIndex || 0) + 1} de{" "}
                 {pagination?.pageCount || 1}
@@ -240,11 +233,11 @@ export function DataTable<TData, TValue>({
               size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="px-4 py-2 bg-white hover:bg-gray-50 border-gray-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600"
+              className="px-4 py-2 bg-surface hover:bg-canvas border-brand-border rounded-md shadow-none hover:border-electric/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Siguiente
               <svg
-                className="w-4 h-4 ml-2"
+                className="w-4 h-4 ml-1"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

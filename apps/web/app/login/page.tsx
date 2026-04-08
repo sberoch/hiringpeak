@@ -4,7 +4,7 @@ import { Metadata } from "next";
 import LoginForm from "@/components/auth/form";
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión | HiringPeak",
+  title: "Iniciar sesión",
   description: "Conectarse a su cuenta",
 };
 

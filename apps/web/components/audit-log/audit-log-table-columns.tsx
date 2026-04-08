@@ -53,6 +53,14 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   delete_area: "Área eliminada",
 };
 
+function getEventBadgeStyle(eventType: string) {
+  if (eventType.startsWith("create_")) return "bg-emerald-50 text-emerald-700";
+  if (eventType.startsWith("update_")) return "bg-electric/5 text-electric";
+  if (eventType.startsWith("delete_") || eventType.startsWith("remove_")) return "bg-red-50 text-red-600";
+  if (eventType.startsWith("blacklist_")) return "bg-amber-50 text-amber-700";
+  return "bg-brand-border-light text-slate-brand";
+}
+
 export const columns: ColumnDef<AuditLogItem>[] = [
   {
     accessorKey: "createdAt",
@@ -60,7 +68,7 @@ export const columns: ColumnDef<AuditLogItem>[] = [
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+        className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
       >
         Fecha
         <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
@@ -69,22 +77,22 @@ export const columns: ColumnDef<AuditLogItem>[] = [
     cell: ({ row }) => {
       const createdAt = row.getValue("createdAt") as string;
       return (
-        <div>
+        <span className="text-sm text-slate-brand">
           {new Date(createdAt).toLocaleString(undefined, {
             dateStyle: "short",
             timeStyle: "short",
           })}
-        </div>
+        </span>
       );
     },
   },
   {
     accessorKey: "actorName",
-    header: "Usuario",
+    header: () => <span className="pl-4 font-semibold text-slate-brand">Usuario</span>,
     cell: ({ row }) => (
-      <div>
+      <span className="text-sm font-medium text-ink">
         {row.original.actorName ?? row.original.actorEmail ?? `#${row.original.actorUserId}`}
-      </div>
+      </span>
     ),
   },
   {
@@ -93,32 +101,34 @@ export const columns: ColumnDef<AuditLogItem>[] = [
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+        className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
       >
         Acción
         <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
       </Button>
     ),
     cell: ({ row }) => (
-      <div>
+      <span
+        className={`inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-semibold ${getEventBadgeStyle(row.original.eventType)}`}
+      >
         {EVENT_TYPE_LABELS[row.original.eventType] ?? row.original.eventType}
-      </div>
+      </span>
     ),
   },
   {
     accessorKey: "entityType",
-    header: "Tipo de entidad",
+    header: () => <span className="pl-4 font-semibold text-slate-brand">Tipo de entidad</span>,
     cell: ({ row }) => (
-      <div className="capitalize">{row.original.entityType}</div>
+      <span className="text-sm capitalize text-ink">{row.original.entityType}</span>
     ),
   },
   {
     accessorKey: "entityId",
-    header: "ID entidad",
+    header: () => <span className="pl-4 font-semibold text-slate-brand">ID entidad</span>,
     cell: ({ row }) => (
-      <div>
+      <span className="text-sm text-muted-brand font-mono">
         {row.original.entityId != null ? String(row.original.entityId) : "—"}
-      </div>
+      </span>
     ),
   },
 ];

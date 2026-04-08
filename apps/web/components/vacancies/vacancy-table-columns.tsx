@@ -94,6 +94,84 @@ const CellActions = ({ vacancy }: CellActionsProps) => {
   );
 };
 
+const CandidatesCell = ({ vacancy }: { vacancy: Vacancy }) => {
+  const candidatesByStatus: Record<string, number> = {};
+
+  vacancy.candidates.forEach((candidate) => {
+    const statusName = candidate.status?.name ?? "-";
+    candidatesByStatus[statusName] =
+      (candidatesByStatus[statusName] || 0) + 1;
+  });
+
+  const totalCandidates = vacancy.candidates.length;
+
+  if (totalCandidates === 0) {
+    return <div className="text-muted-brand text-sm">Sin candidatos</div>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5 items-center">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center rounded-lg bg-electric/5 px-2.5 py-0.5 text-xs font-semibold text-electric">
+              {totalCandidates}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Total de candidatos</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {Object.entries(candidatesByStatus).map(([status, count]) => {
+        const color = stringToColor(status);
+        return (
+          <TooltipProvider key={status}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="secondary"
+                  className="text-xs rounded-lg font-semibold hidden lg:inline-flex"
+                  style={{ backgroundColor: color }}
+                >
+                  {count}{" "}
+                  {status.startsWith("Entrevista")
+                    ? `E. ${status.split(" ")[1]}`
+                    : status}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {count} candidatos en estado &quot;{status}&quot;
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      })}
+    </div>
+  );
+};
+
+const StatusCell = ({ vacancy }: { vacancy: Vacancy }) => {
+  const color = stringToColor(vacancy.status.name);
+  return (
+    <Badge variant="secondary" className="rounded-lg text-xs font-semibold" style={{ backgroundColor: color }}>
+      {vacancy.status.name}
+    </Badge>
+  );
+};
+
+const DaysCell = ({ createdAt }: { createdAt: string }) => {
+  const daysDifference = dayjs().diff(dayjs(createdAt), "day");
+  return (
+    <div className="text-slate-brand">
+      {daysDifference} {daysDifference !== 1 ? "días" : "día"}
+    </div>
+  );
+};
+
 export const columns: ColumnDef<Vacancy>[] = [
   {
     accessorKey: "id",
@@ -102,7 +180,7 @@ export const columns: ColumnDef<Vacancy>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+          className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
         >
           Título
           <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
@@ -112,7 +190,7 @@ export const columns: ColumnDef<Vacancy>[] = [
     cell: ({ row }) => {
       const vacancy: Vacancy = row.original;
       return (
-        <Link href={`/vacancies/${vacancy.id}`} className="hover:underline">
+        <Link href={`/vacancies/${vacancy.id}`} className="font-medium text-ink hover:text-electric transition-colors">
           {vacancyDisplayLabel(vacancy)}
         </Link>
       );
@@ -120,10 +198,12 @@ export const columns: ColumnDef<Vacancy>[] = [
   },
   {
     accessorKey: "company.name",
-    header: "Empresa",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Empresa</span>
+    ),
     cell: ({ row }) => {
       const vacancy: Vacancy = row.original;
-      return <div>{vacancy.company.name}</div>;
+      return <div className="text-ink">{vacancy.company.name}</div>;
     },
   },
   {
@@ -133,82 +213,31 @@ export const columns: ColumnDef<Vacancy>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+          className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
         >
           Estado
           <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
         </Button>
       );
     },
-    cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
-      const color = stringToColor(vacancy.status.name);
-      return (
-        <Badge variant="secondary" style={{ backgroundColor: color }}>
-          {vacancy.status.name}
-        </Badge>
-      );
-    },
+    cell: ({ row }) => <StatusCell vacancy={row.original} />,
   },
   {
     accessorKey: "candidates",
-    header: "Candidatos",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Candidatos</span>
+    ),
+    cell: ({ row }) => <CandidatesCell vacancy={row.original} />,
+  },
+  {
+    accessorKey: "salary",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Compensación</span>
+    ),
     cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
-      const candidatesByStatus: Record<string, number> = {};
-
-      vacancy.candidates.forEach((candidate) => {
-        const statusName = candidate.status?.name ?? "-";
-        candidatesByStatus[statusName] =
-          (candidatesByStatus[statusName] || 0) + 1;
-      });
-
-      const totalCandidates = vacancy.candidates.length;
-
-      if (totalCandidates === 0) {
-        return <div className="text-zinc-500 text-sm">Sin candidatos</div>;
-      }
-
+      const salary = row.original.salary;
       return (
-        <div className="flex flex-wrap gap-1.5 items-center">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="default">{totalCandidates}</Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Total de candidatos</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {Object.entries(candidatesByStatus).map(([status, count]) => {
-            const color = stringToColor(status);
-            return (
-              <TooltipProvider key={status}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge
-                      variant="secondary"
-                      className="text-xs hidden lg:inline-flex"
-                      style={{ backgroundColor: color }}
-                    >
-                      {count}{" "}
-                      {status.startsWith("Entrevista")
-                        ? `E. ${status.split(" ")[1]}`
-                        : status}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {count} candidatos en estado &quot;{status}&quot;
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          })}
-        </div>
+        <div className="text-ink">{salary ?? "-"}</div>
       );
     },
   },
@@ -219,22 +248,14 @@ export const columns: ColumnDef<Vacancy>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900 hover:bg-transparent dark:text-gray-300 dark:hover:text-gray-100"
+          className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
         >
           Días de gestión
           <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
         </Button>
       );
     },
-    cell: ({ row }) => {
-      const createdAt = row.original.createdAt;
-      const daysDifference = dayjs().diff(dayjs(createdAt), "day");
-      return (
-        <div>
-          {daysDifference} {daysDifference !== 1 ? "días" : "día"}
-        </div>
-      );
-    },
+    cell: ({ row }) => <DaysCell createdAt={row.original.createdAt} />,
   },
   {
     id: "actions",
@@ -245,11 +266,13 @@ export const columns: ColumnDef<Vacancy>[] = [
 export const dashboardColumns: ColumnDef<Vacancy>[] = [
   {
     accessorKey: "title",
-    header: "Título",
+    header: () => (
+      <span className="font-semibold text-slate-brand">Título</span>
+    ),
     cell: ({ row }) => {
       const vacancy: Vacancy = row.original;
       return (
-        <Link href={`/vacancies/${vacancy.id}`} className="hover:underline">
+        <Link href={`/vacancies/${vacancy.id}`} className="font-medium text-ink hover:text-electric transition-colors">
           {vacancyDisplayLabel(vacancy)}
         </Link>
       );
@@ -257,99 +280,34 @@ export const dashboardColumns: ColumnDef<Vacancy>[] = [
   },
   {
     accessorKey: "company.name",
-    header: "Empresa",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Empresa</span>
+    ),
     cell: ({ row }) => {
       const vacancy: Vacancy = row.original;
-      return <div>{vacancy.company.name}</div>;
+      return <div className="text-ink">{vacancy.company.name}</div>;
     },
   },
   {
     accessorKey: "status.name",
-    header: "Estado",
-    cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
-      const color = stringToColor(vacancy.status.name);
-      return (
-        <Badge variant="secondary" style={{ backgroundColor: color }}>
-          {vacancy.status.name}
-        </Badge>
-      );
-    },
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Estado</span>
+    ),
+    cell: ({ row }) => <StatusCell vacancy={row.original} />,
   },
   {
     accessorKey: "candidates",
-    header: "Candidatos",
-    cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
-      const candidatesByStatus: Record<string, number> = {};
-
-      vacancy.candidates.forEach((candidate) => {
-        const statusName = candidate.status?.name ?? "-";
-        candidatesByStatus[statusName] =
-          (candidatesByStatus[statusName] || 0) + 1;
-      });
-
-      const totalCandidates = vacancy.candidates.length;
-
-      if (totalCandidates === 0) {
-        return <div className="text-zinc-500 text-sm">Sin candidatos</div>;
-      }
-
-      return (
-        <div className="flex flex-wrap gap-1.5 items-center">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="default">{totalCandidates}</Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Total de candidatos</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {Object.entries(candidatesByStatus).map(([status, count]) => {
-            const color = stringToColor(status);
-            return (
-              <TooltipProvider key={status}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge
-                      variant="secondary"
-                      className="text-xs hidden lg:inline-flex"
-                      style={{ backgroundColor: color }}
-                    >
-                      {count}{" "}
-                      {status.startsWith("Entrevista")
-                        ? `E. ${status.split(" ")[1]}`
-                        : status}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {count} candidatos en estado &quot;{status}&quot;
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          })}
-        </div>
-      );
-    },
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Candidatos</span>
+    ),
+    cell: ({ row }) => <CandidatesCell vacancy={row.original} />,
   },
   {
     accessorKey: "createdAt",
-    header: "Días de gestión",
-    cell: ({ row }) => {
-      const createdAt = row.original.createdAt;
-      const daysDifference = dayjs().diff(dayjs(createdAt), "day");
-      return (
-        <div>
-          {daysDifference} {daysDifference !== 1 ? "días" : "día"}
-        </div>
-      );
-    },
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Días de gestión</span>
+    ),
+    cell: ({ row }) => <DaysCell createdAt={row.original.createdAt} />,
   },
   {
     id: "actions",

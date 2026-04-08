@@ -17,6 +17,7 @@ export const VacancyFiltersSchema = z.object({
 export const CreateVacancySchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
+  salary: z.string().optional().nullable(),
   statusId: z.number().int(),
   filters: VacancyFiltersSchema,
   companyId: z.number().int(),

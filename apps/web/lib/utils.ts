@@ -232,6 +232,52 @@ export function translateGender(gender: string): string {
   return gender;
 }
 
+export const CATALOG_TYPE_COLORS = {
+  seniority: "bg-violet-100 text-violet-700",
+  area: "bg-sky-100 text-sky-700",
+  industry: "bg-amber-100 text-amber-700",
+} as const;
+
+export type CatalogTagType = keyof typeof CATALOG_TYPE_COLORS;
+
+export type CatalogTag = { label: string; type: CatalogTagType };
+
+export function getVacancyFilterTags(
+  filters?: VacancyFiltersType,
+): CatalogTag[] {
+  const tags: CatalogTag[] = [];
+  if (filters?.seniorities) {
+    filters.seniorities.forEach((s) =>
+      tags.push({ label: s.name, type: "seniority" }),
+    );
+  }
+  if (filters?.areas) {
+    filters.areas.forEach((a) =>
+      tags.push({ label: a.name, type: "area" }),
+    );
+  }
+  if (filters?.industries) {
+    filters.industries.forEach((i) =>
+      tags.push({ label: i.name, type: "industry" }),
+    );
+  }
+  return tags;
+}
+
+export function calculateAge(dateOfBirth: string): number {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+  return age;
+}
+
 export function mergeCandidatesWithVacancies(
   candidates: Candidate[],
   candidateVacancies: CandidateVacancy[],

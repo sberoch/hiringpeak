@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { FileText } from "lucide-react";
+import { PageHeading } from "@workspace/ui/components/page-heading";
 
 import { DataTable } from "@workspace/ui/components/data-table";
-import { Heading } from "@workspace/ui/components/heading";
 import { columns } from "@/components/audit-log/audit-log-table-columns";
 import { useAuditLogFilters } from "@/hooks/use-audit-log-filters";
 import { AUDIT_LOG_API_KEY, getAllAuditLogs } from "@/lib/api/audit-log";
@@ -20,10 +21,13 @@ export default function OrganizationSettingsAuditLogPage() {
   });
 
   return (
-    <div className="container flex flex-col">
-      <div className="flex items-center justify-between">
-        <Heading>Registro de auditoría</Heading>
-      </div>
+    <div className="flex flex-col">
+      <PageHeading
+        icon={FileText}
+        title="Registro de auditoría"
+        description="Historial de acciones realizadas en la organización."
+        className="mb-6"
+      />
       <div className="w-full pb-4">
         <DataTable
           columns={columns}

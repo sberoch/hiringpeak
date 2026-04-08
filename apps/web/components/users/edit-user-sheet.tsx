@@ -82,10 +82,10 @@ export function EditUserSheet({ user, isOpen, onClose }: EditUserSheetProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent className="w-[90%] sm:w-auto sm:max-w-md">
+      <SheetContent className="w-[90%] sm:w-auto sm:max-w-md bg-surface border-brand-border">
         <SheetHeader>
-          <SheetTitle>Editar usuario</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-xl font-bold text-ink">Editar usuario</SheetTitle>
+          <SheetDescription className="text-slate-brand">
             Modifique los datos del usuario {user.name}.
           </SheetDescription>
         </SheetHeader>
@@ -172,7 +172,7 @@ export function EditUserSheet({ user, isOpen, onClose }: EditUserSheetProps) {
                 )}
               />
               <SheetFooter className="pt-4">
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending} className="w-full bg-electric hover:bg-electric-light text-white rounded-md py-2.5 font-semibold shadow-none hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.3)] transition-all cursor-pointer">
                   {isPending ? "Guardando..." : "Guardar cambios"}
                 </Button>
               </SheetFooter>

@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMePermissions } from "@/lib/api/auth";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Vacantes",
+    template: "%s | PRATT FIT",
+  },
+};
 
 const VACANCY_READ = "VACANCY_READ";
 

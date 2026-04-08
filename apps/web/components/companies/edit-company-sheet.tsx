@@ -84,10 +84,10 @@ export function EditCompanySheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent className="w-[90%] sm:w-auto sm:max-w-xl overflow-y-auto">
+      <SheetContent className="w-[90%] sm:w-auto sm:max-w-xl overflow-y-auto bg-surface border-brand-border">
         <SheetHeader>
-          <SheetTitle>Editar empresa</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-xl font-bold text-ink">Editar empresa</SheetTitle>
+          <SheetDescription className="text-slate-brand">
             Modifique los datos de la empresa {company.name}.
           </SheetDescription>
         </SheetHeader>
@@ -201,7 +201,7 @@ export function EditCompanySheet({
               />
 
               <SheetFooter className="pt-4">
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending} className="w-full bg-electric hover:bg-electric-light text-white rounded-md py-2.5 font-semibold shadow-none hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.3)] transition-all cursor-pointer">
                   {isPending ? "Guardando..." : "Guardar cambios"}
                 </Button>
               </SheetFooter>

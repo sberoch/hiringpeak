@@ -179,7 +179,7 @@ export function CompanyForm({
         />
 
         <div className="pt-4">
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending} className="w-full bg-electric hover:bg-electric-light text-white rounded-md py-2.5 font-semibold shadow-none hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.3)] transition-all cursor-pointer">
             {isPending ? "Creando..." : submitLabel}
           </Button>
         </div>

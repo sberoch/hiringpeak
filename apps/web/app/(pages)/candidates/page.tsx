@@ -2,12 +2,12 @@ import { CandidatesPage } from "@/components/candidates/candidates-page";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Postulantes | PRATT FIT",
+  title: "Postulantes",
 };
 
 export default function CandidatesNextPage() {
   return (
-    <div className="container mx-auto ">
+    <div className="flex flex-col">
       <CandidatesPage />
     </div>
   );

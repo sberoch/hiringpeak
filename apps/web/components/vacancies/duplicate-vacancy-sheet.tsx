@@ -12,7 +12,7 @@ import {
 } from "@workspace/ui/components/sheet";
 import { vacancyDisplayLabel } from "@/lib/utils";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
-import type { CreateVacancySchema } from "./new-vacancy.schema";
+import type { CreateVacancyFormSchema } from "./new-vacancy.schema";
 import { VacancyForm } from "./vacancy-form/vacancy-form";
 
 interface DuplicateVacancySheetProps {
@@ -33,15 +33,16 @@ export function DuplicateVacancySheet({
     router.push(`/vacancies/${vacancy.id}/candidate-selection`);
   }
 
-  const defaultValues: Partial<CreateVacancySchema> = {
+  const defaultValues: Partial<CreateVacancyFormSchema> = {
     title: `${vacancy.title} (copia)`,
     description: vacancy.description || "",
-    statusId: vacancy.status.id,
-    companyId: vacancy.company.id,
+    salary: vacancy.salary ?? undefined,
+    status: vacancy.status.id.toString(),
+    company: vacancy.company.id.toString(),
     filters: {
-      seniorityIds: vacancy.filters?.seniorities?.map((seniority) => seniority.id),
-      areaIds: vacancy.filters?.areas?.map((area) => area.id),
-      industryIds: vacancy.filters?.industries?.map((industry) => industry.id),
+      seniorities: vacancy.filters?.seniorities,
+      areas: vacancy.filters?.areas,
+      industries: vacancy.filters?.industries,
       minStars: vacancy.filters?.minStars,
       gender: vacancy.filters?.gender,
       minAge: vacancy.filters?.minAge,
@@ -51,10 +52,10 @@ export function DuplicateVacancySheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto">
+      <SheetContent className="w-[90%] sm:w-auto sm:max-w-3xl overflow-y-auto bg-surface border-brand-border">
         <SheetHeader>
-          <SheetTitle>Duplicar vacante</SheetTitle>
-          <SheetDescription>
+          <SheetTitle className="text-xl font-bold text-ink">Duplicar vacante</SheetTitle>
+          <SheetDescription className="text-slate-brand">
             Se creará una nueva vacante basada en &quot;
             {vacancyDisplayLabel(vacancy)}&quot;. Puede modificar los datos
             antes de confirmar.

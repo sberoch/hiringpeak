@@ -41,20 +41,20 @@ export function DeleteCompanyDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
+      <AlertDialogContent className="rounded-2xl border-brand-border bg-surface">
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogTitle className="text-lg font-bold text-ink">¿Está seguro?</AlertDialogTitle>
+          <AlertDialogDescription className="text-slate-brand">
             Esta acción eliminará permanentemente la empresa{" "}
-            <span className="font-medium">{company?.name}</span> y no se puede
+            <span className="font-semibold text-ink">{company?.name}</span> y no se puede
             deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel className="rounded-xl border-brand-border hover:border-electric/30 transition-all">Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => mutateAsync()}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600 hover:bg-red-700 rounded-xl transition-all"
             disabled={isPending}
           >
             {isPending ? "Eliminando..." : "Eliminar"}
