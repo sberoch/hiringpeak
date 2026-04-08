@@ -26,6 +26,7 @@ interface CandidateCardsProps {
 }
 
 export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
+  console.log("candidates", candidates);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(
     null
@@ -164,7 +165,7 @@ export const CandidateCards = ({ candidates }: CandidateCardsProps) => {
                 </Badge>
                 <Badge variant="outline" className="rounded-lg text-xs font-semibold border-brand-border text-slate-brand">
                   <MessageSquare className="h-3 w-3 mr-1" />
-                  <span>2</span>
+                  <span>{candidate.comments.length}</span>
                 </Badge>
               </div>
             </CardContent>
