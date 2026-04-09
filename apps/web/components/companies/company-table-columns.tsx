@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useMutation } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -20,6 +22,8 @@ import {
   CompanyStatusEnum,
 } from "@workspace/shared/types/company";
 import { cn } from "@/lib/utils";
+import { downloadFile } from "@/lib/download";
+import { downloadCompanyReportPdf } from "@/lib/api/company";
 import { DeleteCompanyDialog } from "@/components/companies/delete-company-dialog";
 import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
 import { PermissionGuard } from "@/components/auth/permission-guard";
@@ -32,6 +36,16 @@ interface CellActionsProps {
 const CellActions = ({ company }: CellActionsProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+
+  const downloadReportMutation = useMutation({
+    mutationFn: () => downloadCompanyReportPdf(String(company.id)),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte PDF.");
+    },
+  });
 
   return (
     <>
@@ -49,6 +63,18 @@ const CellActions = ({ company }: CellActionsProps) => {
             onClick={() => setIsEditSheetOpen(true)}
           >
             Editar empresa
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            disabled={downloadReportMutation.isPending}
+            onSelect={(e) => {
+              e.preventDefault();
+              downloadReportMutation.mutate();
+            }}
+          >
+            {downloadReportMutation.isPending
+              ? "Generando PDF..."
+              : "Descargar reporte"}
           </DropdownMenuItem>
           <PermissionGuard permissions={[PermissionCode.COMPANY_MANAGE]}>
             <DropdownMenuItem

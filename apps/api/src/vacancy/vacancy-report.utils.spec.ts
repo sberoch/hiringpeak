@@ -2,6 +2,7 @@ import type { VacancyApiResponse } from './vacancy.service';
 import {
   buildVacancyReportData,
   buildVacancyReportFileName,
+  daysBetween,
   isHiredCandidateStatus,
   isNoProfileCandidateStatus,
 } from './vacancy-report.utils';
@@ -14,7 +15,7 @@ describe('vacancy-report.utils', () => {
     expect(isNoProfileCandidateStatus('No Es El Perfil')).toBe(false);
   });
 
-  it('builds ordered candidate data and shows rejection reason only for no es el perfil', () => {
+  it('builds ordered candidate data and status counts', () => {
     const report = buildVacancyReportData({
       generatedAt: new Date('2026-04-08T10:00:00.000Z'),
       organizationName: 'Organización Demo',
@@ -23,8 +24,6 @@ describe('vacancy-report.utils', () => {
           {
             id: 3,
             name: 'Zoe',
-            rejectionReason: 'Sin experiencia en industria',
-            sourceName: 'LinkedIn',
             stars: '3',
             statusName: 'No es el perfil',
             statusSort: 0,
@@ -32,7 +31,6 @@ describe('vacancy-report.utils', () => {
           {
             id: 2,
             name: 'Ana',
-            sourceName: 'Referencia',
             stars: '4.5',
             statusName: 'Contratado',
             statusSort: 6,
@@ -40,33 +38,41 @@ describe('vacancy-report.utils', () => {
           {
             id: 1,
             name: 'Bruno',
-            rejectionReason: 'No debería verse',
-            sourceName: 'Interna',
             stars: '5',
             statusName: 'Entrevista Pratt',
             statusSort: 2,
+          },
+          {
+            id: 4,
+            name: 'Carla',
+            stars: null,
+            statusName: 'No es el perfil',
+            statusSort: 0,
           },
         ],
       }),
     });
 
-    expect(report.summary.totalCandidates).toBe(3);
+    expect(report.summary.totalCandidates).toBe(4);
     expect(report.summary.hiredCandidates).toBe(1);
-    expect(report.summary.noProfileCandidates).toBe(1);
     expect(report.hiredCandidates.map((candidate) => candidate.name)).toEqual([
       'Ana',
     ]);
     expect(report.candidates.map((candidate) => candidate.name)).toEqual([
+      'Carla',
       'Zoe',
       'Bruno',
       'Ana',
     ]);
-    expect(report.candidates[0]?.rejectionReason).toBe(
-      'Sin experiencia en industria',
-    );
-    expect(report.candidates[1]?.rejectionReason).toBeUndefined();
+    expect(report.candidates[0]?.starsValue).toBeUndefined();
+    expect(report.candidates[2]?.starsValue).toBe(5);
+    expect(report.candidates[3]?.starsValue).toBe(4.5);
+    expect(report.statusCounts).toEqual([
+      { name: 'No es el perfil', count: 2, sort: 0 },
+      { name: 'Entrevista Pratt', count: 1, sort: 2 },
+      { name: 'Contratado', count: 1, sort: 6 },
+    ]);
     expect(report.metadata.compensation).toBeUndefined();
-    expect(report.profile.gender).toBe('Masculino');
   });
 
   it('builds a deterministic filename slug', () => {
@@ -79,15 +85,28 @@ describe('vacancy-report.utils', () => {
       'reporte-vacante-direccion-comercial-latam-2026-04-08.pdf',
     );
   });
+
+  it('computes days between two dates', () => {
+    expect(
+      daysBetween(
+        new Date('2026-04-01T10:00:00.000Z'),
+        new Date('2026-04-08T10:00:00.000Z'),
+      ),
+    ).toBe(7);
+    expect(
+      daysBetween(
+        new Date('2026-04-08T10:00:00.000Z'),
+        new Date('2026-04-01T10:00:00.000Z'),
+      ),
+    ).toBe(0);
+  });
 });
 
 function createVacancy(params: {
   candidates: Array<{
     id: number;
     name: string;
-    rejectionReason?: string;
-    sourceName?: string;
-    stars?: string;
+    stars?: string | null;
     statusName: string;
     statusSort: number;
   }>;
@@ -163,7 +182,7 @@ function createVacancy(params: {
       organizationId: 1,
       candidateVacancyStatusId: candidate.id,
       notes: null,
-      rejectionReason: candidate.rejectionReason ?? null,
+      rejectionReason: null,
       createdAt: new Date('2026-04-01T10:00:00.000Z'),
       updatedAt: new Date('2026-04-01T10:00:00.000Z'),
       candidate: {
@@ -185,17 +204,12 @@ function createVacancy(params: {
         countries: [],
         provinces: [],
         languages: [],
+        seniorities: [],
+        areas: [],
+        industries: [],
         createdAt: new Date('2026-04-01T10:00:00.000Z'),
         updatedAt: new Date('2026-04-01T10:00:00.000Z'),
-        source: candidate.sourceName
-          ? {
-              id: candidate.id,
-              name: candidate.sourceName,
-              organizationId: 1,
-              createdAt: new Date('2026-04-01T10:00:00.000Z'),
-              updatedAt: new Date('2026-04-01T10:00:00.000Z'),
-            }
-          : null,
+        source: null,
       },
       status: {
         id: candidate.id,

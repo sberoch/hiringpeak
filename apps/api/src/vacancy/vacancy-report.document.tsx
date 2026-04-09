@@ -1,343 +1,416 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   Document,
+  Image,
   Page,
+  Path,
   StyleSheet,
+  Svg,
   Text,
   View,
 } from '@react-pdf/renderer';
-import type { VacancyReportDocumentData } from './vacancy-report.types';
-import { formatReportDate } from './vacancy-report.utils';
+import { stringToColor } from '@workspace/shared/utils';
+import type {
+  VacancyReportCandidateRow,
+  VacancyReportDocumentData,
+} from './vacancy-report.types';
+import {
+  daysBetween,
+  formatReportDate,
+  getInitials,
+} from './vacancy-report.utils';
 
 interface VacancyReportDocumentProps {
   report: VacancyReportDocumentData;
 }
 
+const LOGO_BUFFER = readFileSync(
+  join(__dirname, '../common/assets/logo.png'),
+);
+
+const COLORS = {
+  bg: '#fafbfc',
+  surface: '#ffffff',
+  surfaceAlt: '#f8fafc',
+  ink: '#0a0f1c',
+  slate: '#475569',
+  muted: '#94a3b8',
+  border: '#e2e8f0',
+  borderLight: '#f1f5f9',
+  electric: '#0066ff',
+  hiredBg: '#f0fdf4',
+  hiredBorder: '#bbf7d0',
+  hiredText: '#166534',
+};
+
+const BADGE_PALETTE: Record<string, { bg: string; text: string }> = {
+  seniority: { bg: '#eef2ff', text: '#4338ca' },
+  area: { bg: '#ecfeff', text: '#0e7490' },
+  industry: { bg: '#fef3c7', text: '#92400e' },
+};
+
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 36,
+    paddingTop: 64,
     paddingBottom: 48,
     paddingHorizontal: 32,
-    backgroundColor: '#fafbfc',
-    color: '#0a0f1c',
+    backgroundColor: COLORS.bg,
+    color: COLORS.ink,
     fontFamily: 'Plus Jakarta Sans',
     fontSize: 10,
   },
-  header: {
-    marginBottom: 18,
-    padding: 20,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
-    border: '1 solid #e2e8f0',
+
+  // ── Repeating header ─────────────────────────────────────────
+  pageHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 44,
+    paddingHorizontal: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    borderBottom: `1 solid ${COLORS.border}`,
   },
-  eyebrow: {
-    fontSize: 9,
+  pageHeaderBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pageHeaderLogo: {
+    width: 22,
+    height: 22,
+    marginRight: 8,
+  },
+  pageHeaderTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: COLORS.ink,
+    letterSpacing: 0.2,
+  },
+  pageHeaderMeta: {
+    fontSize: 8,
+    color: COLORS.muted,
     fontWeight: 600,
-    color: '#0066ff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  pageHeaderAccent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: COLORS.electric,
+  },
+
+  // ── Title block (page 1) ─────────────────────────────────────
+  titleBlock: {
+    marginTop: 4,
+    marginBottom: 18,
+    paddingBottom: 16,
+    borderBottom: `1 solid ${COLORS.border}`,
+  },
+  titleEyebrow: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: COLORS.electric,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: '#0a0f1c',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 11,
-    color: '#64748b',
-    marginBottom: 16,
-  },
-  headerMetaRow: {
+  titleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 14,
-    borderTop: '1 solid #f1f5f9',
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
-  headerMetaBlock: {
-    width: '48%',
+  vacancyTitle: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: COLORS.ink,
+    marginRight: 10,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  statusBadgeText: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: COLORS.ink,
+  },
+  companyLine: {
+    marginTop: 6,
+    fontSize: 12,
+    color: COLORS.slate,
+    fontWeight: 500,
+  },
+  metaStrip: {
+    marginTop: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  metaCell: {
+    marginRight: 24,
+    marginBottom: 4,
   },
   metaLabel: {
-    fontSize: 8,
-    fontWeight: 600,
+    fontSize: 7,
+    fontWeight: 700,
     textTransform: 'uppercase',
-    color: '#94a3b8',
+    color: COLORS.muted,
     letterSpacing: 0.8,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metaValue: {
     fontSize: 11,
     fontWeight: 600,
-    color: '#1a2332',
+    color: COLORS.ink,
   },
+
+  // ── Section ──────────────────────────────────────────────────
   section: {
     marginBottom: 18,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
-    border: '1 solid #e2e8f0',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionAccent: {
+    width: 3,
+    height: 12,
+    borderRadius: 2,
+    backgroundColor: COLORS.electric,
+    marginRight: 8,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#0a0f1c',
-    marginBottom: 10,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  summaryCard: {
-    width: '31.5%',
-    padding: 14,
-    marginBottom: 10,
-    borderRadius: 14,
-    backgroundColor: '#f8fbff',
-    border: '1 solid #dbeafe',
-  },
-  summaryLabel: {
-    fontSize: 8,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    color: '#64748b',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: '#0a0f1c',
-    marginBottom: 4,
-  },
-  summaryHelper: {
-    fontSize: 9,
-    color: '#64748b',
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  detailCard: {
-    width: '48.2%',
-    padding: 14,
-    marginBottom: 10,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
-    border: '1 solid #e2e8f0',
-  },
-  descriptionText: {
     fontSize: 10,
-    color: '#1a2332',
-    lineHeight: 1.5,
+    fontWeight: 700,
+    color: COLORS.ink,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  filterGroup: {
-    marginBottom: 10,
-  },
-  filterTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  filterTag: {
-    marginRight: 6,
-    marginBottom: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: '#eff6ff',
-    border: '1 solid #bfdbfe',
-  },
-  filterTagText: {
-    fontSize: 9,
-    color: '#1d4ed8',
+  sectionCount: {
+    marginLeft: 6,
+    fontSize: 10,
     fontWeight: 600,
+    color: COLORS.muted,
   },
+
+  // ── Hired callout ────────────────────────────────────────────
   hiredCard: {
-    marginBottom: 8,
     padding: 12,
-    borderRadius: 14,
-    backgroundColor: '#f0fdf4',
-    border: '1 solid #bbf7d0',
+    borderRadius: 12,
+    backgroundColor: COLORS.hiredBg,
+    border: `1 solid ${COLORS.hiredBorder}`,
+  },
+  hiredHeader: {
+    fontSize: 8,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    color: COLORS.hiredText,
+    marginBottom: 6,
+  },
+  hiredRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
   },
   hiredName: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#166534',
-    marginBottom: 4,
-  },
-  hiredMeta: {
-    fontSize: 9,
-    color: '#166534',
-    lineHeight: 1.4,
-  },
-  tableHeaderRow: {
-    flexDirection: 'row',
-    paddingBottom: 8,
-    marginBottom: 8,
-    borderBottom: '1 solid #e2e8f0',
-    backgroundColor: '#ffffff',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    marginBottom: 4,
-  },
-  tableRowEven: {
-    backgroundColor: '#f8fafc',
-  },
-  tableRowOdd: {
-    backgroundColor: '#ffffff',
-  },
-  tableHeaderText: {
-    fontSize: 8,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    color: '#64748b',
-    letterSpacing: 0.7,
-  },
-  candidateName: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#0a0f1c',
-    marginBottom: 3,
-  },
-  candidateMeta: {
-    fontSize: 8,
-    color: '#64748b',
-  },
-  cellValue: {
-    fontSize: 9,
-    fontWeight: 500,
-    color: '#1a2332',
-  },
-  colCandidate: {
-    width: '28%',
-    paddingRight: 10,
-  },
-  colStatus: {
-    width: '22%',
-    paddingRight: 8,
-  },
-  colStars: {
-    width: '8%',
-    textAlign: 'center',
-  },
-  colSource: {
-    width: '14%',
-    paddingRight: 8,
-  },
-  colReason: {
-    width: '28%',
-  },
-  emptyState: {
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    border: '1 solid #e2e8f0',
-  },
-  emptyStateTitle: {
     fontSize: 12,
     fontWeight: 700,
-    color: '#0a0f1c',
+    color: COLORS.hiredText,
+    marginRight: 8,
+  },
+
+  // ── Description ──────────────────────────────────────────────
+  descriptionText: {
+    fontSize: 10,
+    color: COLORS.slate,
+    lineHeight: 1.55,
+  },
+
+  // ── Candidate cards ──────────────────────────────────────────
+  candidateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    marginBottom: 6,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    border: `1 solid ${COLORS.border}`,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  avatarInitials: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: COLORS.ink,
+  },
+  candidateBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  candidateName: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: COLORS.ink,
     marginBottom: 4,
+  },
+  candidateShortDescription: {
+    fontSize: 9,
+    color: COLORS.slate,
+    lineHeight: 1.4,
+    marginBottom: 4,
+  },
+  candidateBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  catalogBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: 4,
+    marginBottom: 2,
+  },
+  catalogBadgeText: {
+    fontSize: 8,
+    fontWeight: 600,
+  },
+  candidateRight: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    marginLeft: 10,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  starsText: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#b45309',
+    marginLeft: 3,
+  },
+  rowStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  rowStatusBadgeText: {
+    fontSize: 8,
+    fontWeight: 700,
+    color: COLORS.ink,
+  },
+
+  // ── Empty state ──────────────────────────────────────────────
+  emptyState: {
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceAlt,
+    border: `1 solid ${COLORS.border}`,
   },
   emptyStateText: {
     fontSize: 10,
-    color: '#64748b',
+    color: COLORS.slate,
     lineHeight: 1.5,
   },
+
+  // ── Footer ───────────────────────────────────────────────────
   footer: {
     position: 'absolute',
     left: 32,
     right: 32,
     bottom: 20,
     paddingTop: 8,
-    borderTop: '1 solid #e2e8f0',
+    borderTop: `1 solid ${COLORS.border}`,
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 8,
-    color: '#94a3b8',
+    color: COLORS.muted,
   },
 });
 
 export function VacancyReportDocument({
   report,
 }: VacancyReportDocumentProps) {
-  const hasProfile = hasProfileData(report);
+  const generationDateLabel = formatReportDate(report.metadata.generatedAt);
+  const isClosed = !!report.metadata.closedAt;
+  const openedDays = daysBetween(
+    report.metadata.createdAt,
+    report.metadata.generatedAt,
+  );
 
   return (
     <Document title={`Reporte de ${report.metadata.vacancyTitle}`}>
       <Page size="A4" style={styles.page} wrap>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>{report.organizationName}</Text>
-          <Text style={styles.title}>Reporte de vacante</Text>
-          <Text style={styles.subtitle}>
-            Resumen operativo y seguimiento de postulantes para{' '}
-            {report.metadata.vacancyTitle}.
+        {/* Repeating slim header */}
+        <View style={styles.pageHeader} fixed>
+          <View style={styles.pageHeaderBrand}>
+            <Image src={LOGO_BUFFER} style={styles.pageHeaderLogo} />
+            <Text style={styles.pageHeaderTitle}>HiringPeak</Text>
+          </View>
+          <Text style={styles.pageHeaderMeta}>
+            Reporte · {generationDateLabel}
           </Text>
+          <View style={styles.pageHeaderAccent} />
+        </View>
 
-          <View style={styles.headerMetaRow}>
-            <View style={styles.headerMetaBlock}>
-              <Text style={styles.metaLabel}>Vacante</Text>
-              <Text style={styles.metaValue}>{report.metadata.vacancyTitle}</Text>
-            </View>
-            <View style={styles.headerMetaBlock}>
-              <Text style={styles.metaLabel}>Fecha de generación</Text>
-              <Text style={styles.metaValue}>
-                {formatReportDate(report.metadata.generatedAt)}
+        {/* Title block (page 1 only) */}
+        <View style={styles.titleBlock}>
+          <Text style={styles.titleEyebrow}>{report.organizationName}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.vacancyTitle}>
+              {report.metadata.vacancyTitle}
+            </Text>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: stringToColor(report.metadata.statusName) },
+              ]}
+            >
+              <Text style={styles.statusBadgeText}>
+                {report.metadata.statusName}
               </Text>
             </View>
           </View>
-        </View>
+          <Text style={styles.companyLine}>{report.metadata.companyName}</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen general</Text>
-          <View style={styles.summaryGrid}>
-            <SummaryCard
-              label="Total postulantes"
-              value={`${report.summary.totalCandidates}`}
-              helper="Personas actualmente asociadas a la vacante"
-            />
-            <SummaryCard
-              label="Contratados"
-              value={`${report.summary.hiredCandidates}`}
-              helper="Candidatos con estado exacto Contratado"
-            />
-            <SummaryCard
-              label="No es el perfil"
-              value={`${report.summary.noProfileCandidates}`}
-              helper="Postulantes descartados con ese estado exacto"
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Datos operativos</Text>
-          <View style={styles.detailsGrid}>
-            <DetailCard label="Empresa" value={report.metadata.companyName} />
-            <DetailCard label="Estado" value={report.metadata.statusName} />
-            <DetailCard
+          <View style={styles.metaStrip}>
+            <MetaCell
               label="Asignado a"
               value={report.metadata.assignedToName}
             />
-            <DetailCard
-              label="Creación"
-              value={formatReportDate(report.metadata.createdAt)}
-            />
-            <DetailCard
-              label="Actualización"
-              value={formatReportDate(report.metadata.updatedAt)}
-            />
-            <DetailCard
-              label="Cierre"
-              value={formatReportDate(report.metadata.closedAt)}
+            <MetaCell
+              label={isClosed ? 'Cerrada el' : 'Abierta hace'}
+              value={
+                isClosed
+                  ? formatReportDate(report.metadata.closedAt)
+                  : `${openedDays} ${openedDays === 1 ? 'día' : 'días'}`
+              }
             />
             {report.metadata.compensation ? (
-              <DetailCard
+              <MetaCell
                 label="Compensación"
                 value={report.metadata.compensation}
               />
@@ -345,115 +418,52 @@ export function VacancyReportDocument({
           </View>
         </View>
 
+        {/* Hired callout */}
+        {report.hiredCandidates.length > 0 ? (
+          <View style={styles.section} wrap={false}>
+            <View style={styles.hiredCard}>
+              <Text style={styles.hiredHeader}>
+                {report.hiredCandidates.length === 1
+                  ? 'Contratado'
+                  : 'Contratados'}
+              </Text>
+              {report.hiredCandidates.map((candidate) => (
+                <View key={candidate.id} style={styles.hiredRow}>
+                  <Text style={styles.hiredName}>{candidate.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Description */}
         {report.description ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Descripción</Text>
+            <SectionHeader title="Descripción" />
             <Text style={styles.descriptionText}>{report.description}</Text>
           </View>
         ) : null}
 
-        {hasProfile ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Perfil buscado</Text>
-            <ProfileGroup label="Seniorities" values={report.profile.seniorities} />
-            <ProfileGroup label="Áreas" values={report.profile.areas} />
-            <ProfileGroup label="Industrias" values={report.profile.industries} />
-            <ProfileGroup
-              label="Rating mínimo"
-              values={report.profile.minStars ? [report.profile.minStars] : []}
-            />
-            <ProfileGroup
-              label="Rango de edad"
-              values={report.profile.ageRange ? [report.profile.ageRange] : []}
-            />
-            <ProfileGroup
-              label="Género"
-              values={report.profile.gender ? [report.profile.gender] : []}
-            />
-            <ProfileGroup label="Países" values={report.profile.countries} />
-            <ProfileGroup label="Provincias" values={report.profile.provinces} />
-            <ProfileGroup label="Idiomas" values={report.profile.languages} />
-          </View>
-        ) : null}
-
-        {report.hiredCandidates.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contratado</Text>
-            {report.hiredCandidates.map((candidate) => (
-              <View key={candidate.id} style={styles.hiredCard} wrap={false}>
-                <Text style={styles.hiredName}>{candidate.name}</Text>
-                <Text style={styles.hiredMeta}>
-                  Estado: {candidate.statusName}
-                  {candidate.stars ? ` · Rating: ${candidate.stars}` : ''}
-                  {candidate.sourceName ? ` · Fuente: ${candidate.sourceName}` : ''}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
+        {/* Postulantes */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Postulantes</Text>
+          <SectionHeader
+            title="Postulantes"
+            count={report.summary.totalCandidates}
+          />
           {report.candidates.length > 0 ? (
-            <>
-              <View style={styles.tableHeaderRow}>
-                <Text style={[styles.tableHeaderText, styles.colCandidate]}>
-                  Candidato
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colStatus]}>
-                  Estado
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colStars]}>
-                  Stars
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colSource]}>
-                  Fuente
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colReason]}>
-                  Motivo
-                </Text>
-              </View>
-
-              {report.candidates.map((candidate, index) => (
-                <View
-                  key={candidate.id}
-                  style={[
-                    styles.tableRow,
-                    index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
-                  ]}
-                >
-                  <View style={styles.colCandidate}>
-                    <Text style={styles.candidateName}>{candidate.name}</Text>
-                    <Text style={styles.candidateMeta}>ID {candidate.id}</Text>
-                  </View>
-                  <Text style={[styles.cellValue, styles.colStatus]}>
-                    {candidate.statusName}
-                  </Text>
-                  <Text style={[styles.cellValue, styles.colStars]}>
-                    {candidate.stars || '-'}
-                  </Text>
-                  <Text style={[styles.cellValue, styles.colSource]}>
-                    {candidate.sourceName || '-'}
-                  </Text>
-                  <Text style={[styles.cellValue, styles.colReason]}>
-                    {candidate.rejectionReason || '-'}
-                  </Text>
-                </View>
-              ))}
-            </>
+            report.candidates.map((candidate) => (
+              <CandidateCard key={candidate.id} candidate={candidate} />
+            ))
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateTitle}>
-                La vacante no tiene postulantes asociados
-              </Text>
               <Text style={styles.emptyStateText}>
-                El reporte se generó igualmente para dejar trazabilidad de la
-                vacante y sus datos operativos.
+                Esta vacante todavía no tiene postulantes asociados.
               </Text>
             </View>
           )}
         </View>
 
+        {/* Footer */}
         <View style={styles.footer} fixed>
           <Text>{report.organizationName}</Text>
           <Text
@@ -461,76 +471,138 @@ export function VacancyReportDocument({
               `Página ${pageNumber} de ${totalPages}`
             }
           />
+          <Text>{generationDateLabel}</Text>
         </View>
       </Page>
     </Document>
   );
 }
 
-function hasProfileData(report: VacancyReportDocumentData): boolean {
-  return (
-    report.profile.seniorities.length > 0 ||
-    report.profile.areas.length > 0 ||
-    report.profile.industries.length > 0 ||
-    Boolean(report.profile.minStars) ||
-    Boolean(report.profile.ageRange) ||
-    Boolean(report.profile.gender) ||
-    report.profile.countries.length > 0 ||
-    report.profile.provinces.length > 0 ||
-    report.profile.languages.length > 0
-  );
-}
-
-interface SummaryCardProps {
-  helper: string;
+interface MetaCellProps {
   label: string;
   value: string;
 }
 
-function SummaryCard({ helper, label, value }: SummaryCardProps) {
+function MetaCell({ label, value }: MetaCellProps) {
   return (
-    <View style={styles.summaryCard}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
-      <Text style={styles.summaryHelper}>{helper}</Text>
-    </View>
-  );
-}
-
-interface DetailCardProps {
-  label: string;
-  value: string;
-}
-
-function DetailCard({ label, value }: DetailCardProps) {
-  return (
-    <View style={styles.detailCard}>
+    <View style={styles.metaCell}>
       <Text style={styles.metaLabel}>{label}</Text>
       <Text style={styles.metaValue}>{value}</Text>
     </View>
   );
 }
 
-interface ProfileGroupProps {
-  label: string;
-  values: string[];
+interface SectionHeaderProps {
+  title: string;
+  count?: number;
 }
 
-function ProfileGroup({ label, values }: ProfileGroupProps) {
-  if (values.length === 0) {
-    return null;
-  }
-
+function SectionHeader({ title, count }: SectionHeaderProps) {
   return (
-    <View style={styles.filterGroup}>
-      <Text style={styles.metaLabel}>{label}</Text>
-      <View style={styles.filterTags}>
-        {values.map((value) => (
-          <View key={`${label}-${value}`} style={styles.filterTag}>
-            <Text style={styles.filterTagText}>{value}</Text>
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionAccent} />
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {typeof count === 'number' ? (
+        <Text style={styles.sectionCount}>({count})</Text>
+      ) : null}
+    </View>
+  );
+}
+
+interface CandidateCardProps {
+  candidate: VacancyReportCandidateRow;
+}
+
+function CandidateCard({ candidate }: CandidateCardProps) {
+  return (
+    <View style={styles.candidateCard} wrap={false}>
+      <CandidateAvatar candidate={candidate} />
+
+      <View style={styles.candidateBody}>
+        <Text style={styles.candidateName}>{candidate.name}</Text>
+        {candidate.shortDescription ? (
+          <Text style={styles.candidateShortDescription}>
+            {candidate.shortDescription}
+          </Text>
+        ) : null}
+        <View style={styles.candidateBadgeRow}>
+          {candidate.seniorities.map((value) => (
+            <CatalogBadge key={`s-${value}`} value={value} kind="seniority" />
+          ))}
+          {candidate.areas.map((value) => (
+            <CatalogBadge key={`a-${value}`} value={value} kind="area" />
+          ))}
+          {candidate.industries.map((value) => (
+            <CatalogBadge key={`i-${value}`} value={value} kind="industry" />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.candidateRight}>
+        {candidate.starsValue != null ? (
+          <View style={styles.starsRow}>
+            <StarIcon />
+            <Text style={styles.starsText}>
+              {formatStars(candidate.starsValue)}
+            </Text>
           </View>
-        ))}
+        ) : null}
+        <View
+          style={[
+            styles.rowStatusBadge,
+            { backgroundColor: stringToColor(candidate.statusName) },
+          ]}
+        >
+          <Text style={styles.rowStatusBadgeText}>{candidate.statusName}</Text>
+        </View>
       </View>
     </View>
   );
+}
+
+function StarIcon() {
+  return (
+    <Svg width={11} height={11} viewBox="0 0 24 24">
+      <Path
+        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+        fill="#f59e0b"
+      />
+    </Svg>
+  );
+}
+
+function CandidateAvatar({ candidate }: { candidate: VacancyReportCandidateRow }) {
+  const fallbackBg = stringToColor(candidate.name);
+  if (candidate.image) {
+    return (
+      <View style={[styles.avatar, { backgroundColor: fallbackBg }]}>
+        <Image src={candidate.image} style={styles.avatarImage} />
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.avatar, { backgroundColor: fallbackBg }]}>
+      <Text style={styles.avatarInitials}>{getInitials(candidate.name)}</Text>
+    </View>
+  );
+}
+
+interface CatalogBadgeProps {
+  value: string;
+  kind: 'seniority' | 'area' | 'industry';
+}
+
+function CatalogBadge({ value, kind }: CatalogBadgeProps) {
+  const palette = BADGE_PALETTE[kind] ?? BADGE_PALETTE.seniority!;
+  return (
+    <View style={[styles.catalogBadge, { backgroundColor: palette.bg }]}>
+      <Text style={[styles.catalogBadgeText, { color: palette.text }]}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function formatStars(value: number): string {
+  return Number.isInteger(value) ? `${value}` : value.toFixed(1);
 }

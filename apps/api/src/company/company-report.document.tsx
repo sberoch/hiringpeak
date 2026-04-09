@@ -1,433 +1,452 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   Document,
+  Image,
   Page,
   StyleSheet,
   Text,
   View,
 } from '@react-pdf/renderer';
-import type { CompanyReportDocumentData } from './company-report.types';
-import {
-  formatReportCurrency,
-  formatReportDate,
-  formatReportDecimal,
-  formatReportPercentage,
-} from './company-report.utils';
+import { stringToColor } from '@workspace/shared/utils';
+import type {
+  CompanyReportDocumentData,
+  CompanyReportVacancyRow,
+} from './company-report.types';
+import { formatReportDate } from './company-report.utils';
 
 interface CompanyReportDocumentProps {
   report: CompanyReportDocumentData;
 }
 
+const LOGO_BUFFER = readFileSync(
+  join(__dirname, '../common/assets/logo.png'),
+);
+
+const COLORS = {
+  bg: '#fafbfc',
+  surface: '#ffffff',
+  surfaceAlt: '#f8fafc',
+  ink: '#0a0f1c',
+  slate: '#475569',
+  muted: '#94a3b8',
+  border: '#e2e8f0',
+  borderLight: '#f1f5f9',
+  electric: '#0066ff',
+  hiredBg: '#f0fdf4',
+  hiredBorder: '#bbf7d0',
+  hiredText: '#166534',
+};
+
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 36,
+    paddingTop: 64,
     paddingBottom: 48,
     paddingHorizontal: 32,
-    backgroundColor: '#fafbfc',
-    color: '#0a0f1c',
+    backgroundColor: COLORS.bg,
+    color: COLORS.ink,
     fontFamily: 'Plus Jakarta Sans',
     fontSize: 10,
   },
-  header: {
-    marginBottom: 18,
-    padding: 20,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
-    border: '1 solid #e2e8f0',
+
+  // ── Repeating header ─────────────────────────────────────────
+  pageHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 44,
+    paddingHorizontal: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    borderBottom: `1 solid ${COLORS.border}`,
   },
-  eyebrow: {
-    fontSize: 9,
+  pageHeaderBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pageHeaderLogo: {
+    width: 22,
+    height: 22,
+    marginRight: 8,
+  },
+  pageHeaderTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: COLORS.ink,
+    letterSpacing: 0.2,
+  },
+  pageHeaderMeta: {
+    fontSize: 8,
+    color: COLORS.muted,
     fontWeight: 600,
-    color: '#0066ff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  pageHeaderAccent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: COLORS.electric,
+  },
+
+  // ── Title block (page 1) ─────────────────────────────────────
+  titleBlock: {
+    marginTop: 4,
+    marginBottom: 18,
+    paddingBottom: 16,
+    borderBottom: `1 solid ${COLORS.border}`,
+  },
+  titleEyebrow: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: COLORS.electric,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 700,
-    color: '#0a0f1c',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 11,
-    color: '#64748b',
-    marginBottom: 16,
-  },
-  headerMetaRow: {
+  titleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 14,
-    borderTop: '1 solid #f1f5f9',
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
-  headerMetaBlock: {
-    width: '48%',
+  companyTitle: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: COLORS.ink,
+    marginRight: 10,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  statusBadgeText: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: COLORS.ink,
+  },
+  companyDescription: {
+    marginTop: 10,
+    fontSize: 10,
+    color: COLORS.slate,
+    lineHeight: 1.5,
+  },
+  metaStrip: {
+    marginTop: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  metaCell: {
+    marginRight: 24,
+    marginBottom: 4,
   },
   metaLabel: {
-    fontSize: 8,
-    fontWeight: 600,
+    fontSize: 7,
+    fontWeight: 700,
     textTransform: 'uppercase',
-    color: '#94a3b8',
+    color: COLORS.muted,
     letterSpacing: 0.8,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metaValue: {
     fontSize: 11,
     fontWeight: 600,
-    color: '#1a2332',
+    color: COLORS.ink,
   },
-  contactSection: {
+
+  // ── Section ──────────────────────────────────────────────────
+  section: {
     marginBottom: 18,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#f8fbff',
-    border: '1 solid #dbeafe',
   },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#0a0f1c',
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  contactRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  sectionAccent: {
+    width: 3,
+    height: 12,
+    borderRadius: 2,
+    backgroundColor: COLORS.electric,
+    marginRight: 8,
   },
-  contactBlock: {
-    width: '31%',
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: COLORS.ink,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  contactValue: {
+  sectionCount: {
+    marginLeft: 6,
     fontSize: 10,
     fontWeight: 600,
-    color: '#1a2332',
+    color: COLORS.muted,
   },
-  summarySection: {
-    marginBottom: 18,
-  },
+
+  // ── Summary stat cards ───────────────────────────────────────
   summaryGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   summaryCard: {
-    width: '48.2%',
+    flex: 1,
+    marginRight: 8,
     padding: 14,
-    marginBottom: 12,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
-    border: '1 solid #e2e8f0',
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    border: `1 solid ${COLORS.border}`,
+  },
+  summaryCardLast: {
+    marginRight: 0,
   },
   summaryLabel: {
-    fontSize: 8,
-    fontWeight: 600,
+    fontSize: 7,
+    fontWeight: 700,
     textTransform: 'uppercase',
-    color: '#94a3b8',
+    color: COLORS.muted,
     letterSpacing: 0.8,
     marginBottom: 6,
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 700,
-    color: '#0a0f1c',
-    marginBottom: 4,
+    color: COLORS.ink,
   },
   summaryHelper: {
+    marginTop: 4,
     fontSize: 9,
-    color: '#64748b',
+    color: COLORS.slate,
   },
-  tableSection: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
-    border: '1 solid #e2e8f0',
+
+  // ── Hired callout ────────────────────────────────────────────
+  hiredCard: {
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.hiredBg,
+    border: `1 solid ${COLORS.hiredBorder}`,
   },
-  tableHeaderRow: {
-    flexDirection: 'row',
-    paddingBottom: 8,
-    marginBottom: 8,
-    borderBottom: '1 solid #e2e8f0',
-    backgroundColor: '#ffffff',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    marginBottom: 4,
-  },
-  tableRowEven: {
-    backgroundColor: '#f8fafc',
-  },
-  tableRowOdd: {
-    backgroundColor: '#ffffff',
-  },
-  tableTotalsRow: {
-    flexDirection: 'row',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTop: '1 solid #e2e8f0',
-  },
-  colVacancy: {
-    width: '37%',
-    paddingRight: 10,
-  },
-  colPeople: {
-    width: '12%',
-    textAlign: 'right',
-  },
-  colCancelled: {
-    width: '15%',
-    textAlign: 'right',
-  },
-  colRate: {
-    width: '16%',
-    textAlign: 'right',
-  },
-  colAmount: {
-    width: '20%',
-    textAlign: 'right',
-  },
-  tableHeaderText: {
+  hiredHeader: {
     fontSize: 8,
     fontWeight: 700,
     textTransform: 'uppercase',
-    color: '#64748b',
-    letterSpacing: 0.7,
+    letterSpacing: 0.8,
+    color: COLORS.hiredText,
+    marginBottom: 8,
+  },
+  hiredRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 4,
+  },
+  hiredName: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: COLORS.hiredText,
+    marginRight: 6,
+  },
+  hiredArrow: {
+    fontSize: 10,
+    color: COLORS.hiredText,
+    marginRight: 6,
+  },
+  hiredVacancy: {
+    fontSize: 10,
+    color: COLORS.hiredText,
+  },
+
+  // ── Vacancy cards ────────────────────────────────────────────
+  vacancyCard: {
+    padding: 14,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    border: `1 solid ${COLORS.border}`,
+  },
+  vacancyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  vacancyTitleWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginRight: 10,
   },
   vacancyTitle: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#0a0f1c',
-    marginBottom: 3,
-  },
-  vacancyStatus: {
-    fontSize: 8,
-    color: '#64748b',
-  },
-  cellValue: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#1a2332',
-  },
-  totalsLabel: {
-    fontSize: 10,
-    fontWeight: 700,
-    color: '#0a0f1c',
-  },
-  emptyState: {
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    border: '1 solid #e2e8f0',
-  },
-  emptyStateTitle: {
     fontSize: 12,
     fontWeight: 700,
-    color: '#0a0f1c',
-    marginBottom: 4,
+    color: COLORS.ink,
+    marginRight: 8,
+  },
+  vacancyTenure: {
+    fontSize: 9,
+    color: COLORS.muted,
+    fontWeight: 600,
+    textAlign: 'right',
+  },
+  vacancyDescription: {
+    marginTop: 6,
+    fontSize: 9.5,
+    color: COLORS.slate,
+    lineHeight: 1.5,
+  },
+  vacancyMetaLine: {
+    marginTop: 8,
+    fontSize: 9,
+    color: COLORS.muted,
+    fontWeight: 600,
+  },
+
+  // ── Empty state ──────────────────────────────────────────────
+  emptyState: {
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceAlt,
+    border: `1 solid ${COLORS.border}`,
   },
   emptyStateText: {
     fontSize: 10,
-    color: '#64748b',
+    color: COLORS.slate,
     lineHeight: 1.5,
   },
+
+  // ── Footer ───────────────────────────────────────────────────
   footer: {
     position: 'absolute',
     left: 32,
     right: 32,
     bottom: 20,
     paddingTop: 8,
-    borderTop: '1 solid #e2e8f0',
+    borderTop: `1 solid ${COLORS.border}`,
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 8,
-    color: '#94a3b8',
+    color: COLORS.muted,
   },
 });
 
 export function CompanyReportDocument({
   report,
 }: CompanyReportDocumentProps) {
-  const hasContactInfo =
-    Boolean(report.contactInfo.clientName) ||
-    Boolean(report.contactInfo.clientEmail) ||
-    Boolean(report.contactInfo.clientPhone);
+  const generationDateLabel = formatReportDate(report.generatedAt);
+  const summaryCards = buildSummaryCards(report);
 
   return (
     <Document title={`Reporte de ${report.companyName}`}>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>{report.organizationName}</Text>
-          <Text style={styles.title}>Reporte de vacantes por empresa</Text>
-          <Text style={styles.subtitle}>
-            Resumen operativo de vacantes, volumen de personas y cancelaciones
-            actuales de {report.companyName}.
+      <Page size="A4" style={styles.page} wrap>
+        {/* Repeating slim header */}
+        <View style={styles.pageHeader} fixed>
+          <View style={styles.pageHeaderBrand}>
+            <Image src={LOGO_BUFFER} style={styles.pageHeaderLogo} />
+            <Text style={styles.pageHeaderTitle}>HiringPeak</Text>
+          </View>
+          <Text style={styles.pageHeaderMeta}>
+            Reporte · {generationDateLabel}
           </Text>
+          <View style={styles.pageHeaderAccent} />
+        </View>
 
-          <View style={styles.headerMetaRow}>
-            <View style={styles.headerMetaBlock}>
-              <Text style={styles.metaLabel}>Empresa</Text>
-              <Text style={styles.metaValue}>{report.companyName}</Text>
+        {/* Title block (page 1 only) */}
+        <View style={styles.titleBlock}>
+          <Text style={styles.titleEyebrow}>{report.organizationName}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.companyTitle}>{report.companyName}</Text>
+          </View>
+          {report.companyDescription ? (
+            <Text style={styles.companyDescription}>
+              {report.companyDescription}
+            </Text>
+          ) : null}
+
+          {hasContact(report) ? (
+            <View style={styles.metaStrip}>
+              {report.contactInfo.clientName ? (
+                <MetaCell label="Cliente" value={report.contactInfo.clientName} />
+              ) : null}
+              {report.contactInfo.clientEmail ? (
+                <MetaCell label="Email" value={report.contactInfo.clientEmail} />
+              ) : null}
+              {report.contactInfo.clientPhone ? (
+                <MetaCell label="Teléfono" value={report.contactInfo.clientPhone} />
+              ) : null}
             </View>
-            <View style={styles.headerMetaBlock}>
-              <Text style={styles.metaLabel}>Fecha de generación</Text>
-              <Text style={styles.metaValue}>
-                {formatReportDate(report.generatedAt)}
-              </Text>
-            </View>
+          ) : null}
+        </View>
+
+        {/* Resumen */}
+        <View style={styles.section}>
+          <SectionHeader title="Resumen" />
+          <View style={styles.summaryGrid}>
+            {summaryCards.map((card, index) => (
+              <View
+                key={card.label}
+                style={[
+                  styles.summaryCard,
+                  index === summaryCards.length - 1
+                    ? styles.summaryCardLast
+                    : null,
+                ]}
+              >
+                <Text style={styles.summaryLabel}>{card.label}</Text>
+                <Text style={styles.summaryValue}>{card.value}</Text>
+                {card.helper ? (
+                  <Text style={styles.summaryHelper}>{card.helper}</Text>
+                ) : null}
+              </View>
+            ))}
           </View>
         </View>
 
-        {hasContactInfo ? (
-          <View style={styles.contactSection}>
-            <Text style={styles.sectionTitle}>Datos del cliente</Text>
-            <View style={styles.contactRow}>
-              {report.contactInfo.clientName ? (
-                <View style={styles.contactBlock}>
-                  <Text style={styles.metaLabel}>Cliente</Text>
-                  <Text style={styles.contactValue}>
-                    {report.contactInfo.clientName}
-                  </Text>
+        {/* Contratados callout */}
+        {report.hires.length > 0 ? (
+          <View style={styles.section} wrap={false}>
+            <View style={styles.hiredCard}>
+              <Text style={styles.hiredHeader}>
+                {report.hires.length === 1 ? 'Contratado' : 'Contratados'}
+              </Text>
+              {report.hires.map((hire, idx) => (
+                <View
+                  key={`${hire.candidateName}-${hire.vacancyTitle}-${idx}`}
+                  style={styles.hiredRow}
+                >
+                  <Text style={styles.hiredName}>{hire.candidateName}</Text>
+                  <Text style={styles.hiredArrow}>→</Text>
+                  <Text style={styles.hiredVacancy}>{hire.vacancyTitle}</Text>
                 </View>
-              ) : null}
-              {report.contactInfo.clientEmail ? (
-                <View style={styles.contactBlock}>
-                  <Text style={styles.metaLabel}>Email</Text>
-                  <Text style={styles.contactValue}>
-                    {report.contactInfo.clientEmail}
-                  </Text>
-                </View>
-              ) : null}
-              {report.contactInfo.clientPhone ? (
-                <View style={styles.contactBlock}>
-                  <Text style={styles.metaLabel}>Teléfono</Text>
-                  <Text style={styles.contactValue}>
-                    {report.contactInfo.clientPhone}
-                  </Text>
-                </View>
-              ) : null}
+              ))}
             </View>
           </View>
         ) : null}
 
-        <View style={styles.summarySection}>
-          <Text style={styles.sectionTitle}>Resumen general</Text>
-          <View style={styles.summaryGrid}>
-            <SummaryCard
-              label="Total de vacantes"
-              value={`${report.summary.totalVacancies}`}
-              helper="Cantidad total de vacantes incluidas en el reporte"
-            />
-            <SummaryCard
-              label="Total de personas"
-              value={`${report.summary.totalPeople}`}
-              helper="Personas actualmente asociadas a las vacantes"
-            />
-            <SummaryCard
-              label="Promedio por vacante"
-              value={formatReportDecimal(
-                report.summary.averagePeoplePerVacancy,
-              )}
-              helper="Media de personas por vacante"
-            />
-            <SummaryCard
-              label="% canceladas global"
-              value={formatReportPercentage(
-                report.summary.globalCancellationRate,
-              )}
-              helper={`${report.summary.totalCancelledPeople} personas canceladas sobre el total`}
-            />
-            <SummaryCard
-              label="Monto total estimado"
-              value={formatReportCurrency(report.summary.totalEstimatedAmount)}
-              helper="Calculado con un monto fijo mockeado por vacante"
-            />
-          </View>
-        </View>
-
-        <View style={styles.tableSection}>
-          <Text style={styles.sectionTitle}>Detalle por vacante</Text>
+        {/* Vacantes */}
+        <View style={styles.section}>
+          <SectionHeader
+            title="Vacantes"
+            count={report.summary.totalVacancies}
+          />
           {report.vacancies.length > 0 ? (
-            <>
-              <View style={styles.tableHeaderRow}>
-                <Text style={[styles.tableHeaderText, styles.colVacancy]}>
-                  Vacante
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colPeople]}>
-                  Personas
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colCancelled]}>
-                  Canceladas
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colRate]}>
-                  % canceladas
-                </Text>
-                <Text style={[styles.tableHeaderText, styles.colAmount]}>
-                  Monto estimado
-                </Text>
-              </View>
-
-              {report.vacancies.map((vacancy, index) => (
-                <View
-                  key={vacancy.id}
-                  style={[
-                    styles.tableRow,
-                    index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd,
-                  ]}
-                  wrap={false}
-                >
-                  <View style={styles.colVacancy}>
-                    <Text style={styles.vacancyTitle}>{vacancy.title}</Text>
-                    <Text style={styles.vacancyStatus}>
-                      Estado: {vacancy.statusName}
-                    </Text>
-                  </View>
-                  <Text style={[styles.cellValue, styles.colPeople]}>
-                    {vacancy.peopleCount}
-                  </Text>
-                  <Text style={[styles.cellValue, styles.colCancelled]}>
-                    {vacancy.cancelledCount}
-                  </Text>
-                  <Text style={[styles.cellValue, styles.colRate]}>
-                    {formatReportPercentage(vacancy.cancellationRate)}
-                  </Text>
-                  <Text style={[styles.cellValue, styles.colAmount]}>
-                    {formatReportCurrency(vacancy.estimatedAmount)}
-                  </Text>
-                </View>
-              ))}
-
-              <View style={styles.tableTotalsRow} wrap={false}>
-                <Text style={[styles.totalsLabel, styles.colVacancy]}>
-                  Totales
-                </Text>
-                <Text style={[styles.totalsLabel, styles.colPeople]}>
-                  {report.summary.totalPeople}
-                </Text>
-                <Text style={[styles.totalsLabel, styles.colCancelled]}>
-                  {report.summary.totalCancelledPeople}
-                </Text>
-                <Text style={[styles.totalsLabel, styles.colRate]}>
-                  {formatReportPercentage(report.summary.globalCancellationRate)}
-                </Text>
-                <Text style={[styles.totalsLabel, styles.colAmount]}>
-                  {formatReportCurrency(report.summary.totalEstimatedAmount)}
-                </Text>
-              </View>
-            </>
+            report.vacancies.map((vacancy) => (
+              <VacancyCard key={vacancy.id} vacancy={vacancy} />
+            ))
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateTitle}>
-                La empresa no tiene vacantes asociadas
-              </Text>
               <Text style={styles.emptyStateText}>
-                El reporte se generó igualmente para dejar trazabilidad de la
-                empresa y mostrar el resumen general en cero.
+                Esta empresa todavía no tiene vacantes asociadas.
               </Text>
             </View>
           )}
         </View>
 
+        {/* Footer */}
         <View style={styles.footer} fixed>
           <Text>{report.organizationName}</Text>
           <Text
@@ -435,24 +454,126 @@ export function CompanyReportDocument({
               `Página ${pageNumber} de ${totalPages}`
             }
           />
+          <Text>{generationDateLabel}</Text>
         </View>
       </Page>
     </Document>
   );
 }
 
-interface SummaryCardProps {
+interface SummaryCard {
   label: string;
   value: string;
-  helper: string;
+  helper?: string;
 }
 
-function SummaryCard({ label, value, helper }: SummaryCardProps) {
+function buildSummaryCards(report: CompanyReportDocumentData): SummaryCard[] {
+  const { summary } = report;
+  return [
+    {
+      label: 'Vacantes',
+      value: `${summary.totalVacancies}`,
+      helper: `${summary.activeVacancies} activas · ${summary.closedVacancies} cerradas`,
+    },
+    {
+      label: 'Postulantes',
+      value: `${summary.totalCandidates}`,
+    },
+    {
+      label: 'Contratados',
+      value: `${summary.hiredCandidates}`,
+    },
+    {
+      label: 'Días promedio abierta',
+      value:
+        summary.activeVacancies > 0
+          ? `${Math.round(summary.averageDaysOpen)}`
+          : '—',
+      helper:
+        summary.activeVacancies > 0
+          ? `${summary.activeVacancies} ${summary.activeVacancies === 1 ? 'vacante activa' : 'vacantes activas'}`
+          : 'sin vacantes activas',
+    },
+  ];
+}
+
+function hasContact(report: CompanyReportDocumentData): boolean {
+  return Boolean(
+    report.contactInfo.clientName ||
+      report.contactInfo.clientEmail ||
+      report.contactInfo.clientPhone,
+  );
+}
+
+interface MetaCellProps {
+  label: string;
+  value: string;
+}
+
+function MetaCell({ label, value }: MetaCellProps) {
   return (
-    <View style={styles.summaryCard}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
-      <Text style={styles.summaryHelper}>{helper}</Text>
+    <View style={styles.metaCell}>
+      <Text style={styles.metaLabel}>{label}</Text>
+      <Text style={styles.metaValue}>{value}</Text>
+    </View>
+  );
+}
+
+interface SectionHeaderProps {
+  title: string;
+  count?: number;
+}
+
+function SectionHeader({ title, count }: SectionHeaderProps) {
+  return (
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionAccent} />
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {typeof count === 'number' ? (
+        <Text style={styles.sectionCount}>({count})</Text>
+      ) : null}
+    </View>
+  );
+}
+
+function VacancyCard({ vacancy }: { vacancy: CompanyReportVacancyRow }) {
+  const tenureLabel = vacancy.isClosed
+    ? `Cerrada ${formatReportDate(vacancy.closedAt)}`
+    : `${vacancy.daysOpen} ${vacancy.daysOpen === 1 ? 'día' : 'días'} abierta`;
+
+  const metaParts: string[] = [];
+  metaParts.push(
+    `${vacancy.totalCandidates} ${vacancy.totalCandidates === 1 ? 'postulante' : 'postulantes'}`,
+  );
+  if (vacancy.hiredCandidates > 0) {
+    metaParts.push(
+      `${vacancy.hiredCandidates} ${vacancy.hiredCandidates === 1 ? 'contratado' : 'contratados'}`,
+    );
+  }
+  if (vacancy.salary) {
+    metaParts.push(`Compensación ${vacancy.salary}`);
+  }
+
+  return (
+    <View style={styles.vacancyCard} wrap={false}>
+      <View style={styles.vacancyTopRow}>
+        <View style={styles.vacancyTitleWrap}>
+          <Text style={styles.vacancyTitle}>{vacancy.title}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: stringToColor(vacancy.statusName) },
+            ]}
+          >
+            <Text style={styles.statusBadgeText}>{vacancy.statusName}</Text>
+          </View>
+        </View>
+        <Text style={styles.vacancyTenure}>{tenureLabel}</Text>
+      </View>
+      {vacancy.description ? (
+        <Text style={styles.vacancyDescription}>{vacancy.description}</Text>
+      ) : null}
+      <Text style={styles.vacancyMetaLine}>{metaParts.join(' · ')}</Text>
     </View>
   );
 }

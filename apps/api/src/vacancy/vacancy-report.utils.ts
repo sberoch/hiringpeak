@@ -7,7 +7,7 @@ import {
 import type {
   VacancyReportCandidateRow,
   VacancyReportDocumentData,
-  VacancyReportProfile,
+  VacancyReportStatusCount,
   VacancyReportSummary,
 } from './vacancy-report.types';
 
@@ -15,11 +15,6 @@ const dateFormatter = new Intl.DateTimeFormat(VACANCY_REPORT_LOCALE, {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
-});
-
-const starsFormatter = new Intl.NumberFormat(VACANCY_REPORT_LOCALE, {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 1,
 });
 
 export function buildVacancyReportFileName(
@@ -56,11 +51,10 @@ export function buildVacancyReportData(params: {
       createdAt: params.vacancy.createdAt,
       generatedAt: params.generatedAt,
       statusName: params.vacancy.status.name,
-      updatedAt: params.vacancy.updatedAt,
       vacancyTitle: params.vacancy.title,
     },
     organizationName: params.organizationName,
-    profile: buildVacancyReportProfile(params.vacancy),
+    statusCounts: buildStatusCounts(candidates),
     summary: buildVacancyReportSummary(candidates),
   };
 }
@@ -81,49 +75,63 @@ export function isNoProfileCandidateStatus(statusName?: string): boolean {
   return statusName === VACANCY_REPORT_NO_PROFILE_STATUS_NAME;
 }
 
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0] ?? '')
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+}
+
+export function daysBetween(from: Date, to: Date): number {
+  const ms = to.getTime() - from.getTime();
+  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+}
+
+type CandidateWithCategories =
+  VacancyApiResponse['candidates'][number]['candidate'] & {
+    seniorities?: Array<{ name: string }>;
+    areas?: Array<{ name: string }>;
+    industries?: Array<{ name: string }>;
+  };
+
 function buildVacancyReportCandidateRow(
   candidateVacancy: VacancyApiResponse['candidates'][number],
 ): VacancyReportCandidateRow {
+  const candidate = candidateVacancy.candidate as CandidateWithCategories;
   return {
     id: candidateVacancy.id,
-    name: candidateVacancy.candidate.name,
-    rejectionReason: isNoProfileCandidateStatus(candidateVacancy.status.name)
-      ? candidateVacancy.rejectionReason || undefined
-      : undefined,
-    sourceName: candidateVacancy.candidate.source?.name || undefined,
-    stars: formatCandidateStars(candidateVacancy.candidate.stars),
+    name: candidate.name,
+    image: parseHttpImage(candidate.image),
+    shortDescription: candidate.shortDescription?.trim() || undefined,
     statusName: candidateVacancy.status.name,
     statusSort: candidateVacancy.status.sort,
+    starsValue: parseStarsValue(candidate.stars),
+    seniorities: (candidate.seniorities ?? []).map((s) => s.name),
+    areas: (candidate.areas ?? []).map((a) => a.name),
+    industries: (candidate.industries ?? []).map((i) => i.name),
   };
 }
 
-function buildVacancyReportProfile(
-  vacancy: VacancyApiResponse,
-): VacancyReportProfile {
-  const filters = vacancy.filters;
-
-  if (!filters) {
-    return {
-      areas: [],
-      countries: [],
-      industries: [],
-      languages: [],
-      provinces: [],
-      seniorities: [],
-    };
+function buildStatusCounts(
+  candidates: VacancyReportCandidateRow[],
+): VacancyReportStatusCount[] {
+  const map = new Map<string, VacancyReportStatusCount>();
+  for (const candidate of candidates) {
+    const existing = map.get(candidate.statusName);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(candidate.statusName, {
+        name: candidate.statusName,
+        count: 1,
+        sort: candidate.statusSort,
+      });
+    }
   }
-
-  return {
-    ageRange: formatAgeRange(filters.minAge, filters.maxAge),
-    areas: filters.areas.map((area) => area.name),
-    countries: filters.countries ?? [],
-    gender: translateGender(filters.gender),
-    industries: filters.industries.map((industry) => industry.name),
-    languages: filters.languages ?? [],
-    minStars: formatCandidateStars(filters.minStars),
-    provinces: filters.provinces ?? [],
-    seniorities: filters.seniorities.map((seniority) => seniority.name),
-  };
+  return Array.from(map.values()).sort((a, b) => a.sort - b.sort);
 }
 
 function buildVacancyReportSummary(
@@ -134,44 +142,24 @@ function buildVacancyReportSummary(
     hiredCandidates: candidates.filter((candidate) =>
       isHiredCandidateStatus(candidate.statusName),
     ).length,
-    noProfileCandidates: candidates.filter((candidate) =>
-      isNoProfileCandidateStatus(candidate.statusName),
-    ).length,
   };
 }
 
-function formatAgeRange(
-  minAge?: number | null,
-  maxAge?: number | null,
-): string | undefined {
-  if (minAge == null && maxAge == null) {
-    return undefined;
-  }
-
-  if (minAge != null && maxAge != null) {
-    return `${minAge} - ${maxAge} años`;
-  }
-
-  if (minAge != null) {
-    return `Desde ${minAge} años`;
-  }
-
-  return `Hasta ${maxAge} años`;
-}
-
-function formatCandidateStars(stars?: string | number | null): string | undefined {
+function parseStarsValue(
+  stars?: string | number | null,
+): number | undefined {
   if (stars == null || stars === '') {
     return undefined;
   }
+  const parsed = typeof stars === 'number' ? stars : Number.parseFloat(stars);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
-  const parsedStars =
-    typeof stars === 'number' ? stars : Number.parseFloat(stars);
-
-  if (!Number.isFinite(parsedStars)) {
-    return undefined;
-  }
-
-  return starsFormatter.format(parsedStars);
+function parseHttpImage(image?: string | null): string | undefined {
+  if (!image) return undefined;
+  const trimmed = image.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return undefined;
+  return trimmed;
 }
 
 function formatFileDate(date: Date): string {
@@ -201,24 +189,4 @@ function sortCandidatesByStatusAndName(
   }
 
   return left.name.localeCompare(right.name, VACANCY_REPORT_LOCALE);
-}
-
-function translateGender(gender?: string | null): string | undefined {
-  if (!gender || gender === 'none') {
-    return undefined;
-  }
-
-  if (gender === 'male') {
-    return 'Masculino';
-  }
-
-  if (gender === 'female') {
-    return 'Femenino';
-  }
-
-  if (gender === 'other') {
-    return 'Otro';
-  }
-
-  return gender;
 }

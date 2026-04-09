@@ -6,7 +6,7 @@ import { PageHeading } from "@workspace/ui/components/page-heading";
 export const metadata: Metadata = {
   title: {
     default: "Configuración",
-    template: "%s | PRATT FIT",
+    template: "%s | HiringPeak",
   },
 };
 
@@ -27,9 +27,7 @@ export default function SettingsLayout({
       {/* Sidebar + Content */}
       <div className="flex gap-8">
         <SettingsSidebar />
-        <div className="flex-1 min-w-0">
-          {children}
-        </div>
+        <div className="flex-1 min-w-0">{children}</div>
       </div>
     </div>
   );

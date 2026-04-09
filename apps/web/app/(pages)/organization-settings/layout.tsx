@@ -6,7 +6,7 @@ import { getMePermissions } from "@/lib/api/auth";
 export const metadata: Metadata = {
   title: {
     default: "Configuración de organización",
-    template: "%s | PRATT FIT",
+    template: "%s | HiringPeak",
   },
 };
 

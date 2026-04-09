@@ -7,28 +7,38 @@ export interface CompanyReportContactInfo {
 export interface CompanyReportVacancyRow {
   id: number;
   title: string;
+  description?: string;
   statusName: string;
-  peopleCount: number;
-  cancelledCount: number;
-  cancellationRate: number;
-  estimatedAmount: number;
+  isClosed: boolean;
+  daysOpen: number;
+  closedAt: Date | null;
+  totalCandidates: number;
+  hiredCandidates: number;
+  salary?: string;
+}
+
+export interface CompanyReportHire {
+  candidateName: string;
+  vacancyTitle: string;
 }
 
 export interface CompanyReportSummary {
   totalVacancies: number;
-  totalPeople: number;
-  totalCancelledPeople: number;
-  averagePeoplePerVacancy: number;
-  globalCancellationRate: number;
-  totalEstimatedAmount: number;
+  activeVacancies: number;
+  closedVacancies: number;
+  totalCandidates: number;
+  hiredCandidates: number;
+  averageDaysOpen: number;
 }
 
 export interface CompanyReportDocumentData {
   organizationName: string;
   companyName: string;
-  generatedAt: Date;
+  companyDescription?: string;
   contactInfo: CompanyReportContactInfo;
+  generatedAt: Date;
   summary: CompanyReportSummary;
+  hires: CompanyReportHire[];
   vacancies: CompanyReportVacancyRow[];
 }
 

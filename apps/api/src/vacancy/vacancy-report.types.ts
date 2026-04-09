@@ -1,17 +1,25 @@
 export interface VacancyReportSummary {
   totalCandidates: number;
   hiredCandidates: number;
-  noProfileCandidates: number;
 }
 
 export interface VacancyReportCandidateRow {
   id: number;
   name: string;
-  rejectionReason?: string;
-  sourceName?: string;
-  stars?: string;
+  image?: string;
+  shortDescription?: string;
   statusName: string;
   statusSort: number;
+  starsValue?: number;
+  seniorities: string[];
+  areas: string[];
+  industries: string[];
+}
+
+export interface VacancyReportStatusCount {
+  name: string;
+  count: number;
+  sort: number;
 }
 
 export interface VacancyReportMetadata {
@@ -22,20 +30,7 @@ export interface VacancyReportMetadata {
   createdAt: Date;
   generatedAt: Date;
   statusName: string;
-  updatedAt: Date;
   vacancyTitle: string;
-}
-
-export interface VacancyReportProfile {
-  ageRange?: string;
-  areas: string[];
-  countries: string[];
-  gender?: string;
-  industries: string[];
-  languages: string[];
-  minStars?: string;
-  provinces: string[];
-  seniorities: string[];
 }
 
 export interface VacancyReportDocumentData {
@@ -44,7 +39,7 @@ export interface VacancyReportDocumentData {
   hiredCandidates: VacancyReportCandidateRow[];
   metadata: VacancyReportMetadata;
   organizationName: string;
-  profile: VacancyReportProfile;
+  statusCounts: VacancyReportStatusCount[];
   summary: VacancyReportSummary;
 }
 

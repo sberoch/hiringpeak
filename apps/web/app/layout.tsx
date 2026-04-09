@@ -6,8 +6,8 @@ import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: {
-    default: "PRATT FIT",
-    template: "%s | PRATT FIT",
+    default: "HiringPeak",
+    template: "%s | HiringPeak",
   },
   description: "Sistema de reclutamiento y selección de personal",
 };

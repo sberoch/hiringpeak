@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: {
     default: "Empresas",
-    template: "%s | PRATT FIT",
+    template: "%s | HiringPeak",
   },
 };
 

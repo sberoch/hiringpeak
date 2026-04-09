@@ -19,12 +19,14 @@ import type { Company } from "@workspace/shared/types/company";
 interface DeleteCompanyDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onDeleted?: () => void;
   company: Company;
 }
 
 export function DeleteCompanyDialog({
   isOpen,
   onClose,
+  onDeleted,
   company,
 }: DeleteCompanyDialogProps) {
   const queryClient = useQueryClient();
@@ -35,7 +37,10 @@ export function DeleteCompanyDialog({
       toast.success("Empresa eliminada exitosamente");
       queryClient
         .invalidateQueries({ queryKey: [COMPANIES_API_KEY] })
-        .then(onClose);
+        .then(() => {
+          onClose();
+          onDeleted?.();
+        });
     },
   });
 

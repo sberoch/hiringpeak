@@ -118,13 +118,19 @@ export const VacancyDetailHeader = ({
           <Button
             size="sm"
             variant="brand"
-            onClick={() => downloadReportMutation.mutate()}
-            disabled={downloadReportMutation.isPending}
+            onClick={handleNewCandidateClick}
           >
-            <Download className="h-4 w-4 mr-1.5" />
-            {downloadReportMutation.isPending
-              ? "Generando PDF..."
-              : "Descargar PDF"}
+            <UserPlus className="h-4 w-4 mr-1.5" />
+            Nuevo postulante
+          </Button>
+          <Button
+            size="sm"
+            variant="brand-ghost"
+            className="bg-white"
+            onClick={() => setIsAddCandidatesDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Agregar existentes
           </Button>
           <Button
             size="sm"
@@ -139,18 +145,13 @@ export const VacancyDetailHeader = ({
             size="sm"
             variant="brand-ghost"
             className="bg-white"
-            onClick={() => setIsAddCandidatesDialogOpen(true)}
+            onClick={() => downloadReportMutation.mutate()}
+            disabled={downloadReportMutation.isPending}
           >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Agregar existentes
-          </Button>
-          <Button
-            size="sm"
-            variant="brand"
-            onClick={handleNewCandidateClick}
-          >
-            <UserPlus className="h-4 w-4 mr-1.5" />
-            Nuevo postulante
+            <Download className="h-4 w-4 mr-1.5" />
+            {downloadReportMutation.isPending
+              ? "Generando PDF..."
+              : "Descargar reporte"}
           </Button>
           <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
             <Button

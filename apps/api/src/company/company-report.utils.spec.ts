@@ -1,159 +1,325 @@
-import type { Company } from '@workspace/shared/types/company';
+import { CompanyStatusEnum, type Company } from '@workspace/shared/types/company';
 import type { VacancyApiResponse } from '../vacancy/vacancy.service';
 import {
   buildCompanyReportData,
   buildCompanyReportFileName,
-  isCancelledCandidateStatus,
+  buildCompanyReportSummary,
+  buildCompanyReportVacancyRow,
+  daysBetween,
+  extractHires,
+  sortVacancyRows,
 } from './company-report.utils';
 
 const baseCompany: Company = {
   id: 17,
   name: 'Compañía Ágil',
   description: 'Cliente de prueba',
-  status: 'Active',
+  status: CompanyStatusEnum.ACTIVE,
   vacancyCount: 2,
   createdAt: '2026-04-08T00:00:00.000Z',
+  clientName: 'Ana Pérez',
+  clientEmail: 'ana@cliente.com',
+  clientPhone: '+54 11 5555-5555',
 };
 
+const generatedAt = new Date('2026-04-08T10:00:00.000Z');
+
 describe('company-report.utils', () => {
-  it('counts only exact cancelled status names and calculates totals', () => {
+  it('aggregates vacancy rows, summary and hires for a company', () => {
     const report = buildCompanyReportData({
-      company: {
-        ...baseCompany,
-        clientName: 'Ana Pérez',
-      },
-      generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      company: baseCompany,
+      generatedAt,
       organizationName: 'Organización Demo',
       vacancies: [
         createVacancy({
           id: 1,
-          statusName: 'Abierta',
           title: 'Recruiter SSR',
-          candidateStatusNames: ['Cancelada', 'En revisión', 'Cancelled'],
+          statusName: 'Abierta',
+          createdAt: new Date('2026-03-09T10:00:00.000Z'),
+          closedAt: null,
+          salary: 'USD 3000-4000',
+          candidateStatusNames: ['Postulado', 'Postulado', 'Contratado'],
         }),
         createVacancy({
           id: 2,
-          statusName: 'Cubierta',
           title: 'People Analyst',
-          candidateStatusNames: ['En revisión'],
+          statusName: 'Cubierta',
+          createdAt: new Date('2026-02-08T10:00:00.000Z'),
+          closedAt: new Date('2026-04-01T10:00:00.000Z'),
+          candidateStatusNames: ['Contratado'],
+        }),
+        createVacancy({
+          id: 3,
+          title: 'Talent Lead',
+          statusName: 'Abierta',
+          createdAt: new Date('2026-04-01T10:00:00.000Z'),
+          closedAt: null,
+          candidateStatusNames: [],
         }),
       ],
     });
 
-    expect(report.summary.totalVacancies).toBe(2);
-    expect(report.summary.totalPeople).toBe(4);
-    expect(report.summary.totalCancelledPeople).toBe(2);
-    expect(report.summary.averagePeoplePerVacancy).toBe(2);
-    expect(report.summary.globalCancellationRate).toBe(50);
-    expect(report.summary.totalEstimatedAmount).toBe(2000);
-    expect(report.vacancies[0]?.cancelledCount).toBe(2);
-    expect(report.vacancies[0]?.cancellationRate).toBeCloseTo(66.6667, 3);
+    expect(report.summary.totalVacancies).toBe(3);
+    expect(report.summary.activeVacancies).toBe(2);
+    expect(report.summary.closedVacancies).toBe(1);
+    expect(report.summary.totalCandidates).toBe(4);
+    expect(report.summary.hiredCandidates).toBe(2);
+    // active vacancies daysOpen: vacancy 1 = 30, vacancy 3 = 7 → average 18.5
+    expect(report.summary.averageDaysOpen).toBeCloseTo(18.5, 5);
+    expect(report.hires.map((h) => h.candidateName)).toEqual([
+      'Candidate 1-3',
+      'Candidate 2-1',
+    ]);
+    expect(report.vacancies.map((v) => v.id)).toEqual([1, 3, 2]);
+    expect(report.vacancies[2]?.daysOpen).toBe(52); // closed vacancy uses created→closed
+    expect(report.vacancies[0]?.salary).toBe('USD 3000-4000');
+    expect(report.contactInfo.clientName).toBe('Ana Pérez');
   });
 
   it('keeps zero values when there are no vacancies', () => {
     const report = buildCompanyReportData({
       company: baseCompany,
-      generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      generatedAt,
       organizationName: 'Organización Demo',
       vacancies: [],
     });
 
     expect(report.summary.totalVacancies).toBe(0);
-    expect(report.summary.totalPeople).toBe(0);
-    expect(report.summary.totalCancelledPeople).toBe(0);
-    expect(report.summary.averagePeoplePerVacancy).toBe(0);
-    expect(report.summary.globalCancellationRate).toBe(0);
-    expect(report.summary.totalEstimatedAmount).toBe(0);
+    expect(report.summary.activeVacancies).toBe(0);
+    expect(report.summary.closedVacancies).toBe(0);
+    expect(report.summary.totalCandidates).toBe(0);
+    expect(report.summary.hiredCandidates).toBe(0);
+    expect(report.summary.averageDaysOpen).toBe(0);
+    expect(report.hires).toEqual([]);
     expect(report.vacancies).toEqual([]);
+  });
+
+  it('truncates per-vacancy descriptions over 300 chars', () => {
+    const long = 'a'.repeat(305);
+    const row = buildCompanyReportVacancyRow(
+      createVacancy({
+        id: 1,
+        title: 'X',
+        statusName: 'Abierta',
+        createdAt: new Date('2026-04-01T10:00:00.000Z'),
+        closedAt: null,
+        description: long,
+      }),
+      generatedAt,
+    );
+    expect(row.description?.length).toBe(301);
+    expect(row.description?.endsWith('…')).toBe(true);
+  });
+
+  it('preserves short descriptions verbatim and ignores blank ones', () => {
+    const row = buildCompanyReportVacancyRow(
+      createVacancy({
+        id: 1,
+        title: 'X',
+        statusName: 'Abierta',
+        createdAt: new Date('2026-04-01T10:00:00.000Z'),
+        closedAt: null,
+        description: '   ',
+      }),
+      generatedAt,
+    );
+    expect(row.description).toBeUndefined();
+  });
+
+  it('sorts vacancies open-first by daysOpen desc, then closed by closedAt desc', () => {
+    const rows = [
+      buildCompanyReportVacancyRow(
+        createVacancy({
+          id: 10,
+          title: 'Old closed',
+          statusName: 'Cubierta',
+          createdAt: new Date('2026-01-01T10:00:00.000Z'),
+          closedAt: new Date('2026-02-01T10:00:00.000Z'),
+        }),
+        generatedAt,
+      ),
+      buildCompanyReportVacancyRow(
+        createVacancy({
+          id: 11,
+          title: 'Recent closed',
+          statusName: 'Cubierta',
+          createdAt: new Date('2026-03-01T10:00:00.000Z'),
+          closedAt: new Date('2026-04-01T10:00:00.000Z'),
+        }),
+        generatedAt,
+      ),
+      buildCompanyReportVacancyRow(
+        createVacancy({
+          id: 12,
+          title: 'New open',
+          statusName: 'Abierta',
+          createdAt: new Date('2026-04-05T10:00:00.000Z'),
+          closedAt: null,
+        }),
+        generatedAt,
+      ),
+      buildCompanyReportVacancyRow(
+        createVacancy({
+          id: 13,
+          title: 'Old open',
+          statusName: 'Abierta',
+          createdAt: new Date('2026-02-01T10:00:00.000Z'),
+          closedAt: null,
+        }),
+        generatedAt,
+      ),
+    ];
+    const sorted = sortVacancyRows(rows);
+    expect(sorted.map((r) => r.id)).toEqual([13, 12, 11, 10]);
+  });
+
+  it('extractHires returns alphabetically sorted hire/vacancy pairs', () => {
+    const hires = extractHires([
+      createVacancy({
+        id: 1,
+        title: 'Vacancy A',
+        statusName: 'Abierta',
+        createdAt: generatedAt,
+        closedAt: null,
+        candidateStatusNames: ['Contratado', 'Postulado'],
+      }),
+      createVacancy({
+        id: 2,
+        title: 'Vacancy B',
+        statusName: 'Abierta',
+        createdAt: generatedAt,
+        closedAt: null,
+        candidateStatusNames: ['Contratado'],
+      }),
+    ]);
+    expect(hires).toEqual([
+      { candidateName: 'Candidate 1-1', vacancyTitle: 'Vacancy A' },
+      { candidateName: 'Candidate 2-1', vacancyTitle: 'Vacancy B' },
+    ]);
+  });
+
+  it('summary averageDaysOpen ignores closed vacancies and is 0 with no actives', () => {
+    const closedOnly = buildCompanyReportSummary([
+      buildCompanyReportVacancyRow(
+        createVacancy({
+          id: 1,
+          title: 'X',
+          statusName: 'Cubierta',
+          createdAt: new Date('2026-01-01T10:00:00.000Z'),
+          closedAt: new Date('2026-02-01T10:00:00.000Z'),
+        }),
+        generatedAt,
+      ),
+    ]);
+    expect(closedOnly.averageDaysOpen).toBe(0);
+    expect(closedOnly.activeVacancies).toBe(0);
+    expect(closedOnly.closedVacancies).toBe(1);
   });
 
   it('builds a deterministic filename slug', () => {
     const fileName = buildCompanyReportFileName(
       'Compañía Ágil / LATAM',
-      new Date('2026-04-08T10:00:00.000Z'),
+      generatedAt,
     );
-
     expect(fileName).toBe('reporte-empresa-compania-agil-latam-2026-04-08.pdf');
   });
 
-  it('detects cancelled statuses with exact names only', () => {
-    expect(isCancelledCandidateStatus('Cancelada')).toBe(true);
-    expect(isCancelledCandidateStatus('Cancelled')).toBe(true);
-    expect(isCancelledCandidateStatus('cancelada')).toBe(false);
-    expect(isCancelledCandidateStatus('En revisión')).toBe(false);
+  it('computes days between two dates', () => {
+    expect(
+      daysBetween(
+        new Date('2026-04-01T10:00:00.000Z'),
+        new Date('2026-04-08T10:00:00.000Z'),
+      ),
+    ).toBe(7);
   });
 });
 
 function createVacancy(params: {
-  candidateStatusNames: string[];
   id: number;
-  statusName: string;
   title: string;
+  statusName: string;
+  createdAt: Date;
+  closedAt: Date | null;
+  candidateStatusNames?: string[];
+  description?: string;
+  salary?: string;
 }): VacancyApiResponse {
+  const statusNames = params.candidateStatusNames ?? [];
   return {
     id: params.id,
     title: params.title,
-    description: '',
+    description: params.description ?? '',
+    salary: params.salary ?? null,
+    closedAt: params.closedAt,
+    createdAt: params.createdAt,
+    updatedAt: params.createdAt,
+    vacancyFiltersId: null,
+    statusId: 1,
+    companyId: baseCompany.id,
+    organizationId: 1,
     status: {
       id: params.id,
       name: params.statusName,
-      color: '#0066ff',
       sort: 1,
+      isFinal: false,
       organizationId: 1,
-      createdAt: new Date('2026-04-08T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      createdAt: params.createdAt,
+      updatedAt: params.createdAt,
     },
     filters: null,
     company: baseCompany,
-    candidates: params.candidateStatusNames.map((statusName, index) => ({
+    candidates: statusNames.map((statusName, index) => ({
       id: index + 1,
       candidateId: index + 1,
       vacancyId: params.id,
       organizationId: 1,
-      notes: '',
-      createdAt: new Date('2026-04-08T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      candidateVacancyStatusId: index + 1,
+      notes: null,
+      rejectionReason: null,
+      createdAt: params.createdAt,
+      updatedAt: params.createdAt,
       candidate: {
         id: index + 1,
-        name: `Candidate ${index + 1}`,
+        name: `Candidate ${params.id}-${index + 1}`,
         email: `candidate${index + 1}@mail.com`,
-        phone: '',
-        location: '',
-        linkedin: '',
-        portfolio: '',
-        salary: '',
-        currentJobTitle: '',
-        experience: '',
-        education: '',
-        stars: 0,
-        salaryExpectation: '',
-        isAvailable: true,
-        isInCompanyViaPratt: false,
-        deleted: false,
+        sourceId: null,
         organizationId: 1,
         gender: 'none',
-        age: 30,
-        sourceId: null,
-        createdAt: '2026-04-08T10:00:00.000Z',
-        updatedAt: '2026-04-08T10:00:00.000Z',
+        deleted: false,
+        image: null,
+        dateOfBirth: null,
+        shortDescription: null,
+        linkedin: null,
+        address: null,
+        phone: null,
+        stars: null,
+        isInCompanyViaPratt: false,
+        countries: [],
+        provinces: [],
+        languages: [],
+        createdAt: params.createdAt,
+        updatedAt: params.createdAt,
+        source: null,
       },
       status: {
         id: index + 1,
         name: statusName,
-        sort: index + 1,
+        sort: index,
         isInitial: index === 0,
+        isRejection: false,
+        organizationId: 1,
+        createdAt: params.createdAt,
+        updatedAt: params.createdAt,
       },
     })),
-    createdAt: '2026-04-08T10:00:00.000Z',
-    updatedAt: '2026-04-08T10:00:00.000Z',
     createdBy: {
       id: 1,
       name: 'Owner',
       email: 'owner@mail.com',
       roleId: 1,
       active: true,
-      createdAt: '2026-04-08T10:00:00.000Z',
-      lastLogin: '2026-04-08T10:00:00.000Z',
+      createdAt: params.createdAt,
+      lastLogin: params.createdAt,
       userType: 'END_USER',
       organizationId: 1,
     },
@@ -163,10 +329,10 @@ function createVacancy(params: {
       email: 'recruiter@mail.com',
       roleId: 1,
       active: true,
-      createdAt: '2026-04-08T10:00:00.000Z',
-      lastLogin: '2026-04-08T10:00:00.000Z',
+      createdAt: params.createdAt,
+      lastLogin: params.createdAt,
       userType: 'END_USER',
       organizationId: 1,
     },
-  };
+  } as unknown as VacancyApiResponse;
 }

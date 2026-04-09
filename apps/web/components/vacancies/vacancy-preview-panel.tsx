@@ -10,6 +10,7 @@ import {
   Clock,
   Copy,
   DollarSign,
+  Download,
   Edit,
   FileText,
   Filter,
@@ -18,6 +19,11 @@ import {
   UserCheck,
   Users,
 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+import { downloadFile } from "@/lib/download";
+import { downloadVacancyReportPdf } from "@/lib/api/vacancy";
 
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -49,6 +55,16 @@ export function VacancyPreviewPanel({
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isDuplicateSheetOpen, setIsDuplicateSheetOpen] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const downloadReportMutation = useMutation({
+    mutationFn: () =>
+      downloadVacancyReportPdf((vacancy?.id ?? "").toString()),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte PDF.");
+    },
+  });
 
   if (isLoading) {
     return (
@@ -130,7 +146,7 @@ export function VacancyPreviewPanel({
               {vacancy.company.name}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
             <Button
               size="sm"
               variant="brand-ghost"
@@ -146,6 +162,17 @@ export function VacancyPreviewPanel({
             >
               <Copy className="h-3.5 w-3.5 mr-1.5" />
               Duplicar
+            </Button>
+            <Button
+              size="sm"
+              variant="brand-ghost"
+              onClick={() => downloadReportMutation.mutate()}
+              disabled={downloadReportMutation.isPending}
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              {downloadReportMutation.isPending
+                ? "Generando PDF..."
+                : "Descargar reporte"}
             </Button>
             <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
               <Button

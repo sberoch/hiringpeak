@@ -195,6 +195,9 @@ export class VacancyService {
             candidate: {
               with: {
                 source: true,
+                candidateAreas: { with: { area: true } },
+                candidateIndustries: { with: { industry: true } },
+                candidateSeniorities: { with: { seniority: true } },
               },
             },
             candidateVacancyStatus: true,
@@ -486,9 +489,32 @@ export class VacancyService {
       company: result.company,
       candidates: result.candidateVacancies
         .map((cv) => {
-          const { candidateVacancyStatus, ...rest } = cv;
+          const { candidateVacancyStatus, candidate, ...rest } = cv;
+          const {
+            candidateAreas,
+            candidateIndustries,
+            candidateSeniorities,
+            ...candidateRest
+          } = candidate as typeof candidate & {
+            candidateAreas?: Array<{ area: unknown }>;
+            candidateIndustries?: Array<{ industry: unknown }>;
+            candidateSeniorities?: Array<{ seniority: unknown }>;
+          };
           return {
             ...rest,
+            candidate: {
+              ...candidateRest,
+              areas:
+                candidateAreas?.map((ca) => ca.area).filter(Boolean) ?? [],
+              industries:
+                candidateIndustries
+                  ?.map((ci) => ci.industry)
+                  .filter(Boolean) ?? [],
+              seniorities:
+                candidateSeniorities
+                  ?.map((cs) => cs.seniority)
+                  .filter(Boolean) ?? [],
+            },
             status: candidateVacancyStatus,
           };
         })

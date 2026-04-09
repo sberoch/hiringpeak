@@ -1,20 +1,16 @@
-import type { Company } from '@workspace/shared/types/company';
+import { type Company } from '@workspace/shared/types/company';
 import type { VacancyApiResponse } from '../vacancy/vacancy.service';
 import {
-  CANCELLED_CANDIDATE_STATUS_NAMES,
-  COMPANY_REPORT_AMOUNT_PER_VACANCY,
+  COMPANY_REPORT_DESCRIPTION_TRUNCATE_LENGTH,
+  COMPANY_REPORT_HIRED_STATUS_NAME,
   COMPANY_REPORT_LOCALE,
 } from './company-report.constants';
 import type {
   CompanyReportDocumentData,
+  CompanyReportHire,
   CompanyReportSummary,
   CompanyReportVacancyRow,
 } from './company-report.types';
-
-const decimalFormatter = new Intl.NumberFormat(COMPANY_REPORT_LOCALE, {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 const dateFormatter = new Intl.DateTimeFormat(COMPANY_REPORT_LOCALE, {
   day: '2-digit',
@@ -22,28 +18,11 @@ const dateFormatter = new Intl.DateTimeFormat(COMPANY_REPORT_LOCALE, {
   year: 'numeric',
 });
 
-export function isCancelledCandidateStatus(statusName?: string): boolean {
-  if (!statusName) {
-    return false;
+export function formatReportDate(date?: Date | null): string {
+  if (!date) {
+    return '-';
   }
-
-  return CANCELLED_CANDIDATE_STATUS_NAMES.includes(statusName);
-}
-
-export function formatReportDate(date: Date): string {
   return dateFormatter.format(date);
-}
-
-export function formatReportDecimal(value: number): string {
-  return decimalFormatter.format(value);
-}
-
-export function formatReportCurrency(value: number): string {
-  return `$ ${formatReportDecimal(value)}`;
-}
-
-export function formatReportPercentage(value: number): string {
-  return `${formatReportDecimal(value)} %`;
 }
 
 export function buildCompanyReportFileName(
@@ -55,78 +34,150 @@ export function buildCompanyReportFileName(
   return `reporte-empresa-${safeCompanyName}-${fileDate}.pdf`;
 }
 
+export function daysBetween(from: Date, to: Date): number {
+  const ms = to.getTime() - from.getTime();
+  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+}
+
 export function buildCompanyReportData(params: {
   company: Company;
   generatedAt: Date;
   organizationName: string;
   vacancies: VacancyApiResponse[];
 }): CompanyReportDocumentData {
-  const vacancyRows = params.vacancies.map((vacancy) =>
-    buildCompanyReportVacancyRow(vacancy),
+  const vacancyRows = sortVacancyRows(
+    params.vacancies.map((vacancy) =>
+      buildCompanyReportVacancyRow(vacancy, params.generatedAt),
+    ),
   );
   const summary = buildCompanyReportSummary(vacancyRows);
+  const hires = extractHires(params.vacancies);
 
   return {
     organizationName: params.organizationName,
     companyName: params.company.name,
-    generatedAt: params.generatedAt,
+    companyDescription: params.company.description?.trim() || undefined,
     contactInfo: {
-      clientName: params.company.clientName || undefined,
-      clientEmail: params.company.clientEmail || undefined,
-      clientPhone: params.company.clientPhone || undefined,
+      clientName: params.company.clientName?.trim() || undefined,
+      clientEmail: params.company.clientEmail?.trim() || undefined,
+      clientPhone: params.company.clientPhone?.trim() || undefined,
     },
+    generatedAt: params.generatedAt,
     summary,
+    hires,
     vacancies: vacancyRows,
   };
 }
 
-function buildCompanyReportVacancyRow(
+export function buildCompanyReportVacancyRow(
   vacancy: VacancyApiResponse,
+  generatedAt: Date,
 ): CompanyReportVacancyRow {
-  const peopleCount = vacancy.candidates.length;
-  const cancelledCount = vacancy.candidates.filter((candidateVacancy) =>
-    isCancelledCandidateStatus(candidateVacancy.status?.name),
+  const isClosed = !!vacancy.closedAt;
+  const closedAt = vacancy.closedAt ? new Date(vacancy.closedAt) : null;
+  const createdAt = new Date(vacancy.createdAt);
+  const daysOpen = isClosed && closedAt
+    ? daysBetween(createdAt, closedAt)
+    : daysBetween(createdAt, generatedAt);
+
+  const totalCandidates = vacancy.candidates.length;
+  const hiredCandidates = vacancy.candidates.filter(
+    (cv) => cv.status?.name === COMPANY_REPORT_HIRED_STATUS_NAME,
   ).length;
 
   return {
     id: vacancy.id,
     title: vacancy.title,
+    description: truncateDescription(vacancy.description),
     statusName: vacancy.status.name,
-    peopleCount,
-    cancelledCount,
-    cancellationRate:
-      peopleCount > 0 ? (cancelledCount / peopleCount) * 100 : 0,
-    estimatedAmount: COMPANY_REPORT_AMOUNT_PER_VACANCY,
+    isClosed,
+    daysOpen,
+    closedAt,
+    totalCandidates,
+    hiredCandidates,
+    salary: vacancy.salary?.trim() || undefined,
   };
 }
 
-function buildCompanyReportSummary(
-  vacancies: CompanyReportVacancyRow[],
+export function buildCompanyReportSummary(
+  rows: CompanyReportVacancyRow[],
 ): CompanyReportSummary {
-  const totalVacancies = vacancies.length;
-  const totalPeople = vacancies.reduce(
-    (total, vacancy) => total + vacancy.peopleCount,
+  const totalVacancies = rows.length;
+  const activeRows = rows.filter((row) => !row.isClosed);
+  const closedRows = rows.filter((row) => row.isClosed);
+  const totalCandidates = rows.reduce(
+    (sum, row) => sum + row.totalCandidates,
     0,
   );
-  const totalCancelledPeople = vacancies.reduce(
-    (total, vacancy) => total + vacancy.cancelledCount,
+  const hiredCandidates = rows.reduce(
+    (sum, row) => sum + row.hiredCandidates,
     0,
   );
-  const totalEstimatedAmount = vacancies.reduce(
-    (total, vacancy) => total + vacancy.estimatedAmount,
-    0,
-  );
+  const averageDaysOpen =
+    activeRows.length > 0
+      ? activeRows.reduce((sum, row) => sum + row.daysOpen, 0) /
+        activeRows.length
+      : 0;
 
   return {
     totalVacancies,
-    totalPeople,
-    totalCancelledPeople,
-    averagePeoplePerVacancy:
-      totalVacancies > 0 ? totalPeople / totalVacancies : 0,
-    globalCancellationRate:
-      totalPeople > 0 ? (totalCancelledPeople / totalPeople) * 100 : 0,
-    totalEstimatedAmount,
+    activeVacancies: activeRows.length,
+    closedVacancies: closedRows.length,
+    totalCandidates,
+    hiredCandidates,
+    averageDaysOpen,
   };
+}
+
+export function extractHires(
+  vacancies: VacancyApiResponse[],
+): CompanyReportHire[] {
+  const hires: CompanyReportHire[] = [];
+  for (const vacancy of vacancies) {
+    for (const cv of vacancy.candidates) {
+      if (cv.status?.name === COMPANY_REPORT_HIRED_STATUS_NAME) {
+        hires.push({
+          candidateName: cv.candidate.name,
+          vacancyTitle: vacancy.title,
+        });
+      }
+    }
+  }
+  return hires.sort((a, b) =>
+    a.candidateName.localeCompare(b.candidateName, COMPANY_REPORT_LOCALE),
+  );
+}
+
+export function sortVacancyRows(
+  rows: CompanyReportVacancyRow[],
+): CompanyReportVacancyRow[] {
+  return [...rows].sort((a, b) => {
+    if (a.isClosed !== b.isClosed) {
+      return a.isClosed ? 1 : -1;
+    }
+    if (!a.isClosed) {
+      if (a.daysOpen !== b.daysOpen) {
+        return b.daysOpen - a.daysOpen;
+      }
+      return b.id - a.id;
+    }
+    const aClosed = a.closedAt?.getTime() ?? 0;
+    const bClosed = b.closedAt?.getTime() ?? 0;
+    if (aClosed !== bClosed) {
+      return bClosed - aClosed;
+    }
+    return b.id - a.id;
+  });
+}
+
+function truncateDescription(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.length <= COMPANY_REPORT_DESCRIPTION_TRUNCATE_LENGTH) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, COMPANY_REPORT_DESCRIPTION_TRUNCATE_LENGTH).trimEnd()}…`;
 }
 
 function slugifyFileNameSegment(value: string): string {

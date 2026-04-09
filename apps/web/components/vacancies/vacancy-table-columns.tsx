@@ -16,15 +16,25 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { Badge } from "@workspace/ui/components/badge";
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
+import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { DeleteVacancyDialog } from "./delete-vacancy-dialog";
 import { EditVacancySheet } from "./edit-vacancy-sheet";
 import { DuplicateVacancySheet } from "./duplicate-vacancy-sheet";
-import { stringToColor, vacancyDisplayLabel } from "@/lib/utils";
+import {
+  getInitials,
+  stringToColor,
+  vacancyDisplayLabel,
+} from "@/lib/utils";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 import { PermissionGuard } from "../auth/permission-guard";
 import { PermissionCode } from "@workspace/shared/enums";
@@ -239,6 +249,173 @@ export const columns: ColumnDef<Vacancy>[] = [
       return (
         <div className="text-ink">{salary ?? "-"}</div>
       );
+    },
+  },
+  {
+    accessorKey: "createdAt",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
+        >
+          Días de gestión
+          <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <DaysCell createdAt={row.original.createdAt} />,
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => <CellActions vacancy={row.original} />,
+  },
+];
+
+const CandidateAvatarsCell = ({ vacancy }: { vacancy: Vacancy }) => {
+  const total = vacancy.candidates.length;
+  if (total === 0) {
+    return <div className="text-muted-brand text-sm">Sin candidatos</div>;
+  }
+
+  const visible = vacancy.candidates.slice(0, 5);
+  const remaining = total - visible.length;
+
+  return (
+    <TooltipProvider>
+      <div className="flex items-center -space-x-2">
+        {visible.map((cv) => (
+          <Tooltip key={cv.id}>
+            <TooltipTrigger asChild>
+              <Avatar className="size-7 ring-2 ring-surface">
+                {cv.candidate.image && (
+                  <AvatarImage
+                    src={cv.candidate.image}
+                    alt={cv.candidate.name}
+                  />
+                )}
+                <AvatarFallback className="bg-brand-border-light text-[10px] font-semibold text-slate-brand">
+                  {getInitials(cv.candidate.name)}
+                </AvatarFallback>
+              </Avatar>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{cv.candidate.name}</p>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+        {remaining > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex size-7 items-center justify-center rounded-full bg-electric/10 text-[10px] font-semibold text-electric ring-2 ring-surface">
+                +{remaining}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{remaining} candidatos más</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </TooltipProvider>
+  );
+};
+
+const CatalogBadgesCell = ({ vacancy }: { vacancy: Vacancy }) => {
+  const f = vacancy.filters;
+  const seniorities = f?.seniorities ?? [];
+  const areas = f?.areas ?? [];
+  const industries = f?.industries ?? [];
+
+  if (
+    seniorities.length === 0 &&
+    areas.length === 0 &&
+    industries.length === 0
+  ) {
+    return <div className="text-muted-brand text-sm">-</div>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {seniorities.map((s) => (
+        <CatalogBadge key={`s-${s.id}`} label={s.name} type="seniority" />
+      ))}
+      {areas.map((a) => (
+        <CatalogBadge key={`a-${a.id}`} label={a.name} type="area" />
+      ))}
+      {industries.map((i) => (
+        <CatalogBadge key={`i-${i.id}`} label={i.name} type="industry" />
+      ))}
+    </div>
+  );
+};
+
+export const companyDetailColumns: ColumnDef<Vacancy>[] = [
+  {
+    accessorKey: "id",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
+        >
+          Título
+          <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const vacancy: Vacancy = row.original;
+      return (
+        <Link
+          href={`/vacancies/${vacancy.id}`}
+          className="font-medium text-ink hover:text-electric transition-colors"
+        >
+          {vacancyDisplayLabel(vacancy)}
+        </Link>
+      );
+    },
+  },
+  {
+    accessorKey: "status.name",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
+        >
+          Estado
+          <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => <StatusCell vacancy={row.original} />,
+  },
+  {
+    accessorKey: "candidates",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Candidatos</span>
+    ),
+    cell: ({ row }) => <CandidateAvatarsCell vacancy={row.original} />,
+  },
+  {
+    id: "perfil",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Perfil</span>
+    ),
+    cell: ({ row }) => <CatalogBadgesCell vacancy={row.original} />,
+  },
+  {
+    accessorKey: "salary",
+    header: () => (
+      <span className="pl-4 font-semibold text-slate-brand">Compensación</span>
+    ),
+    cell: ({ row }) => {
+      const salary = row.original.salary;
+      return <div className="text-ink">{salary ?? "-"}</div>;
     },
   },
   {
