@@ -58,9 +58,11 @@ import {
   createVacancyFormSchema,
   CreateVacancySchema,
 } from "../new-vacancy.schema";
-import countries from "@/public/assets/countries.json";
-import languages from "@/public/assets/languages.json";
-import provinces from "@/public/assets/provinces.json";
+import {
+  countries,
+  languages,
+  provinceGroups as provinces,
+} from "@workspace/shared/static/catalogs";
 
 function VacancyFormSkeleton() {
   return (
