@@ -21,6 +21,7 @@ import {
   Industry,
   Seniority,
   Candidate,
+  CandidateSource,
   CandidateVacancy as CandidateVacancySchema,
   CandidateVacancyStatus,
   Company,
@@ -62,7 +63,9 @@ type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   company: Company;
   candidateVacancies: Array<
     CandidateVacancySchema & {
-      candidate: Candidate;
+      candidate: Candidate & {
+        source: CandidateSource | null;
+      };
       candidateVacancyStatus: CandidateVacancyStatus;
     }
   >;
@@ -82,7 +85,9 @@ export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   company: Company;
   candidates: Array<
     CandidateVacancySchema & {
-      candidate: Candidate;
+      candidate: Candidate & {
+        source: CandidateSource | null;
+      };
       status: CandidateVacancyStatus;
     }
   >;
@@ -130,7 +135,11 @@ export class VacancyService {
         company: true,
         candidateVacancies: {
           with: {
-            candidate: true,
+            candidate: {
+              with: {
+                source: true,
+              },
+            },
             candidateVacancyStatus: true,
           },
         },
@@ -183,7 +192,11 @@ export class VacancyService {
         company: true,
         candidateVacancies: {
           with: {
-            candidate: true,
+            candidate: {
+              with: {
+                source: true,
+              },
+            },
             candidateVacancyStatus: true,
           },
         },
@@ -229,7 +242,11 @@ export class VacancyService {
         company: true,
         candidateVacancies: {
           with: {
-            candidate: true,
+            candidate: {
+              with: {
+                source: true,
+              },
+            },
             candidateVacancyStatus: true,
           },
         },

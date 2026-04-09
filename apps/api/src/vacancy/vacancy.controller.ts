@@ -7,14 +7,17 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiProduces,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { VacancyService } from './vacancy.service';
 import {
@@ -27,13 +30,17 @@ import { OrganizationId } from '../auth/organization/organization.decorator';
 import { PermissionCode } from '@workspace/shared/enums';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
+import { VacancyReportService } from './vacancy-report.service';
 
 @ApiBearerAuth()
 @UseGuards(OrganizationGuard, PermissionsGuard)
 @ApiTags('Vacancies')
 @Controller('vacancy')
 export class VacancyController {
-  constructor(private readonly vacancyService: VacancyService) {}
+  constructor(
+    private readonly vacancyService: VacancyService,
+    private readonly vacancyReportService: VacancyReportService,
+  ) {}
 
   @ApiOkResponse()
   @Get()
@@ -53,6 +60,32 @@ export class VacancyController {
     @OrganizationId() organizationId: number,
   ) {
     return this.vacancyService.findOne(+id, organizationId);
+  }
+
+  @ApiOkResponse()
+  @Get(':id/report/pdf')
+  @Permissions(PermissionCode.VACANCY_READ)
+  @ApiProduces('application/pdf')
+  async downloadReport(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+    @Res() response: Response,
+  ) {
+    const report = await this.vacancyReportService.generateVacancyReportPdf(
+      +id,
+      organizationId,
+    );
+
+    response.set({
+      'Content-Type': report.contentType,
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+      'Content-Length': report.buffer.length.toString(),
+    });
+
+    response.status(200).end(
+      report.buffer,
+      'binary',
+    );
   }
 
   @ApiCreatedResponse()

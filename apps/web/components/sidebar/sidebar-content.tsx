@@ -3,21 +3,23 @@
 import {
   Briefcase,
   Building2,
+  ChevronLeft,
   ChevronRight,
   Landmark,
   LayoutDashboard,
+  LogOut,
   Settings,
   Users,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { ComponentProps } from "react";
 
 import { SidebarDialogs } from "@/components/sidebar/dialogs";
-import { LogoutButton } from "@/components/sidebar/logout";
 import { usePermissions } from "@/contexts/permission-context";
-import { DialogsIdsEnum } from "@/lib/consts";
+import { DialogsIdsEnum, REDIRECT_UNAUTHORIZED } from "@/lib/consts";
 import { PermissionCode } from "@workspace/shared/enums";
 import {
   Collapsible,
@@ -25,17 +27,26 @@ import {
   CollapsibleTrigger,
 } from "@workspace/ui/components/collapsible";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@workspace/ui/components/sidebar";
 
 interface SidebarItem {
@@ -153,6 +164,9 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   },
 ];
 
+const activeNavClass =
+  "data-[active=true]:bg-sidebar-primary/10 data-[active=true]:text-sidebar-primary data-[active=true]:font-semibold";
+
 interface SidebarContentProps {
   otherProps: ComponentProps<typeof Sidebar>;
 }
@@ -160,7 +174,11 @@ interface SidebarContentProps {
 export function AppSidebarContent({ otherProps }: SidebarContentProps) {
   const pathname = usePathname();
   const { hasAnyPermission, isLoading } = usePermissions();
-  const { ...props } = otherProps;
+  const { collapsible = "icon", ...sidebarProps } = otherProps;
+  const { toggleSidebar, state, isMobile, openMobile } = useSidebar();
+  const showIconOnly = !isMobile && state === "collapsed";
+  /** Desktop: expanded sidebar; mobile: sheet open (open state alone is cookie/desktop). */
+  const sidebarUiExpanded = isMobile ? openMobile : state === "expanded";
 
   const canSee = (requiredPermissions?: PermissionCode[]) =>
     !requiredPermissions?.length || hasAnyPermission(requiredPermissions);
@@ -183,24 +201,27 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
   if (isLoading) return null;
 
   return (
-    <Sidebar {...props}>
+    <Sidebar collapsible={collapsible} {...sidebarProps}>
       <SidebarHeader className="p-0">
-        <div className="py-6 px-5 flex items-center border-b border-sidebar-border">
-          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+        <div className="flex items-center border-b border-sidebar-border px-5 py-6 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-4">
+          <Link
+            href="/dashboard"
+            className="group flex items-center gap-2.5 group-data-[collapsible=icon]:gap-0"
+          >
             <Image
               src="/images/logo.png"
               alt="HiringPeak"
               width={36}
               height={36}
-              className="h-9 w-auto group-hover:scale-105 transition-transform duration-200"
+              className="h-9 w-auto transition-transform duration-200 group-hover:scale-105 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-contain"
             />
-            <span className="font-sans text-lg font-bold tracking-tight text-ink">
+            <span className="font-sans text-lg font-bold tracking-tight text-ink group-data-[collapsible=icon]:sr-only">
               HiringPeak
             </span>
           </Link>
         </div>
       </SidebarHeader>
-      <SidebarContent className="gap-0 pt-4 overflow-x-hidden">
+      <SidebarContent className="gap-0 overflow-x-hidden pt-4 group-data-[collapsible=icon]:pt-2">
         {SIDEBAR_SECTIONS.map((section) => {
           const visibleItems = section.items.filter((itm) =>
             canSee(itm.requiredPermissions),
@@ -208,70 +229,119 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
           if (visibleItems.length === 0) return null;
 
           return (
-            <SidebarGroup key={section.label} className="px-3 py-0 mb-6">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-brand px-3 mb-2">
+            <SidebarGroup
+              key={section.label}
+              className="mb-6 px-3 py-0 group-data-[collapsible=icon]:px-0"
+            >
+              <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-widest text-muted-brand group-data-[collapsible=icon]:hidden">
                 {section.label}
               </p>
               <SidebarGroupContent>
-                {visibleItems.map((item) => {
-                  const isActive = isActiveItem(item.url);
-                  const hasActiveSubItem = item.items?.some((subItem) =>
-                    isActiveSubItem(subItem.url, item.url),
-                  );
+                <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+                  {visibleItems.map((item) => {
+                    const isActive = isActiveItem(item.url);
+                    const hasActiveSubItem = item.items?.some((subItem) =>
+                      isActiveSubItem(subItem.url, item.url),
+                    );
+                    const parentActive = isActive || hasActiveSubItem;
+                    const visibleSubItems =
+                      item.items?.filter((subItm) =>
+                        canSee(subItm.requiredPermissions),
+                      ) ?? [];
 
-                  return (
-                    <Collapsible
-                      key={item.id}
-                      title={item.title}
-                      defaultOpen
-                      className="group/collapsible py-0.5"
-                    >
-                      <SidebarGroupLabel
-                        asChild
-                        className={`group/label w-full text-[13px] font-medium transition-all duration-200 relative rounded-lg px-3 py-2.5 ${
-                          isActive || hasActiveSubItem
-                            ? "bg-sidebar-primary/10 text-sidebar-primary font-semibold"
-                            : "text-slate-brand hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                        }`}
-                      >
-                        {item.items ? (
-                          <CollapsibleTrigger>
-                            <span className="mr-2.5 opacity-80">
+                    if (!item.items?.length) {
+                      return (
+                        <SidebarMenuItem key={item.id}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            tooltip={item.title}
+                            className={activeNavClass}
+                          >
+                            <Link href={item.url}>
                               {item.icon}
-                            </span>
-                            {item.title}
-                            <ChevronRight className="ml-auto w-3.5 h-3.5 opacity-50 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    }
+
+                    if (showIconOnly) {
+                      return (
+                        <SidebarMenuItem key={item.id}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <SidebarMenuButton
+                                isActive={parentActive}
+                                tooltip={item.title}
+                                className={activeNavClass}
+                              >
+                                {item.icon}
+                                <span>{item.title}</span>
+                              </SidebarMenuButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              className="w-56"
+                              side="right"
+                              align="start"
+                            >
+                              {visibleSubItems.map((subItem) =>
+                                subItem.dialogId ? (
+                                  <DropdownMenuItem key={subItem.id} asChild>
+                                    <Link
+                                      href={`?action=${subItem.dialogId}`}
+                                    >
+                                      {subItem.title}
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem key={subItem.id} asChild>
+                                    <Link href={subItem.url}>
+                                      {subItem.title}
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ),
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </SidebarMenuItem>
+                      );
+                    }
+
+                    return (
+                      <SidebarMenuItem key={item.id}>
+                        <Collapsible
+                          defaultOpen
+                          className="group/collapsible min-w-0 w-full"
+                        >
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton
+                              isActive={parentActive}
+                              className={activeNavClass}
+                            >
+                              {item.icon}
+                              <span className="truncate">{item.title}</span>
+                              <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
                           </CollapsibleTrigger>
-                        ) : (
-                          <Link href={item.url}>
-                            <span className="mr-2.5 opacity-80">
-                              {item.icon}
-                            </span>
-                            {item.title}
-                          </Link>
-                        )}
-                      </SidebarGroupLabel>
-                      {item.items && (
-                        <CollapsibleContent>
-                          <SidebarMenu className="mt-1">
-                            {item.items
-                              .filter((subItm) =>
-                                canSee(subItm.requiredPermissions),
-                              )
-                              .map((subItem) => {
+                          <CollapsibleContent>
+                            <SidebarMenuSub>
+                              {visibleSubItems.map((subItem) => {
                                 const isSubActive = isActiveSubItem(
                                   subItem.url,
                                   item.url,
                                 );
                                 return (
-                                  <SidebarMenuItem key={subItem.id}>
-                                    <SidebarMenuButton
+                                  <SidebarMenuSubItem key={subItem.id}>
+                                    <SidebarMenuSubButton
                                       asChild
-                                      className={`text-[13px] rounded-md pl-10 pr-3 py-2 transition-all duration-200 ${
+                                      isActive={isSubActive}
+                                      className={
                                         isSubActive
-                                          ? "text-sidebar-primary font-medium bg-sidebar-primary/5"
-                                          : "text-slate-brand hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                                      }`}
+                                          ? "bg-sidebar-primary/5 font-medium text-sidebar-primary"
+                                          : "text-slate-brand hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                                      }
                                     >
                                       {subItem.dialogId ? (
                                         <Link
@@ -284,23 +354,71 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
                                           {subItem.title}
                                         </Link>
                                       )}
-                                    </SidebarMenuButton>
-                                  </SidebarMenuItem>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
                                 );
                               })}
-                          </SidebarMenu>
-                        </CollapsibleContent>
-                      )}
-                    </Collapsible>
-                  );
-                })}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           );
         })}
       </SidebarContent>
-      <SidebarFooter className="p-0 border-t border-sidebar-border shrink-0">
-        <LogoutButton />
+
+      <SidebarFooter className="shrink-0 gap-0 border-t border-sidebar-border p-0">
+        <SidebarMenu className="px-2 py-3 group-data-[collapsible=icon]:px-1">
+          <SidebarMenuItem>
+            {sidebarUiExpanded ? (
+              <SidebarMenuButton
+                type="button"
+                onClick={toggleSidebar}
+                aria-expanded
+                tooltip="Colapsar menú"
+                className="text-slate-brand hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium group-data-[collapsible=icon]:hidden">
+                  Colapsar menú
+                </span>
+                <ChevronLeft
+                  className="ml-auto h-4 w-4 shrink-0 opacity-70 group-data-[collapsible=icon]:hidden"
+                  aria-hidden
+                />
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton
+                type="button"
+                onClick={toggleSidebar}
+                aria-expanded={false}
+                tooltip="Expandir menú"
+                className="text-slate-brand hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <ChevronRight className="h-4 w-4 opacity-70" aria-hidden />
+                <span className="sr-only">Expandir menú</span>
+              </SidebarMenuButton>
+            )}
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              type="button"
+              tooltip="Cerrar sesión"
+              className="text-slate-brand hover:bg-red-50/80 hover:text-red-600"
+              onClick={() => {
+                signOut({
+                  callbackUrl: `${window.location.origin}${REDIRECT_UNAUTHORIZED}`,
+                });
+              }}
+            >
+              <LogOut className="h-4 w-4 transition-transform duration-200 group-hover:scale-105" />
+              <span className="text-[13px] font-medium">Cerrar sesión</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
       <SidebarDialogs />
