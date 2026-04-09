@@ -182,7 +182,7 @@ export const AddCandidatesDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[90%] max-w-none max-h-[90vh] overflow-y-auto rounded-2xl border-brand-border bg-surface">
+      <DialogContent className="min-w-[900px]  w-fit max-h-[90vh] overflow-y-auto rounded-2xl border-brand-border bg-surface">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold tracking-tight text-ink !leading-tight">
             Agregar postulantes a &quot;{vacancyDisplayLabel(vacancy)}&quot;

@@ -3,6 +3,7 @@
 import dayjs from "dayjs";
 import {
   Briefcase,
+  Download,
   Edit,
   Plus,
   Trash,
@@ -11,13 +12,17 @@ import {
 import { useRouter } from "next/navigation";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
+import { downloadFile } from "@/lib/download";
 import { stringToColor, vacancyDisplayLabel } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { WorkflowInfoDialog } from "@workspace/ui/components/workflow-info-dialog";
+import { downloadVacancyReportPdf } from "@/lib/api/vacancy";
 import { PermissionGuard } from "../../auth/permission-guard";
 import { DeleteVacancyDialog } from "../delete-vacancy-dialog";
 import { EditVacancySheet } from "../edit-vacancy-sheet";
@@ -39,6 +44,15 @@ export const VacancyDetailHeader = ({
     useState(false);
   const [isWorkflowInfoDialogOpen, setIsWorkflowInfoDialogOpen] =
     useState(false);
+  const downloadReportMutation = useMutation({
+    mutationFn: () => downloadVacancyReportPdf(vacancy.id.toString()),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte PDF.");
+    },
+  });
 
   const color = stringToColor(vacancy.status.name);
 
@@ -101,6 +115,17 @@ export const VacancyDetailHeader = ({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="brand"
+            onClick={() => downloadReportMutation.mutate()}
+            disabled={downloadReportMutation.isPending}
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            {downloadReportMutation.isPending
+              ? "Generando PDF..."
+              : "Descargar PDF"}
+          </Button>
           <Button
             size="sm"
             variant="brand-ghost"
