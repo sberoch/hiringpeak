@@ -7,7 +7,7 @@ import {
   Patch,
   Post,
   Query,
-  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,7 +17,6 @@ import {
   ApiProduces,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { VacancyService } from './vacancy.service';
 import {
@@ -69,23 +68,17 @@ export class VacancyController {
   async downloadReport(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
-    @Res() response: Response,
-  ) {
+  ): Promise<StreamableFile> {
     const report = await this.vacancyReportService.generateVacancyReportPdf(
       +id,
       organizationId,
     );
 
-    response.set({
-      'Content-Type': report.contentType,
-      'Content-Disposition': `attachment; filename="${report.fileName}"`,
-      'Content-Length': report.buffer.length.toString(),
+    return new StreamableFile(report.buffer, {
+      type: report.contentType,
+      disposition: `attachment; filename="${report.fileName}"`,
+      length: report.buffer.length,
     });
-
-    response.status(200).end(
-      report.buffer,
-      'binary',
-    );
   }
 
   @ApiCreatedResponse()
