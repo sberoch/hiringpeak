@@ -14,9 +14,9 @@ export const AiVacancyDraftFiltersSchema = z.object({
 });
 
 export const AiVacancyDraftSchema = z.object({
-  title: z.string().optional().or(z.literal("")),
-  description: z.string().optional().or(z.literal("")),
-  salary: z.string().optional().nullable().or(z.literal("")),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  salary: z.string().optional().nullable(),
   companyId: z.number().int().optional(),
   filters: AiVacancyDraftFiltersSchema,
 });
@@ -48,4 +48,3 @@ export type ExtractVacancyAiResponseDto = z.infer<
   typeof ExtractVacancyAiResponseSchema
 >;
 export type CreateAiVacancyDto = z.infer<typeof CreateAiVacancySchema>;
-

@@ -26,7 +26,7 @@ export class AuthController {
   @UseGuards(FeatureFlagGuard)
   @RequireFeatureFlags([FeatureFlag.LOGIN_ENABLED], 'all')
   async login(@Body() loginDto: LoginDto) {
-    this.logger.log(`loginDto: ${JSON.stringify(loginDto)}`);
+    this.logger.log(`Login request received via ${loginDto.origin ?? 'web'}`);
     return this.authService.loginWithOrigin(loginDto);
   }
 

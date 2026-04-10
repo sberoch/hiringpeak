@@ -30,6 +30,7 @@ import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 import { PermissionModule } from './permission/permission.module';
 import { RoleModule } from './role/role.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { LoggerModule } from './common/logger/logger.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
       global: true,
       middleware: { mount: true },
     }),
+    LoggerModule,
     DrizzleModule,
     FeatureFlagModule,
     UserModule,

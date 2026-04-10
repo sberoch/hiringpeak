@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { generateText, Output, stepCountIs, tool } from 'ai';
+import { generateText, hasToolCall, Output, stepCountIs, tool } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import { asc, and, eq, inArray } from 'drizzle-orm';
@@ -55,6 +55,7 @@ const EXTRACTION_RESULT_SCHEMA = z.object({
   draft: AiVacancyDraftSchema,
   metadata: EXTRACTION_METADATA_SCHEMA,
 });
+const SUBMIT_DRAFT_CONTEXT_TOOL = 'submitDraftContext';
 
 type CatalogContext = {
   areas: IdCatalogOption[];
@@ -245,14 +246,50 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
   return sanitizedDraft;
 }
 
-function buildToolPrompt(catalogs: CatalogContext) {
+function combineUsage(...usages: Array<{ [key: string]: any } | undefined>) {
+  const definedUsages = usages.filter((usage): usage is NonNullable<typeof usage> =>
+    usage != null,
+  );
+
+  const sum = (values: Array<number | undefined>) =>
+    values.some((value) => value != null)
+      ? values.reduce((accumulator, value) => accumulator + (value ?? 0), 0)
+      : undefined;
+
+  return {
+    inputTokens: sum(definedUsages.map((usage) => usage.inputTokens)),
+    inputTokenDetails: {
+      noCacheTokens: sum(
+        definedUsages.map((usage) => usage.inputTokenDetails?.noCacheTokens),
+      ),
+      cacheReadTokens: sum(
+        definedUsages.map((usage) => usage.inputTokenDetails?.cacheReadTokens),
+      ),
+      cacheWriteTokens: sum(
+        definedUsages.map((usage) => usage.inputTokenDetails?.cacheWriteTokens),
+      ),
+    },
+    outputTokens: sum(definedUsages.map((usage) => usage.outputTokens)),
+    outputTokenDetails: {
+      textTokens: sum(
+        definedUsages.map((usage) => usage.outputTokenDetails?.textTokens),
+      ),
+      reasoningTokens: sum(
+        definedUsages.map((usage) => usage.outputTokenDetails?.reasoningTokens),
+      ),
+    },
+    totalTokens: sum(definedUsages.map((usage) => usage.totalTokens)),
+  };
+}
+
+function buildContextGenerationPrompt(catalogs: CatalogContext) {
   return `
-Eres un extractor de vacantes para un ATS.
+Eres un resolutor de contexto para vacantes en un ATS.
 
 Objetivo:
 - Leer un prompt libre del usuario.
-- Inferir un borrador de vacante y filtros de postulantes.
-- Usar herramientas para resolver ids y listas permitidas.
+- Resolver ids y listas permitidas usando herramientas.
+- Construir un contexto preliminar para una extracción estructurada posterior.
 
 Reglas:
 - Haz el mejor esfuerzo para inferir title y description si el usuario no los expresa literalmente.
@@ -263,6 +300,9 @@ Reglas:
 - Interpreta listas con "y" u "o" como arreglos OR. Nunca conviertas eso en lógica AND estructurada.
 - Si un dato no está, déjalo vacío.
 - filters siempre debe existir.
+- No respondas con texto final.
+- Cuando termines, llama exactamente una vez a la herramienta ${SUBMIT_DRAFT_CONTEXT_TOOL}.
+- Si no necesitas buscar nada, igual debes terminar llamando ${SUBMIT_DRAFT_CONTEXT_TOOL}.
 
 Contexto adicional:
 - Hay ${catalogs.seniorities.length} seniorities cargados.
@@ -272,8 +312,47 @@ Contexto adicional:
 `;
 }
 
+function buildStructuredExtractionPrompt(
+  originalPrompt: string,
+  resolvedContext: ExtractionResult,
+) {
+  return `
+Eres un extractor final de vacantes para un ATS.
+
+Debes producir un resultado estructurado final.
+
+Instrucciones:
+- Usa el prompt original y el contexto resuelto como base.
+- Conserva exactamente los ids y listas ya resueltos en el contexto.
+- Nunca inventes ids nuevos.
+- Puedes mejorar title, description y salary para que sean claros y útiles.
+- Si falta un dato, déjalo vacío.
+- filters siempre debe existir.
+
+Prompt original:
+${originalPrompt}
+
+Contexto resuelto:
+${JSON.stringify(resolvedContext, null, 2)}
+`;
+}
+
+function getSubmittedDraftContext(toolCalls: Array<{ toolName: string; input: unknown }>) {
+  const finalToolCall = [...toolCalls]
+    .reverse()
+    .find((toolCall) => toolCall.toolName === SUBMIT_DRAFT_CONTEXT_TOOL);
+
+  if (!finalToolCall) {
+    throw new Error('Vacancy AI context generation did not submit draft context');
+  }
+
+  return EXTRACTION_RESULT_SCHEMA.parse(finalToolCall.input);
+}
+
 @Injectable()
 export class VacancyAiService {
+  private readonly logger = new Logger(VacancyAiService.name);
+
   constructor(
     @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
     private readonly configService: ConfigService,
@@ -295,21 +374,39 @@ export class VacancyAiService {
     const catalogs = await this.loadCatalogContext(params.organizationId);
 
     try {
-      const result = await generateText({
+      const contextResult = await generateText({
         model: google(modelName),
-        system: buildToolPrompt(catalogs),
+        system: buildContextGenerationPrompt(catalogs),
         prompt: params.prompt,
+        tools: this.buildContextTools(catalogs),
+        toolChoice: 'required',
+        stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
+      });
+
+      const resolvedContext = getSubmittedDraftContext(contextResult.toolCalls);
+      const sanitizedContext: ExtractionResult = {
+        draft: sanitizeDraft(resolvedContext.draft, catalogs),
+        metadata: resolvedContext.metadata,
+      };
+
+      const structuredResult = await generateText({
+        model: google(modelName),
+        system: 'Eres un extractor final de vacantes para un ATS.',
+        prompt: buildStructuredExtractionPrompt(params.prompt, sanitizedContext),
         output: Output.object({
           schema: EXTRACTION_RESULT_SCHEMA,
           name: 'vacancy_draft_extraction',
           description: 'Structured vacancy draft extraction result',
         }),
-        tools: this.buildTools(catalogs),
-        stopWhen: stepCountIs(12),
       });
-      console.log('result ->', result);
 
-      const sanitizedDraft = sanitizeDraft(result.output.draft, catalogs);
+      const sanitizedDraft = sanitizeDraft(structuredResult.output.draft, catalogs);
+      this.logger.debug({
+        model: modelName,
+        publicToken,
+        usage: combineUsage(contextResult.usage, structuredResult.usage),
+      });
+
       const latencyMs = Date.now() - startedAt;
 
       await this.vacancyAiAnalyticsService.createRun({
@@ -319,13 +416,19 @@ export class VacancyAiService {
         prompt: params.prompt,
         model: modelName,
         status: 'succeeded',
-        responseText: result.text,
+        responseText: structuredResult.text,
         draft: sanitizedDraft,
         extractionMetadata: toJsonValue({
-          metadata: result.output.metadata,
-          steps: result.steps,
+          contextMetadata: sanitizedContext.metadata,
+          contextSteps: contextResult.steps,
+          finalMetadata: structuredResult.output.metadata,
+          structuredSteps: structuredResult.steps,
         }),
-        totalUsage: toJsonValue(result.usage),
+        totalUsage: toJsonValue({
+          contextGeneration: contextResult.usage,
+          structuredExtraction: structuredResult.usage,
+          combined: combineUsage(contextResult.usage, structuredResult.usage),
+        }),
         latencyMs,
       });
 
@@ -334,7 +437,10 @@ export class VacancyAiService {
         draft: sanitizedDraft,
       };
     } catch (error) {
-      console.warn('error ->', error);
+      this.logger.error(
+        `Vacancy AI extraction failed for token ${publicToken}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       const latencyMs = Date.now() - startedAt;
       const fallbackDraft = createEmptyDraft();
       const errorMessage =
@@ -555,7 +661,20 @@ export class VacancyAiService {
     };
   }
 
-  private buildTools(catalogs: CatalogContext) {
+  private buildContextTools(catalogs: CatalogContext) {
+    return {
+      ...this.buildLookupTools(catalogs),
+      [SUBMIT_DRAFT_CONTEXT_TOOL]: tool({
+        description:
+          'Submit the resolved vacancy draft context after using search tools as needed.',
+        inputSchema: EXTRACTION_RESULT_SCHEMA,
+        strict: true,
+        execute: async (input) => input,
+      }),
+    };
+  }
+
+  private buildLookupTools(catalogs: CatalogContext) {
     const countryOptions = countries.map((country) => ({
       value: country.name,
     }));

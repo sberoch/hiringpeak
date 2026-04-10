@@ -44,6 +44,8 @@ import { CreateAiVacancyDto, ExtractVacancyAiDto } from './vacancy-ai.dto';
 @ApiTags('Vacancies')
 @Controller('vacancy')
 export class VacancyController {
+  private readonly logger = new Logger(VacancyController.name);
+
   constructor(
     private readonly vacancyService: VacancyService,
     private readonly vacancyReportService: VacancyReportService,
@@ -114,7 +116,7 @@ export class VacancyController {
     @CurrentUser() user: CurrentUserStore['user'],
     @OrganizationId() organizationId: number,
   ) {
-    Logger.warn('ESTOY ACA_>>>>>>>>>>>>>>');
+    this.logger.log('Vacancy AI extraction requested');
     const userId =
       typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
 
