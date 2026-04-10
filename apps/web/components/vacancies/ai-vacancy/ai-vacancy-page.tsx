@@ -5,17 +5,19 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  BriefcaseBusiness,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { BriefcaseBusiness, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import {
@@ -49,11 +51,7 @@ import { aiDraftToCandidateParams, normalizeAiVacancyDraft } from "@/lib/vacancy
 import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type { AiVacancyDraft } from "@workspace/shared/types/vacancy-ai";
 
-const EXAMPLE_PROMPTS = [
-  "Busco gerente comercial para retail en Argentina, seniority gerente, experiencia en consumo masivo, inglés, foco en expansión regional.",
-  "Necesito una directora de finanzas para industria farma, liderazgo regional, español e inglés, base en Buenos Aires.",
-  "Quiero un jefe de logística para industria automotriz en Córdoba, con equipos a cargo y experiencia en planta.",
-];
+
 
 function hasSelectedCompany(draft: AiVacancyDraft | null) {
   return draft?.companyId != null;
@@ -61,20 +59,18 @@ function hasSelectedCompany(draft: AiVacancyDraft | null) {
 
 function CandidatePanelSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
-          className="overflow-hidden rounded-xl border border-brand-border bg-surface"
+          className="flex overflow-hidden rounded-2xl border border-brand-border bg-surface"
         >
-          <div className="flex">
-            <div className="h-40 w-24 shrink-0 bg-brand-border-light" />
-            <div className="flex-1 space-y-3 p-4">
-              <Skeleton className="h-5 w-2/3" />
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
-            </div>
+          <div className="h-40 w-1/4 shrink-0 bg-brand-border-light lg:w-1/3" />
+          <div className="min-w-0 flex-1 space-y-3 p-4">
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
           </div>
         </div>
       ))}
@@ -230,106 +226,51 @@ export function AiVacancyPage() {
     <div className="flex flex-col gap-8 pb-16">
       <div className="flex items-center justify-between gap-4">
         <PageHeading
-          icon={Sparkles}
-          title="Crear vacante con IA"
-          description="Redacta lo que necesitas y conviértelo en un borrador editable con candidatos sugeridos."
+          icon={BriefcaseBusiness}
+          title="Nueva vacante asistida"
+          description="Describí el rol en texto libre; generamos un borrador para que revises datos, filtros y candidatos."
         />
         <Button asChild variant="outline">
           <Link href="/vacancies">Volver a vacantes</Link>
         </Button>
       </div>
 
-      <section className="relative overflow-hidden rounded-2xl border border-electric/20 bg-[#101218] text-white shadow-[0_20px_60px_-30px_rgba(0,102,255,0.55)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(0,102,255,0.22),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_28%)]" />
-        <div className="relative grid gap-8 p-6 lg:grid-cols-[1.25fr_280px] lg:p-8">
-          <div className="space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.18em] text-white/70">
-              <Sparkles className="h-3.5 w-3.5" />
-              Prompt to draft
-            </div>
-            <div className="space-y-2">
-              <h2 className="max-w-3xl text-3xl font-bold leading-tight text-white">
-                Describe la vacante como la imaginas y deja que el sistema arme el primer recorte.
-              </h2>
-              <p className="max-w-2xl text-sm leading-6 text-white/70">
-                El resultado es un borrador. Puedes cambiar filtros, ajustar título y descripción, y seleccionar los candidatos antes de crear la vacante definitiva.
-              </p>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="vacancy-ai-prompt" className="text-white/80">
-                Qué estás buscando
-              </Label>
-              <Textarea
-                id="vacancy-ai-prompt"
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                placeholder="Ej: Busco gerente comercial para retail en Buenos Aires, con inglés, experiencia en consumo masivo y liderazgo regional."
-                className="min-h-[160px] rounded-2xl border-white/10 bg-black/20 text-base text-white placeholder:text-white/35 focus-visible:border-electric focus-visible:ring-electric/20"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {EXAMPLE_PROMPTS.map((examplePrompt) => (
-                <Button
-                  key={examplePrompt}
-                  type="button"
-                  variant="outline"
-                  className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
-                  onClick={() => setPrompt(examplePrompt)}
-                >
-                  {examplePrompt}
-                </Button>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                className="rounded-md bg-white text-black hover:bg-white/90"
-                disabled={extractMutation.isPending}
-                onClick={handlePromptSubmit}
-              >
-                {extractMutation.isPending ? "Generando borrador..." : "Generar borrador"}
-              </Button>
-              <p className="text-sm text-white/60">
-                Modificar filtros reinicia la selección de candidatos para mantener el borrador consistente.
-              </p>
-            </div>
+      <Card className="rounded-2xl border-brand-border bg-surface">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-ink">
+            Texto inicial del rol
+          </CardTitle>
+          <CardDescription>
+            El resultado es un borrador: podés ajustar filtros, título y descripción, y elegir
+            candidatos antes de publicar la vacante.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="vacancy-ai-prompt">Qué estás buscando</Label>
+            <Textarea
+              id="vacancy-ai-prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="Ej: Busco gerente comercial para retail en Buenos Aires, con inglés, experiencia en consumo masivo y liderazgo regional."
+              className="min-h-[160px] text-base"
+            />
           </div>
-
-          <div className="flex items-end justify-center lg:justify-end">
-            <div className="relative w-full max-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-              <div className="space-y-3">
-                <Badge className="rounded-full bg-white/10 text-white hover:bg-white/10">
-                  Primera pasada
-                </Badge>
-                <div>
-                  <div className="text-sm text-white/65">Paso 1</div>
-                  <div className="text-lg font-semibold">Prompt y extracción</div>
-                </div>
-                <div>
-                  <div className="text-sm text-white/65">Paso 2</div>
-                  <div className="text-lg font-semibold">Preview y selección</div>
-                </div>
-                <div>
-                  <div className="text-sm text-white/65">Paso 3</div>
-                  <div className="text-lg font-semibold">Confirmación final</div>
-                </div>
-              </div>
-              <Image
-                src="/images/search.png"
-                alt="Vista previa de búsqueda"
-                width={220}
-                height={220}
-                className="mt-6 h-auto w-full rounded-xl object-cover"
-                priority
-              />
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              disabled={extractMutation.isPending}
+              onClick={handlePromptSubmit}
+            >
+              {extractMutation.isPending ? "Generando vacante..." : "Generar vacante"}
+            </Button>
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
       {draft ? (
         <section className="grid gap-6 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <Card className="rounded-2xl border-brand-border bg-surface">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-semibold text-ink">

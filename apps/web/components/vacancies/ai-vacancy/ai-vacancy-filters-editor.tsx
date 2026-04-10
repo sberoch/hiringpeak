@@ -78,16 +78,20 @@ export function AiVacancyFiltersEditor({
       .flatMap((group) => group.provinces);
   }, [filters.countries]);
 
+  const filterGridClass =
+    "grid min-w-0 grid-cols-1 gap-3 @sm:grid-cols-2 @lg:grid-cols-3";
+
   return (
-    <Card className="rounded-2xl border-brand-border bg-surface">
+    <Card className="@container min-w-0 rounded-2xl border-brand-border bg-surface">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-ink">
           Filtros sugeridos
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
+      <CardContent className="min-w-0 space-y-4">
+        <div className={filterGridClass}>
           <MultiSelector
+            className="min-w-0"
             values={
               (filters.seniorityIds ?? [])
                 .map((id) =>
@@ -106,7 +110,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger>
+            <MultiSelectorTrigger className="min-w-0">
               <MultiSelectorInput placeholder="Seleccionar seniority" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
@@ -125,6 +129,7 @@ export function AiVacancyFiltersEditor({
           </MultiSelector>
 
           <MultiSelector
+            className="min-w-0"
             values={
               (filters.areaIds ?? [])
                 .map((id) => areasData?.items.find((item) => item.id === id)?.name)
@@ -141,7 +146,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger>
+            <MultiSelectorTrigger className="min-w-0">
               <MultiSelectorInput placeholder="Seleccionar área" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
@@ -160,6 +165,7 @@ export function AiVacancyFiltersEditor({
           </MultiSelector>
 
           <MultiSelector
+            className="min-w-0"
             values={
               (filters.industryIds ?? [])
                 .map((id) =>
@@ -178,7 +184,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger>
+            <MultiSelectorTrigger className="min-w-0">
               <MultiSelectorInput placeholder="Seleccionar industria" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
@@ -197,8 +203,9 @@ export function AiVacancyFiltersEditor({
           </MultiSelector>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className={filterGridClass}>
           <Input
+            className="min-w-0"
             type="number"
             min="0"
             max="5"
@@ -222,7 +229,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className="min-w-0 w-full">
               <SelectValue placeholder="Sin preferencia de género" />
             </SelectTrigger>
             <SelectContent>
@@ -232,8 +239,9 @@ export function AiVacancyFiltersEditor({
             </SelectContent>
           </Select>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid min-w-0 grid-cols-2 gap-3">
             <Input
+              className="min-w-0"
               type="number"
               min="18"
               placeholder="Edad mín."
@@ -246,6 +254,7 @@ export function AiVacancyFiltersEditor({
               }}
             />
             <Input
+              className="min-w-0"
               type="number"
               min="18"
               placeholder="Edad máx."
@@ -260,8 +269,9 @@ export function AiVacancyFiltersEditor({
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className={filterGridClass}>
           <MultiSelector
+            className="min-w-0"
             values={filters.countries ?? []}
             onValuesChange={(names) => {
               const nextAvailableProvinces = provinceGroups
@@ -278,7 +288,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger>
+            <MultiSelectorTrigger className="min-w-0">
               <MultiSelectorInput placeholder="Seleccionar país" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
@@ -297,6 +307,7 @@ export function AiVacancyFiltersEditor({
           </MultiSelector>
 
           <MultiSelector
+            className="min-w-0"
             values={filters.provinces ?? []}
             onValuesChange={(names) => {
               onChange({
@@ -305,7 +316,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger>
+            <MultiSelectorTrigger className="min-w-0">
               <MultiSelectorInput placeholder="Seleccionar provincia" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
@@ -324,6 +335,7 @@ export function AiVacancyFiltersEditor({
           </MultiSelector>
 
           <MultiSelector
+            className="min-w-0"
             values={filters.languages ?? []}
             onValuesChange={(names) => {
               onChange({
@@ -332,7 +344,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger>
+            <MultiSelectorTrigger className="min-w-0">
               <MultiSelectorInput placeholder="Seleccionar idioma" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
