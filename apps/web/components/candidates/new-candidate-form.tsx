@@ -41,9 +41,11 @@ import {
   getCandidateVacancyStatus,
   CANDIDATE_VACANCY_STATUS_API_KEY,
 } from "@/lib/api/candidate-vacancy-status";
-import countries from "@/public/assets/countries.json";
-import languages from "@/public/assets/languages.json";
-import provinces from "@/public/assets/provinces.json";
+import {
+  countries,
+  languages,
+  provinceGroups as provinces,
+} from "@workspace/shared/static/catalogs";
 import {
   generateCandidateFilePath,
   generateCandidateImagePath,

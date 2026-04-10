@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -30,15 +31,25 @@ import { PermissionCode } from '@workspace/shared/enums';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { VacancyReportService } from './vacancy-report.service';
+import { CurrentUser } from '../auth/auth.decorators';
+import type { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { FeatureFlag } from '../feature-flag/feature-flag.enum';
+import { FeatureFlagGuard } from '../feature-flag/feature-flag.guard';
+import { RequireFeatureFlags } from '../feature-flag/feature-flag.decorator';
+import { VacancyAiService } from './vacancy-ai.service';
+import { CreateAiVacancyDto, ExtractVacancyAiDto } from './vacancy-ai.dto';
 
 @ApiBearerAuth()
 @UseGuards(OrganizationGuard, PermissionsGuard)
 @ApiTags('Vacancies')
 @Controller('vacancy')
 export class VacancyController {
+  private readonly logger = new Logger(VacancyController.name);
+
   constructor(
     private readonly vacancyService: VacancyService,
     private readonly vacancyReportService: VacancyReportService,
+    private readonly vacancyAiService: VacancyAiService,
   ) {}
 
   @ApiOkResponse()
@@ -92,6 +103,48 @@ export class VacancyController {
     return this.vacancyService.create({
       ...createVacancyDto,
       organizationId,
+    });
+  }
+
+  @ApiCreatedResponse()
+  @Post('ai/extract')
+  @UseGuards(FeatureFlagGuard)
+  // @RequireFeatureFlags([FeatureFlag.AI_VACANCY_FLOW])
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async extractWithAi(
+    @Body() extractVacancyAiDto: ExtractVacancyAiDto,
+    @CurrentUser() user: CurrentUserStore['user'],
+    @OrganizationId() organizationId: number,
+  ) {
+    this.logger.log('Vacancy AI extraction requested');
+    const userId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
+    return this.vacancyAiService.extract({
+      ...extractVacancyAiDto,
+      organizationId,
+      userId,
+    });
+  }
+
+  @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_vacancy', entityType: 'vacancy' })
+  @Post('ai/create')
+  @UseGuards(FeatureFlagGuard)
+  @RequireFeatureFlags([FeatureFlag.AI_VACANCY_FLOW])
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async createWithAi(
+    @Body() createAiVacancyDto: CreateAiVacancyDto,
+    @CurrentUser() user: CurrentUserStore['user'],
+    @OrganizationId() organizationId: number,
+  ) {
+    const createdBy =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
+    return this.vacancyAiService.create({
+      ...createAiVacancyDto,
+      organizationId,
+      createdBy,
     });
   }
 

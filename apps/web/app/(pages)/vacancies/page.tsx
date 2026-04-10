@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { Briefcase } from "lucide-react";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 
+import { NewAiVacancyLink } from "@/components/vacancies/new-ai-vacancy-link";
 import { NewVacancySheetWithPermission } from "@/components/vacancies/new-vacancy-sheet-with-permission";
 import { VacancyTable } from "@/components/vacancies/vacancy-table";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
@@ -59,7 +60,10 @@ export default async function Vacancies({ searchParams }: VacanciesProps) {
           title="Vacantes"
           description="Gestiona las vacantes y su proceso de selección."
         />
-        <NewVacancySheetWithPermission />
+        <div className="flex flex-wrap items-center gap-3">
+          <NewAiVacancyLink />
+          <NewVacancySheetWithPermission />
+        </div>
       </div>
       <VacancyTable initialFilters={initialFilters} />
     </div>
