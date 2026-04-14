@@ -76,6 +76,9 @@ async function main() {
     });
 
     // --- Candidates ---
+    if (catalogs.candidateFileId == null) {
+      throw new Error('Dev seed expects a fixture candidateFileId');
+    }
     await seedCandidates(tx, {
       organizationId,
       userId,

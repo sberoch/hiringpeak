@@ -121,7 +121,12 @@ async function seedList(
   return ids;
 }
 
-export async function seedCatalogs(tx: SeedTx, organizationId: number) {
+export async function seedCatalogs(
+  tx: SeedTx,
+  organizationId: number,
+  options: { includeFixtures?: boolean } = {},
+) {
+  const { includeFixtures = true } = options;
   console.log('Seeding catalogs...');
 
   const areaIds = await seedList(tx, areas, areasList, organizationId, 'areas');
@@ -158,35 +163,37 @@ export async function seedCatalogs(tx: SeedTx, organizationId: number) {
 
   const candidateSourceIds = await seedList(tx, candidateSources, candidateSourcesList, organizationId, 'candidate sources');
 
-  // candidateFiles: match by name + org
-  const [existingFile] = await tx
-    .select({ id: candidateFiles.id })
-    .from(candidateFiles)
-    .where(
-      and(
-        eq(candidateFiles.name, 'resume.pdf'),
-        eq(candidateFiles.organizationId, organizationId),
-      ),
-    )
-    .limit(1);
-  let candidateFileId: number;
-  if (existingFile) {
-    console.log(
-      `  resume.pdf already exists (id=${existingFile.id}), skipping`,
-    );
-    candidateFileId = existingFile.id;
-  } else {
-    const [row] = await tx
-      .insert(candidateFiles)
-      .values({
-        name: 'resume.pdf',
-        url: 'https://example.com/resume.pdf',
-        organizationId,
-      })
-      .returning({ id: candidateFiles.id });
-    if (!row) throw new Error('CandidateFile insert failed');
-    console.log(`  resume.pdf created (id=${row.id})`);
-    candidateFileId = row.id;
+  // candidateFiles: fixture row only in dev seed; skip in prod.
+  let candidateFileId: number | null = null;
+  if (includeFixtures) {
+    const [existingFile] = await tx
+      .select({ id: candidateFiles.id })
+      .from(candidateFiles)
+      .where(
+        and(
+          eq(candidateFiles.name, 'resume.pdf'),
+          eq(candidateFiles.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (existingFile) {
+      console.log(
+        `  resume.pdf already exists (id=${existingFile.id}), skipping`,
+      );
+      candidateFileId = existingFile.id;
+    } else {
+      const [row] = await tx
+        .insert(candidateFiles)
+        .values({
+          name: 'resume.pdf',
+          url: 'https://example.com/resume.pdf',
+          organizationId,
+        })
+        .returning({ id: candidateFiles.id });
+      if (!row) throw new Error('CandidateFile insert failed');
+      console.log(`  resume.pdf created (id=${row.id})`);
+      candidateFileId = row.id;
+    }
   }
 
   return {

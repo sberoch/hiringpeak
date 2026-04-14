@@ -1,0 +1,157 @@
+name: hiringpeak-prod
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: hiringpeak-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api-migrate:
+    image: hiringpeak-api:latest
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+    command: ["node", "dist/src/common/database/migrate.js"]
+
+  api:
+    image: hiringpeak-api:latest
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    container_name: hiringpeak-prod-api
+    init: true
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api-migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      SERVER_PORT: 5003
+      PRODUCTION: "true"
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
+      BACKOFFICE_URL: ${BACKOFFICE_URL:?set BACKOFFICE_URL}
+      LANDING_URL: ${LANDING_URL:?set LANDING_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports:
+      - "${API_BIND_IP:-127.0.0.1}:${API_PORT:-5003}:5003"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5003/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  web:
+    image: hiringpeak-web:latest
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_LOGIN_ENABLED: ${NEXT_PUBLIC_LOGIN_ENABLED:-true}
+        NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED: ${NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED:-true}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:?set NEXT_PUBLIC_FIREBASE_API_KEY}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:?set NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:?set NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:?set NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:?set NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:?set NEXT_PUBLIC_FIREBASE_APP_ID}
+        NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID:-}
+        NEXT_PUBLIC_SPREADSHEET_URL: ${NEXT_PUBLIC_SPREADSHEET_URL:-}
+    container_name: hiringpeak-prod-web
+    init: true
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      HOSTNAME: 0.0.0.0
+      AUTH_URL: ${FRONTEND_URL:?set FRONTEND_URL}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+    ports:
+      - "${WEB_BIND_IP:-127.0.0.1}:${WEB_PORT:-5000}:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  backoffice:
+    image: hiringpeak-backoffice:latest
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.backoffice
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+    container_name: hiringpeak-prod-backoffice
+    init: true
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5002
+      HOSTNAME: 0.0.0.0
+      AUTH_URL: ${BACKOFFICE_URL:?set BACKOFFICE_URL}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
+    ports:
+      - "${BACKOFFICE_BIND_IP:-127.0.0.1}:${BACKOFFICE_PORT:-5002}:5002"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5002 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  landing:
+    image: hiringpeak-landing:latest
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.landing
+    container_name: hiringpeak-prod-landing
+    init: true
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${LANDING_BIND_IP:-127.0.0.1}:${LANDING_PORT:-5001}:5001"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5001 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  pgdata:
