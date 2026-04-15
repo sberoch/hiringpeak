@@ -18,10 +18,7 @@ services:
       start_period: 10s
 
   api-migrate:
-    image: hiringpeak-api:latest
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.api
+    image: ghcr.io/sberoch/hiringpeak-api:${API_IMAGE_TAG:-latest}
     restart: "no"
     depends_on:
       postgres:
@@ -31,10 +28,7 @@ services:
     command: ["node", "dist/src/common/database/migrate.js"]
 
   api:
-    image: hiringpeak-api:latest
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.api
+    image: ghcr.io/sberoch/hiringpeak-api:${API_IMAGE_TAG:-latest}
     container_name: hiringpeak-prod-api
     init: true
     restart: unless-stopped
@@ -63,22 +57,7 @@ services:
       start_period: 15s
 
   web:
-    image: hiringpeak-web:latest
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.web
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_LOGIN_ENABLED: ${NEXT_PUBLIC_LOGIN_ENABLED:-true}
-        NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED: ${NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED:-true}
-        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:?set NEXT_PUBLIC_FIREBASE_API_KEY}
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:?set NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:?set NEXT_PUBLIC_FIREBASE_PROJECT_ID}
-        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:?set NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
-        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:?set NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
-        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:?set NEXT_PUBLIC_FIREBASE_APP_ID}
-        NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID:-}
-        NEXT_PUBLIC_SPREADSHEET_URL: ${NEXT_PUBLIC_SPREADSHEET_URL:-}
+    image: ghcr.io/sberoch/hiringpeak-web:${WEB_IMAGE_TAG:-latest}
     container_name: hiringpeak-prod-web
     init: true
     restart: unless-stopped
@@ -104,12 +83,7 @@ services:
       start_period: 15s
 
   backoffice:
-    image: hiringpeak-backoffice:latest
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.backoffice
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+    image: ghcr.io/sberoch/hiringpeak-backoffice:${BACKOFFICE_IMAGE_TAG:-latest}
     container_name: hiringpeak-prod-backoffice
     init: true
     restart: unless-stopped
@@ -133,10 +107,7 @@ services:
       start_period: 15s
 
   landing:
-    image: hiringpeak-landing:latest
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.landing
+    image: ghcr.io/sberoch/hiringpeak-landing:${LANDING_IMAGE_TAG:-latest}
     container_name: hiringpeak-prod-landing
     init: true
     restart: unless-stopped
