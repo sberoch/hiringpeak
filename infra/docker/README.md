@@ -3,12 +3,12 @@
 Single-VPS Docker Compose setup. Nginx on the host terminates TLS and routes
 subdomains to the four services bound on `127.0.0.1`:
 
-| Service    | Host port | Subdomain                    |
-| ---------- | --------- | ---------------------------- |
-| web        | 5000      | `app.hiringpeak.com`         |
-| landing    | 5001      | `hiringpeak.com`             |
-| backoffice | 5002      | `backoffice.hiringpeak.com`  |
-| api        | 5003      | `api.hiringpeak.com`         |
+| Service    | Host port | Subdomain                   |
+| ---------- | --------- | --------------------------- |
+| web        | 5000      | `app.hiringpeak.com`        |
+| landing    | 5001      | `hiringpeak.com`            |
+| backoffice | 5002      | `backoffice.hiringpeak.com` |
+| api        | 5003      | `api.hiringpeak.com`        |
 
 ## First-time VPS setup
 
@@ -44,8 +44,8 @@ and catalogs:
 docker compose --env-file infra/docker/.env.production \
   -f infra/docker/docker-compose.yml exec \
   -e ADMIN_EMAIL=admin@hiringpeak.com \
-  -e ADMIN_PASSWORD='strong-password-here' \
-  -e ORG_NAME='Hiringpeak' \
+  -e ADMIN_PASSWORD='12345678' \
+  -e ORG_NAME='Pratt' \
   api node dist/src/common/database/seed-prod-init.js
 ```
 
@@ -67,18 +67,21 @@ the API restarts.
 ## Operations
 
 Inspect stack:
+
 ```
 docker compose --env-file infra/docker/.env.production \
   -f infra/docker/docker-compose.yml ps
 ```
 
 Tail logs:
+
 ```
 docker compose --env-file infra/docker/.env.production \
   -f infra/docker/docker-compose.yml logs -f api
 ```
 
 Rollback:
+
 ```
 git checkout <previous-sha>
 docker compose --env-file infra/docker/.env.production \
@@ -86,6 +89,7 @@ docker compose --env-file infra/docker/.env.production \
 ```
 
 Stop everything:
+
 ```
 docker compose --env-file infra/docker/.env.production \
   -f infra/docker/docker-compose.yml down

@@ -28,6 +28,7 @@ async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set');
   }
+  const orgName = process.env.ORG_NAME ?? 'Hiringpeak';
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzle(pool, { schema });
@@ -35,20 +36,20 @@ async function main() {
   await db.transaction(async (tx) => {
     // --- Organization ---
     const existingOrg = await tx.query.organizations.findFirst({
-      where: eq(organizations.name, 'Seed Organization'),
+      where: eq(organizations.name, orgName),
       columns: { id: true },
     });
     let organizationId: number;
     if (existingOrg) {
-      console.log(`Organization "Seed Organization" already exists (id=${existingOrg.id}), skipping`);
+      console.log(`Organization "${orgName}" already exists (id=${existingOrg.id}), skipping`);
       organizationId = existingOrg.id;
     } else {
       const [org] = await tx
         .insert(organizations)
-        .values({ name: 'Seed Organization' })
+        .values({ name: orgName })
         .returning({ id: organizations.id });
       if (!org) throw new Error('Organization insert failed');
-      console.log(`Organization "Seed Organization" created (id=${org.id})`);
+      console.log(`Organization "${orgName}" created (id=${org.id})`);
       organizationId = org.id;
     }
 
