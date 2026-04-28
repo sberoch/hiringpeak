@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthzService } from './authz.service';
 import { UserService } from '../../user/user.service';
 import { RoleService } from '../../role/role.service';
@@ -8,17 +9,17 @@ describe('AuthzService', () => {
   let service: AuthzService;
 
   const mockUserService = {
-    findById: jest.fn(),
+    findById: vi.fn(),
   };
   const mockRoleService = {
-    findOne: jest.fn(),
+    findOne: vi.fn(),
   };
   const mockPermissionService = {
-    getCodesByIds: jest.fn(),
+    getCodesByIds: vi.fn(),
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthzService,

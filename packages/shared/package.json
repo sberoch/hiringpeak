@@ -2,7 +2,9 @@
   "name": "@workspace/shared",
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "exports": {
     "./utils": {
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@workspace/typescript-config": "workspace:*",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "^3.0.0"
   }
 }
