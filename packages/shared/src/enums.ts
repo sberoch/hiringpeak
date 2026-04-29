@@ -1,11 +1,3 @@
-export const UserRole = {
-  ADMIN: "ADMIN",
-  MANAGER: "MANAGER",
-  BASIC: "BASIC",
-  SYSTEM_ADMIN: "SYSTEM_ADMIN",
-} as const;
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-
 /** Internal-only: used for auth origin (web vs backoffice). Never expose via API. */
 export const UserType = {
   END_USER: "END_USER",
