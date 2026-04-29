@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HiringPeak</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <img src="icons/logo-text.png" alt="HiringPeak Logo" class="logo" />
+      </div>
+
+      <div id="not-linkedin" class="message" style="display: none">
+        <p>Navegá a un perfil de LinkedIn para importar un candidato.</p>
+      </div>
+
+      <div id="loading" class="message">
+        <p>Cargando datos del perfil...</p>
+      </div>
+
+      <div id="profile-data" style="display: none">
+        <div class="profile-section">
+          <div class="profile-header">
+            <img
+              id="profile-picture"
+              class="profile-picture"
+              alt="Foto de perfil"
+              style="display: none"
+            />
+            <div class="profile-info">
+              <p id="profile-name" class="profile-name"></p>
+              <p id="profile-position" class="profile-position"></p>
+            </div>
+          </div>
+        </div>
+        <button id="send-button" class="send-button">
+          Enviar a HiringPeak
+        </button>
+      </div>
+
+      <div id="error" class="message" style="display: none">
+        <p>No se pudo obtener los datos del perfil.</p>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

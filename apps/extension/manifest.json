@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "HiringPeak - Extensión LinkedIn",
+  "description": "Extensión de HiringPeak para importar candidatos desde LinkedIn",
+  "version": "1.0.0",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["*://*.linkedin.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "HiringPeak - Importar candidato"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.linkedin.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/logo.png", "icons/logo-text.png"],
+      "matches": ["*://*.linkedin.com/*"]
+    }
+  ]
+}
