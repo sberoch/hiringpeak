@@ -21,6 +21,7 @@
 // Or add to package.json:
 //   "scripts": { "sandcastle": "npx tsx .sandcastle/main.mts" }
 
+import { readdirSync } from "node:fs";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 
@@ -40,7 +41,18 @@ const MAX_ITERATIONS = 10;
 // hardcodes a 60s hook timeout, too short for a cold pnpm install, so we
 // skip the install hook entirely. Run `pnpm install` on the host before
 // invoking this script if you've added or changed dependencies.
-const copyToWorktree = ["node_modules"];
+//
+// pnpm workspaces require BOTH the root node_modules (which holds the
+// .pnpm content-addressed store) AND each workspace package's own
+// node_modules (which holds symlinks into .pnpm and to sibling workspace
+// packages). Without the per-package dirs, tsc / vitest can't resolve
+// `react`, `next`, `@workspace/*`, etc., and commands hang or fail.
+const workspaceNodeModules = (["apps", "packages"] as const).flatMap((root) =>
+  readdirSync(root, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => `${root}/${d.name}/node_modules`),
+);
+const copyToWorktree = ["node_modules", ...workspaceNodeModules];
 
 // ---------------------------------------------------------------------------
 // Main loop
@@ -121,7 +133,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
           agent: sandcastle.claudeCode("claude-opus-4-6"),
           promptFile: "./.sandcastle/implement-prompt.md",
           promptArgs: {
-            TASK_ID: issue.id,
+            ISSUE_NUMBER: issue.id,
             ISSUE_TITLE: issue.title,
             BRANCH: issue.branch,
           },

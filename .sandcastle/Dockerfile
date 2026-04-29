@@ -21,18 +21,6 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 # to match the host repo's packageManager field.
 RUN npm install -g pnpm@10.4.1
 
-# Install stdio-decoupling shims for package managers that fork daemons.
-# pnpm/npm/corepack helpers can leak file descriptors that keep claude-code's
-# stdout pipe open after claude-code itself exits, causing sandcastle to wait
-# the full 10-minute idle timeout. The shim runs each in a new session with
-# stdio redirected to a tempfile (which is tailed back to the caller).
-COPY safeexec.sh /usr/local/lib/safeexec.sh
-RUN chmod +x /usr/local/lib/safeexec.sh \
-  && mkdir -p /usr/local/safeexec-bin \
-  && for tool in pnpm npm npx corepack; do \
-       ln -s /usr/local/lib/safeexec.sh /usr/local/safeexec-bin/$tool; \
-     done
-
 # Rename the base image's "node" user (UID 1000) to "agent".
 # This keeps UID 1000 so that --userns=keep-id (Podman) and
 # --user 1000:1000 (Docker) map to the correct home directory owner.
@@ -42,10 +30,7 @@ USER agent
 # Install Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-# Add Claude and the safeexec shims to PATH. Shim dir comes BEFORE the
-# default bin dirs so symlinked names (pnpm/npm/npx/corepack) take priority
-# over the real binaries.
-ENV PATH="/home/agent/.local/bin:/usr/local/safeexec-bin:$PATH"
+ENV PATH="/home/agent/.local/bin:$PATH"
 
 WORKDIR /home/agent
 
