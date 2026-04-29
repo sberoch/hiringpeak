@@ -79,15 +79,13 @@ export default function NewCandidatePageWrapper() {
           description="Ingrese los datos del nuevo candidato. Los campos con * son obligatorios."
         />
         <div className="flex items-center gap-3 flex-shrink-0">
-          {isParsing && (
+          {parsedFileName && (
             <div className="flex items-center gap-2 rounded-lg border border-brand-border bg-surface px-3 py-1.5">
-              <Loader2 className="h-4 w-4 animate-spin text-slate-brand" />
-              <span className="text-sm text-slate-brand">{parsedFileName}</span>
-            </div>
-          )}
-          {!isParsing && parsedFileName && (
-            <div className="flex items-center gap-2 rounded-lg border border-brand-border bg-surface px-3 py-1.5">
-              <FileUp className="h-4 w-4 text-slate-brand" />
+              {isParsing ? (
+                <Loader2 className="h-4 w-4 animate-spin text-slate-brand" />
+              ) : (
+                <FileUp className="h-4 w-4 text-slate-brand" />
+              )}
               <span className="text-sm text-slate-brand">{parsedFileName}</span>
             </div>
           )}

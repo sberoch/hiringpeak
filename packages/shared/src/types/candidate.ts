@@ -115,10 +115,4 @@ export type CandidateFilters = PaginationFilters &
     areas?: Area[];
   };
 
-export type ParsePdfResponse = {
-  name: string;
-  linkedin: string;
-  email: string;
-  phone: string;
-  shortDescription: string;
-};
+export type { ParsePdfResponseDto as ParsePdfResponse } from "../dtos/candidate.dto.js";
