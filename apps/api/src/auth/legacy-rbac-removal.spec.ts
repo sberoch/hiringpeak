@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 describe('Legacy RBAC removal', () => {
-  const authDir = resolve(__dirname, '.');
+  const authDir = __dirname;
   const sharedSrc = resolve(__dirname, '../../../../packages/shared/src');
 
   it('roles.decorator.ts no longer exists', () => {
