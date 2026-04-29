@@ -8,6 +8,7 @@
     "lint": "turbo lint",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
+    "typecheck": "pnpm -r --if-present typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "sandcastle": "pnpm dlx tsx .sandcastle/main.mts"
   },
