@@ -1,7 +1,7 @@
-(function () {
+(() => {
   if (document.getElementById("hiringpeak-fab")) return;
 
-  var fab = document.createElement("img");
+  const fab = document.createElement("img");
   fab.id = "hiringpeak-fab";
   fab.src = chrome.runtime.getURL("icons/logo.png");
   fab.alt = "HiringPeak";
@@ -19,88 +19,68 @@
     "transition: transform 0.2s",
   ].join(";");
 
-  fab.addEventListener("mouseenter", function () {
+  fab.addEventListener("mouseenter", () => {
     fab.style.transform = "scale(1.1)";
   });
-  fab.addEventListener("mouseleave", function () {
+  fab.addEventListener("mouseleave", () => {
     fab.style.transform = "scale(1)";
   });
 
-  fab.addEventListener("click", function () {
+  fab.addEventListener("click", () => {
     console.log("HiringPeak Extension - FAB clicked, scraping profile...");
-    var data = scrapeProfile();
-    chrome.runtime.sendMessage({ action: "openHiringPeak", data: data });
+    const data = scrapeProfile();
+    chrome.runtime.sendMessage({ action: "openHiringPeak", data });
   });
 
   document.body.appendChild(fab);
   console.log("HiringPeak Extension - FAB injected");
 
-  chrome.runtime.onMessage.addListener(function (
-    message,
-    sender,
-    sendResponse,
-  ) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "scrapeProfile") {
       console.log("HiringPeak Extension - Scrape requested by popup");
-      var data = scrapeProfile();
-      sendResponse(data);
+      sendResponse(scrapeProfile());
     }
   });
 
+  function queryFirst(...selectors) {
+    for (const selector of selectors) {
+      const el = document.querySelector(selector);
+      if (el) return el;
+    }
+    return null;
+  }
+
   function scrapeProfile() {
-    var fullName = "";
-    var currentPosition = "";
-    var profilePicture = "";
+    const nameEl = queryFirst("h1.text-heading-xlarge", "h1");
+    const fullName = nameEl ? nameEl.innerText.trim() : "";
 
-    var nameEl = document.querySelector("h1.text-heading-xlarge");
-    if (!nameEl) {
-      nameEl = document.querySelector("h1");
-    }
-    if (nameEl) {
-      fullName = nameEl.innerText.trim();
-    }
-
-    var headlineEl = document.querySelector(".text-body-medium.break-words");
-    if (!headlineEl) {
-      headlineEl = document.querySelector(
-        ".pv-top-card--list .text-body-medium",
-      );
-    }
-    if (headlineEl) {
-      currentPosition = headlineEl.innerText.trim();
-    }
-
-    var photoEl = document.querySelector(
-      'img.pv-top-card-profile-picture__image--show[src*="media"]',
+    const headlineEl = queryFirst(
+      ".text-body-medium.break-words",
+      ".pv-top-card--list .text-body-medium",
     );
-    if (!photoEl) {
-      photoEl = document.querySelector(
-        '.pv-top-card__photo img[src*="media"]',
-      );
-    }
-    if (!photoEl) {
-      photoEl = document.querySelector(
-        'img.presence-entity__image[src*="media"]',
-      );
-    }
-    if (photoEl) {
-      profilePicture = photoEl.src;
-    }
+    const currentPosition = headlineEl ? headlineEl.innerText.trim() : "";
 
-    var pageUrl = window.location.href;
+    const photoEl = queryFirst(
+      'img.pv-top-card-profile-picture__image--show[src*="media"]',
+      '.pv-top-card__photo img[src*="media"]',
+      'img.presence-entity__image[src*="media"]',
+    );
+    const profilePicture = photoEl ? photoEl.src : "";
+
+    const pageUrl = window.location.href;
 
     console.log("HiringPeak Extension - Scraped:", {
-      fullName: fullName,
-      currentPosition: currentPosition,
+      fullName,
+      currentPosition,
       profilePicture: profilePicture ? "(found)" : "(not found)",
-      pageUrl: pageUrl,
+      pageUrl,
     });
 
     return {
-      fullName: fullName,
-      currentPosition: currentPosition,
-      profilePicture: profilePicture,
-      pageUrl: pageUrl,
+      fullName,
+      currentPosition,
+      profilePicture,
+      pageUrl,
       email: "",
       phone: "",
       timestamp: new Date().toISOString(),

@@ -1,10 +1,8 @@
-var HIRINGPEAK_URL = "https://app.hiringpeak.com/candidates/new";
+let profileData = null;
 
-var profileData = null;
-
-document.addEventListener("DOMContentLoaded", function () {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    var tab = tabs[0];
+document.addEventListener("DOMContentLoaded", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs[0];
 
     if (!tab || !tab.url || !tab.url.includes("linkedin.com")) {
       document.getElementById("loading").style.display = "none";
@@ -15,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
     chrome.tabs.sendMessage(
       tab.id,
       { action: "scrapeProfile" },
-      function (response) {
+      (response) => {
         document.getElementById("loading").style.display = "none";
 
         if (chrome.runtime.lastError || !response) {
@@ -33,33 +31,18 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   });
 
-  document.getElementById("send-button").addEventListener("click", function () {
+  document.getElementById("send-button").addEventListener("click", () => {
     if (!profileData) return;
-
-    var params = new URLSearchParams();
-    if (profileData.pageUrl) params.set("pageUrl", profileData.pageUrl);
-    if (profileData.fullName) params.set("fullName", profileData.fullName);
-    if (profileData.currentPosition)
-      params.set("currentPosition", profileData.currentPosition);
-    if (profileData.email) params.set("email", profileData.email);
-    if (profileData.phone) params.set("phone", profileData.phone);
-    if (profileData.profilePicture)
-      params.set("profilePicture", profileData.profilePicture);
-    if (profileData.timestamp)
-      params.set("timestamp", profileData.timestamp);
-
-    var url = HIRINGPEAK_URL + "?" + params.toString();
-    console.log("HiringPeak Extension - Opening:", url);
-    chrome.tabs.create({ url: url });
+    chrome.runtime.sendMessage({ action: "openHiringPeak", data: profileData });
     window.close();
   });
 });
 
 function showProfileData(data) {
-  var nameEl = document.getElementById("profile-name");
-  var positionEl = document.getElementById("profile-position");
-  var pictureEl = document.getElementById("profile-picture");
-  var dataSection = document.getElementById("profile-data");
+  const nameEl = document.getElementById("profile-name");
+  const positionEl = document.getElementById("profile-position");
+  const pictureEl = document.getElementById("profile-picture");
+  const dataSection = document.getElementById("profile-data");
 
   nameEl.textContent = data.fullName || "Sin nombre";
   positionEl.textContent = data.currentPosition || "Sin cargo";
