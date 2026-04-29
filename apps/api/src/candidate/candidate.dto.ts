@@ -4,6 +4,7 @@ import {
   UpdateCandidateSchema,
   BlacklistCandidateSchema,
   CandidateQueryParamsSchema,
+  ParsePdfResponseSchema,
 } from '@workspace/shared/dtos';
 
 /** Request DTOs (controller): no organizationId */
@@ -15,6 +16,8 @@ export class BlacklistCandidateDto extends createZodDto(
 export class CandidateQueryParams extends createZodDto(
   CandidateQueryParamsSchema,
 ) {}
+
+export class ParsePdfResponseDto extends createZodDto(ParsePdfResponseSchema) {}
 
 /** Service DTOs: organizationId injected by controller */
 export type CreateCandidateServiceDto = CreateCandidateDto & {

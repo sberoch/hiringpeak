@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { File as FileIcon, Upload, UserRoundPlus } from "lucide-react";
-import { PageHeading } from "@workspace/ui/components/page-heading";
+import { File as FileIcon, Upload } from "lucide-react";
+import type { ParsePdfResponse } from "@workspace/shared/types/candidate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type UseFormReturn } from "react-hook-form";
@@ -85,7 +85,11 @@ import {
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 
-export default function NewCandidateForm() {
+interface NewCandidateFormProps {
+  parsedPdfData?: ParsePdfResponse | null;
+}
+
+export default function NewCandidateForm({ parsedPdfData }: NewCandidateFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -293,6 +297,29 @@ export default function NewCandidateForm() {
     checkForDuplicate();
   }, [linkedinData]);
 
+  useEffect(() => {
+    if (!parsedPdfData) return;
+
+    if (parsedPdfData.name) form.setValue("name", parsedPdfData.name);
+    if (parsedPdfData.email) form.setValue("email", parsedPdfData.email);
+    if (parsedPdfData.linkedin) form.setValue("linkedin", parsedPdfData.linkedin);
+    if (parsedPdfData.phone) form.setValue("phone", parsedPdfData.phone);
+    if (parsedPdfData.shortDescription)
+      form.setValue("shortDescription", parsedPdfData.shortDescription);
+
+    if (parsedPdfData.name && parsedPdfData.name.trim()) {
+      setIsCheckingDuplicate(true);
+      setIsDuplicateCandidate(false);
+      checkCandidateExists(parsedPdfData.name)
+        .then(({ exists, candidate }) => {
+          setIsDuplicateCandidate(exists);
+          setDuplicateCandidate(candidate);
+        })
+        .catch(() => {})
+        .finally(() => setIsCheckingDuplicate(false));
+    }
+  }, [parsedPdfData, form]);
+
   async function onSubmit(values: CandidateFormSchema) {
     if (!session.data?.userId) {
       toast.error("No se pudo obtener la información del usuario");
@@ -374,12 +401,6 @@ export default function NewCandidateForm() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeading
-        icon={UserRoundPlus}
-        title="Nuevo Postulante"
-        description="Ingrese los datos del nuevo candidato. Los campos con * son obligatorios."
-      />
-
       <div className="rounded-2xl border border-brand-border bg-surface p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">

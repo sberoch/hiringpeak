@@ -114,3 +114,11 @@ export type CandidateFilters = PaginationFilters &
     industries?: Industry[];
     areas?: Area[];
   };
+
+export type ParsePdfResponse = {
+  name: string;
+  linkedin: string;
+  email: string;
+  phone: string;
+  shortDescription: string;
+};
