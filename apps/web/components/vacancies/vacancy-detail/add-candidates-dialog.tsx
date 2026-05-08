@@ -1,24 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Check } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { CandidateFilters } from "@/components/candidates/candidate-filters";
-import { CandidateStars } from "@/components/candidates/candidate-stars";
-import { Badge } from "@workspace/ui/components/badge";
+import {
+  CandidatePicker,
+  CandidatePickerSkeleton,
+} from "@/components/vacancies/candidate-picker";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent } from "@workspace/ui/components/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
-import { Skeleton } from "@workspace/ui/components/skeleton";
 import { CANDIDATE_API_KEY, getAllCandidates } from "@/lib/api/candidate";
 import {
   createCandidateVacancy,
@@ -31,7 +28,6 @@ import {
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
 import {
   candidateVacancyFiltersAdapter,
-  cn,
   vacancyDisplayLabel,
 } from "@/lib/utils";
 import type {
@@ -79,7 +75,7 @@ export const AddCandidatesDialog = ({
     });
   };
 
-  const { data } = useQuery({
+  const { data, isLoading: candidatesLoading } = useQuery({
     queryKey: [CANDIDATE_API_KEY, params],
     queryFn: () => getAllCandidates(params),
   });
@@ -182,139 +178,39 @@ export const AddCandidatesDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="min-w-[900px]  w-fit max-h-[90vh] overflow-y-auto rounded-2xl border-brand-border bg-surface">
+      <DialogContent className="w-[90%] lg:w-[85%] sm:max-w-[1200px] max-h-[90vh] overflow-y-auto rounded-2xl border-brand-border bg-surface">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold tracking-tight text-ink !leading-tight">
             Agregar postulantes a &quot;{vacancyDisplayLabel(vacancy)}&quot;
           </DialogTitle>
         </DialogHeader>
-        <CandidateFilters
-          resetFilters={resetFilters}
-          filters={filters}
-          onFiltersChange={setFilters}
-          clearFilters={clearFilters}
-        />
 
-        <div className="my-4">
-          {!data ? (
-            <div className="gap-y-2 flex flex-column">
-              <div className="gap-x-2 flex flex-row">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4">
-                    <Skeleton className="h-36 w-60 rounded-md" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <>
-              <h3 className="font-semibold text-ink mb-4">
-                Resultados ({data?.items.length ?? 0})
-              </h3>
-              {data?.items.length === 0 && (
-                <div>No se han encontrado candidatos para estos filtros</div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {data?.items.map((candidate) => {
-                  const isSelected = selectedCandidates.includes(candidate.id);
-                  return (
-                    <Card
-                      key={candidate.id}
-                      className={cn(
-                        "overflow-hidden flex cursor-pointer relative rounded-2xl border border-brand-border bg-surface transition-all ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-md hover:border-electric/20",
-                        {
-                          "border-red-400 bg-red-50/30": candidate.blacklist,
-                          "border-emerald-400 bg-emerald-50/30":
-                            candidate.isInCompanyViaPratt &&
-                            !candidate.blacklist,
-                          "!border-2 !border-electric shadow-[0_0_0_2px_rgba(0,102,255,0.15)]":
-                            isSelected,
-                        }
-                      )}
-                      onClick={() => toggleCandidateSelection(candidate.id)}
-                    >
-                      {isSelected && (
-                        <div className="absolute top-2 right-2 bg-electric rounded-full p-1 z-10 shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]">
-                          <Check className="h-4 w-4 text-white" />
-                        </div>
-                      )}
-                      <div className="relative w-1/4">
-                        <Image
-                          src={candidate.image || "/images/placeholder.svg"}
-                          alt={candidate.name}
-                          width={200}
-                          height={200}
-                          className="w-full h-full object-cover"
-                        />
-                        {candidate.blacklist && (
-                          <Badge
-                            variant="destructive"
-                            className="absolute top-2 right-2"
-                          >
-                            Blacklist
-                          </Badge>
-                        )}
-                        {!candidate.blacklist &&
-                          candidate.isInCompanyViaPratt && (
-                            <Badge
-                              variant="secondary"
-                              className="absolute text-white top-2 right-2 bg-green-500/90 hover:bg-green-500 truncate whitespace-nowrap overflow-hidden max-w-[80px]"
-                            >
-                              Via Pratt
-                            </Badge>
-                          )}
-                      </div>
-                      <CardContent className="p-4 w-3/4">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            {candidate.linkedin && (
-                              <Link
-                                href={candidate.linkedin}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Image
-                                  src="/images/linkedin.svg"
-                                  alt="LinkedIn"
-                                  width={20}
-                                  height={20}
-                                  className="inline-block mr-2"
-                                />
-                              </Link>
-                            )}
-                            <Link
-                              href={`/candidates/${candidate.id}`}
-                              target="_blank"
-                              className="font-bold text-base text-ink hover:text-electric transition-colors"
-                            >
-                              {candidate.name}
-                            </Link>
-                          </div>
-                        </div>
-                        <div className="mb-2">
-                          <CandidateStars stars={+candidate.stars} />
-                        </div>
-                        <div className="text-sm text-slate-brand mb-3">
-                          {candidate.shortDescription && (
-                            <div className="text-sm leading-relaxed">
-                              {candidate.shortDescription}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </>
-          )}
+        <div className="space-y-4">
+          <CandidateFilters
+            resetFilters={resetFilters}
+            filters={filters}
+            onFiltersChange={setFilters}
+            clearFilters={clearFilters}
+          />
+
+          <div>
+            <p className="text-xs font-medium text-muted-brand mb-3">
+              Resultados ({data?.meta.totalItems ?? 0})
+            </p>
+            {candidatesLoading ? (
+              <CandidatePickerSkeleton />
+            ) : (
+              <CandidatePicker
+                candidates={data?.items ?? []}
+                selectedCandidates={selectedCandidates}
+                toggleCandidateSelection={toggleCandidateSelection}
+              />
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row justify-end gap-2">
-          <Button
-            variant="brand-ghost"
-            onClick={onClose}
-          >
+          <Button variant="brand-ghost" onClick={onClose}>
             Cancelar
           </Button>
 

@@ -89,9 +89,9 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     );
   }
 
-  // The plan JSON contains an array of issues, each with id, title, branch.
+  // The plan JSON contains an array of issues, each with number, title, branch.
   const { issues } = JSON.parse(planMatch[1]!) as {
-    issues: { id: string; title: string; branch: string }[];
+    issues: { number: number; title: string; branch: string }[];
   };
 
   if (issues.length === 0) {
@@ -104,7 +104,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     `Planning complete. ${issues.length} issue(s) to work in parallel:`,
   );
   for (const issue of issues) {
-    console.log(`  ${issue.id}: ${issue.title} → ${issue.branch}`);
+    console.log(`  #${issue.number}: ${issue.title} → ${issue.branch}`);
   }
 
   // -------------------------------------------------------------------------
@@ -133,7 +133,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
           agent: sandcastle.claudeCode("claude-opus-4-6"),
           promptFile: "./.sandcastle/implement-prompt.md",
           promptArgs: {
-            ISSUE_NUMBER: issue.id,
+            ISSUE_NUMBER: String(issue.number),
             ISSUE_TITLE: issue.title,
             BRANCH: issue.branch,
           },
@@ -170,7 +170,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   for (const [i, outcome] of settled.entries()) {
     if (outcome.status === "rejected") {
       console.error(
-        `  ✗ ${issues[i]!.id} (${issues[i]!.branch}) failed: ${outcome.reason}`,
+        `  ✗ #${issues[i]!.number} (${issues[i]!.branch}) failed: ${outcome.reason}`,
       );
     }
   }
@@ -220,7 +220,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
       // A markdown list of branch names, one per line.
       BRANCHES: completedBranches.map((b) => `- ${b}`).join("\n"),
       // A markdown list of issue IDs and titles, one per line.
-      ISSUES: completedIssues.map((i) => `- ${i.id}: ${i.title}`).join("\n"),
+      ISSUES: completedIssues.map((i) => `- #${i.number}: ${i.title}`).join("\n"),
     },
   });
 

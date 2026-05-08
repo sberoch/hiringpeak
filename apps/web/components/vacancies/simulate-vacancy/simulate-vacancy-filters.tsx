@@ -1,19 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Copy, Target } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { CandidateFilters } from "@/components/candidates/candidate-filters";
-import { CandidateStars } from "@/components/candidates/candidate-stars";
-import { Badge } from "@workspace/ui/components/badge";
+import {
+  CandidatePicker,
+  CandidatePickerSkeleton,
+} from "@/components/vacancies/candidate-picker";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent } from "@workspace/ui/components/card";
 import { DialogFooter } from "@workspace/ui/components/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
 import { CANDIDATE_API_KEY, getAllCandidates } from "@/lib/api/candidate";
 import {
   createCandidateVacancy,
@@ -23,8 +29,8 @@ import {
   CANDIDATE_VACANCY_STATUS_API_KEY,
   getAllCandidateVacancyStatus,
 } from "@/lib/api/candidate-vacancy-status";
-import { VACANCY_API_KEY } from "@/lib/api/vacancy";
-import { candidateVacancyFiltersAdapter, cn } from "@/lib/utils";
+import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
+import { candidateVacancyFiltersAdapter, vacancyDisplayLabel } from "@/lib/utils";
 import type {
   CandidateFilters as CandidateFiltersType,
   CandidateParams,
@@ -34,19 +40,16 @@ import type { Vacancy } from "@workspace/shared/types/vacancy";
 interface SimulateVacancyFiltersProps {
   baseVacancy?: Vacancy;
   onBack: () => void;
-  close: () => void;
-  onTargetSelection?: (candidates: number[]) => void;
 }
 
 export const SimulateVacancyFilters = ({
   baseVacancy,
   onBack,
-  close,
-  onTargetSelection,
 }: SimulateVacancyFiltersProps) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedCandidates, setSelectedCandidates] = useState<number[]>([]);
+  const [targetVacancyId, setTargetVacancyId] = useState<string>("");
 
   const [filters, setFilters] = useState<CandidateFiltersType>({
     ...candidateVacancyFiltersAdapter(baseVacancy?.filters),
@@ -73,9 +76,15 @@ export const SimulateVacancyFilters = ({
     });
   };
 
-  const { data: candidates } = useQuery({
+  const { data: candidates, isLoading: candidatesLoading } = useQuery({
     queryKey: [CANDIDATE_API_KEY, params],
     queryFn: () => getAllCandidates(params),
+  });
+
+  const { data: vacancies } = useQuery({
+    queryKey: [VACANCY_API_KEY, { limit: 1e9, page: 1 }],
+    queryFn: () => getAllVacancies({ limit: 1e9, page: 1 }),
+    enabled: !baseVacancy,
   });
 
   const { data: cvs } = useQuery({
@@ -102,94 +111,92 @@ export const SimulateVacancyFilters = ({
     }
   }, [baseVacancy, candidates?.items]);
 
-  const { mutateAsync: handleAddCandidates } = useMutation({
-    mutationFn: () => {
-      if (!baseVacancy) throw new Error("Cant use this function in this case");
-      const candidatesOfTheVacancy = baseVacancy?.candidates.map(
-        (cv) => cv.candidate
-      );
-      const addIds = selectedCandidates.filter(
-        (id) => !candidatesOfTheVacancy.some((c) => c.id === id)
-      );
+  const navigateToVacancy = (vacancyId: number) => {
+    queryClient
+      .invalidateQueries({ queryKey: [VACANCY_API_KEY, vacancyId] })
+      .then(() => {
+        router.push(`/vacancies/${vacancyId}`);
+      });
+  };
 
-      const filteredCandidateIds = candidates?.items.map((c) => c.id) || [];
-      const deleteIds = candidatesOfTheVacancy
-        .filter(
-          (c) =>
-            filteredCandidateIds.includes(c.id) &&
-            !selectedCandidates.includes(c.id)
-        )
-        .map((c) => c.id);
+  const { mutateAsync: handleSyncToBaseVacancy, isPending: isSyncing } =
+    useMutation({
+      mutationFn: () => {
+        if (!baseVacancy) throw new Error("Cant use this function in this case");
+        const candidatesOfTheVacancy = baseVacancy.candidates.map(
+          (cv) => cv.candidate
+        );
+        const addIds = selectedCandidates.filter(
+          (id) => !candidatesOfTheVacancy.some((c) => c.id === id)
+        );
 
-      const cvIds = baseVacancy.candidates
-        .map((cv) =>
-          deleteIds.includes(cv.candidate.id) ? cv.id.toString() : null
-        )
-        .filter((a) => a !== null);
-      const defaultCvs = cvs?.items.find((cv) => cv.isInitial);
-      if (!defaultCvs?.id) throw new Error("Error fetching vacancy status");
+        const filteredCandidateIds = candidates?.items.map((c) => c.id) || [];
+        const deleteIds = candidatesOfTheVacancy
+          .filter(
+            (c) =>
+              filteredCandidateIds.includes(c.id) &&
+              !selectedCandidates.includes(c.id)
+          )
+          .map((c) => c.id);
 
-      return Promise.all([
-        ...cvIds.map(deleteCandidateVacancy),
-        ...addIds.map((id) =>
-          createCandidateVacancy({
-            candidateId: id,
-            vacancyId: baseVacancy.id,
-            candidateVacancyStatusId: defaultCvs.id,
-            notes: "",
-          })
-        ),
-      ]);
-    },
-    onSuccess: () => {
-      toast.success("Postulantes agregados correctamente");
-      queryClient
-        .invalidateQueries({
-          queryKey: [VACANCY_API_KEY, baseVacancy?.id],
-        })
-        .then(() => {
-          router.push(`/vacancies/${baseVacancy?.id}`);
-          close();
-        });
-    },
-    onError: () => {
-      toast.error("Ha ocurrido un error, intente nuevamente");
-    },
-  });
+        const cvIds = baseVacancy.candidates
+          .map((cv) =>
+            deleteIds.includes(cv.candidate.id) ? cv.id.toString() : null
+          )
+          .filter((a) => a !== null);
+        const defaultCvs = cvs?.items.find((cv) => cv.isInitial);
+        if (!defaultCvs?.id) throw new Error("Error fetching vacancy status");
 
-  const { mutateAsync: handleCreateVacancy } = useMutation({
-    mutationFn: () => {
-      if (!baseVacancy)
-        throw new Error("Cannot use this function without a target vacancy");
-      const defaultCvs = cvs?.items.find((cv) => cv.isInitial);
-      if (!defaultCvs?.id) throw new Error("Error fetching vacancy status");
+        return Promise.all([
+          ...cvIds.map(deleteCandidateVacancy),
+          ...addIds.map((id) =>
+            createCandidateVacancy({
+              candidateId: id,
+              vacancyId: baseVacancy.id,
+              candidateVacancyStatusId: defaultCvs.id,
+              notes: "",
+            })
+          ),
+        ]);
+      },
+      onSuccess: () => {
+        if (!baseVacancy) return;
+        toast.success("Postulantes agregados correctamente");
+        navigateToVacancy(baseVacancy.id);
+      },
+      onError: () => {
+        toast.error("Ha ocurrido un error, intente nuevamente");
+      },
+    });
 
-      return Promise.all(
-        selectedCandidates.map((id) =>
-          createCandidateVacancy({
-            candidateId: id,
-            vacancyId: baseVacancy.id,
-            candidateVacancyStatusId: defaultCvs.id,
-            notes: "",
-          })
-        )
-      );
-    },
-    onSuccess: () => {
-      toast.success("Postulantes agregados correctamente");
-      queryClient
-        .invalidateQueries({
-          queryKey: [VACANCY_API_KEY, baseVacancy?.id],
-        })
-        .then(() => {
-          router.push(`/vacancies/${baseVacancy?.id}`);
-          close();
-        });
-    },
-    onError: () => {
-      toast.error("Ha ocurrido un error, intente nuevamente");
-    },
-  });
+  const { mutateAsync: handleAssignToTarget, isPending: isAssigning } =
+    useMutation({
+      mutationFn: () => {
+        const targetId = parseInt(targetVacancyId);
+        if (!targetId) throw new Error("No vacancy selected");
+        const defaultCvs = cvs?.items.find((cv) => cv.isInitial);
+        if (!defaultCvs?.id) throw new Error("Error fetching vacancy status");
+
+        return Promise.all(
+          selectedCandidates.map((candidateId) =>
+            createCandidateVacancy({
+              candidateId,
+              vacancyId: targetId,
+              candidateVacancyStatusId: defaultCvs.id,
+              notes: "",
+            })
+          )
+        );
+      },
+      onSuccess: () => {
+        const targetId = parseInt(targetVacancyId);
+        toast.success("Postulantes agregados correctamente");
+        navigateToVacancy(targetId);
+      },
+      onError: () => {
+        toast.error("Ha ocurrido un error, intente nuevamente");
+      },
+    });
 
   const toggleCandidateSelection = (candidateId: number) => {
     setSelectedCandidates((prev) =>
@@ -199,144 +206,96 @@ export const SimulateVacancyFilters = ({
     );
   };
 
+  const isPending = isSyncing || isAssigning;
+  const canSubmit =
+    selectedCandidates.length > 0 &&
+    !isPending &&
+    (baseVacancy ? true : !!targetVacancyId);
+
   return (
-    <>
-      {baseVacancy ? (
-        <div className="text-gray-700">
-          Modifica los filtros para agregar nuevos postulantes a la vacante{" "}
-          {baseVacancy.id} - {baseVacancy.title}
-        </div>
-      ) : (
-        <div className="text-gray-700">
-          Selecciona candidatos que coincidan con los filtros elegidos. Puedes
-          crear una vacante a partir de los elegidos
+    <div className="space-y-4">
+      {baseVacancy && (
+        <div className="inline-flex items-center gap-2 rounded-full border border-brand-border bg-canvas px-3 py-1.5 text-xs">
+          <Copy className="h-3.5 w-3.5 text-electric" />
+          <span className="text-muted-brand">Basado en:</span>
+          <span className="font-medium text-ink truncate max-w-[400px]">
+            {vacancyDisplayLabel(baseVacancy)}
+          </span>
         </div>
       )}
+
       <CandidateFilters
         filters={filters}
         resetFilters={resetFilters}
         clearFilters={clearFilters}
         onFiltersChange={setFilters}
       />
-      <div className="my-4">
-        <h3 className="font-medium mb-4">
-          Resultados ({candidates?.meta.totalItems})
-        </h3>
 
-        {candidates?.meta.totalItems === 0 && (
-          <div>No se han encontrado candidatos para estos filtros</div>
+      <div>
+        <p className="text-xs font-medium text-muted-brand mb-3">
+          Resultados ({candidates?.meta.totalItems ?? 0})
+        </p>
+        {candidatesLoading ? (
+          <CandidatePickerSkeleton />
+        ) : (
+          <CandidatePicker
+            candidates={candidates?.items ?? []}
+            selectedCandidates={selectedCandidates}
+            toggleCandidateSelection={toggleCandidateSelection}
+          />
         )}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {candidates?.items.map((candidate) => {
-            const isSelected = selectedCandidates.includes(candidate.id);
-            return (
-              <Card
-                key={candidate.id}
-                className={cn("overflow-hidden flex cursor-pointer relative", {
-                  "border-red-500": candidate.blacklist,
-                  "border-green-500":
-                    candidate.isInCompanyViaPratt && !candidate.blacklist,
-                  "border-2 border-black": isSelected,
-                })}
-                onClick={() => toggleCandidateSelection(candidate.id)}
-              >
-                {isSelected && (
-                  <div className="absolute top-2 right-2 bg-black rounded-full p-1 z-10">
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
-                )}
-                <div className="relative w-1/4">
-                  <Image
-                    src={candidate.image || "/images/placeholder.svg"}
-                    alt={candidate.name}
-                    width={200}
-                    height={200}
-                    className="w-full h-full object-cover"
-                  />
-                  {candidate.blacklist && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute top-2 right-2"
-                    >
-                      Blacklist
-                    </Badge>
-                  )}
-                  {!candidate.blacklist && candidate.isInCompanyViaPratt && (
-                    <Badge
-                      variant="secondary"
-                      className="absolute text-white top-2 right-2 bg-green-500/90 hover:bg-green-500 truncate whitespace-nowrap overflow-hidden max-w-[80px]"
-                    >
-                      Via Pratt
-                    </Badge>
-                  )}
-                </div>
-                <CardContent className="p-4 w-3/4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      {candidate.linkedin && (
-                        <Link
-                          href={candidate.linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Image
-                            src="/images/linkedin.svg"
-                            alt="LinkedIn"
-                            width={20}
-                            height={20}
-                            className="inline-block mr-2"
-                          />
-                        </Link>
-                      )}
-                      <Link
-                        href={`/candidates/${candidate.id}`}
-                        target="_blank"
-                        className="font-bold text-lg hover:underline"
-                      >
-                        {candidate.name}
-                      </Link>
-                    </div>
-                  </div>
-                  <div className="mb-2">
-                    <CandidateStars stars={+candidate.stars} />
-                  </div>
-                  <div className="text-sm text-gray-500 mb-3">
-                    {candidate.shortDescription && (
-                      <div className="text-sm">
-                        {candidate.shortDescription}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
       </div>
+
+      {!baseVacancy && (
+        <div className="rounded-2xl border border-brand-border bg-surface px-4 py-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
+                <Target className="h-3.5 w-3.5" />
+              </div>
+              <h3 className="text-sm font-semibold text-ink">
+                Asignar a vacante
+              </h3>
+            </div>
+            <Select
+              value={targetVacancyId}
+              onValueChange={setTargetVacancyId}
+            >
+              <SelectTrigger className="flex-1 min-w-[240px] rounded-xl border-brand-border bg-canvas text-ink focus:border-electric focus:ring-electric/10">
+                <SelectValue placeholder="Selecciona una vacante" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-brand-border bg-surface">
+                {vacancies?.items.map((vacancy) => (
+                  <SelectItem key={vacancy.id} value={vacancy.id.toString()}>
+                    {vacancyDisplayLabel(vacancy)} - {vacancy.company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
       <DialogFooter className="flex flex-col lg:flex-row justify-between gap-2">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="brand-ghost" onClick={onBack}>
           Volver
         </Button>
         <Button
-          variant="default"
-          disabled={selectedCandidates.length === 0}
+          variant="brand"
+          disabled={!canSubmit}
           onClick={() => {
             if (baseVacancy) {
-              handleAddCandidates();
-            } else if (onTargetSelection) {
-              onTargetSelection(selectedCandidates);
+              handleSyncToBaseVacancy();
             } else {
-              handleCreateVacancy();
+              handleAssignToTarget();
             }
           }}
         >
-          {baseVacancy
-            ? "Agregar a vacante"
-            : onTargetSelection
-              ? "Continuar con selección de vacante"
-              : "Agregar candidatos a vacante"}
+          {isPending
+            ? "Agregando..."
+            : `Agregar a vacante (${selectedCandidates.length})`}
         </Button>
       </DialogFooter>
-    </>
+    </div>
   );
 };

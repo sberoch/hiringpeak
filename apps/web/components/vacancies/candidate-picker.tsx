@@ -1,148 +1,198 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Check, Mail, Phone } from "lucide-react";
+import { Check, Mail, Phone, Users } from "lucide-react";
 
 import { CandidateStars } from "@/components/candidates/candidate-stars";
+import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { Badge } from "@workspace/ui/components/badge";
-import { Card, CardContent } from "@workspace/ui/components/card";
-import { Button } from "@workspace/ui/components/button";
-import { cn } from "@/lib/utils";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
+import { cn, getInitials, type CatalogTag } from "@/lib/utils";
 import type { Candidate } from "@workspace/shared/types/candidate";
-import type { Vacancy } from "@workspace/shared/types/vacancy";
 
 interface CandidatePickerProps {
   candidates: Candidate[];
   selectedCandidates: number[];
   toggleCandidateSelection: (candidateId: number) => void;
-  vacancy?: Vacancy;
+}
+
+export function CandidatePickerSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="flex items-start gap-3 rounded-xl border border-brand-border bg-surface p-3"
+        >
+          <div className="h-16 w-16 rounded-full bg-brand-border-light animate-pulse shrink-0" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="h-3.5 w-32 bg-brand-border-light animate-pulse rounded" />
+            <div className="h-3 w-24 bg-brand-border-light animate-pulse rounded" />
+            <div className="h-3 w-full bg-brand-border-light animate-pulse rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export const CandidatePicker = ({
   candidates,
   selectedCandidates,
   toggleCandidateSelection,
-  vacancy,
 }: CandidatePickerProps) => {
-  const router = useRouter();
   if (candidates.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-500 text-lg mb-2">
-          No se encontraron candidatos
+      <div className="rounded-2xl border border-dashed border-brand-border bg-surface px-6 py-12 flex flex-col items-center text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-electric/10 text-electric mb-3">
+          <Users className="h-5 w-5" />
         </div>
-        <div className="text-gray-400 text-sm">
-          Intenta ajustar los filtros para encontrar más candidatos
-        </div>
-        {vacancy && (
-          <div className="mt-4 text-sm">
-            <Button variant="outline" onClick={() => router.back()}>
-              Volver
-            </Button>
-          </div>
-        )}
+        <p className="text-sm font-semibold text-ink">
+          No se encontraron postulantes
+        </p>
+        <p className="text-xs text-muted-brand mt-1 max-w-xs">
+          Ajustá los filtros del perfil buscado para ampliar los resultados.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
       {candidates.map((candidate) => {
         const isSelected = selectedCandidates.includes(candidate.id);
-        const badgeToShow = candidate.blacklist
-          ? "blacklisted"
-          : candidate.isInCompanyViaPratt
-            ? "via-pratt"
-            : null;
+        const tags: CatalogTag[] = [
+          ...(candidate.seniorities ?? []).map((s) => ({
+            label: s.name,
+            type: "seniority" as const,
+          })),
+          ...(candidate.areas ?? []).map((a) => ({
+            label: a.name,
+            type: "area" as const,
+          })),
+          ...(candidate.industries ?? []).map((i) => ({
+            label: i.name,
+            type: "industry" as const,
+          })),
+        ];
+
         return (
-          <Card
+          <button
             key={candidate.id}
-            className={cn("overflow-hidden flex cursor-pointer relative", {
-              "border-red-500": candidate.blacklist,
-              "border-green-500":
-                candidate.isInCompanyViaPratt && !candidate.blacklist,
-              "border-2 border-black": isSelected,
-            })}
+            type="button"
             onClick={() => toggleCandidateSelection(candidate.id)}
-          >
-            {isSelected && (
-              <div className="absolute top-2 right-2 bg-black rounded-full p-1 z-10">
-                <Check className="h-4 w-4 text-white" />
-              </div>
+            className={cn(
+              "group relative flex items-start gap-3 rounded-xl border bg-surface p-3 text-left shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200",
+              "hover:border-electric/30 hover:shadow-[0_2px_8px_rgba(0,102,255,0.06)]",
+              isSelected
+                ? "border-electric ring-2 ring-electric/15"
+                : "border-brand-border",
+              candidate.blacklist && !isSelected && "border-red-400/60",
+              candidate.isInCompanyViaPratt &&
+                !candidate.blacklist &&
+                !isSelected &&
+                "border-emerald-400/60",
             )}
-            <div className="relative w-1/4 lg:w-1/5">
-              <Image
-                src={candidate.image ?? "/images/placeholder.svg"}
-                alt={candidate.name}
-                width={300}
-                height={300}
-                className="w-full h-full object-cover"
-              />
-              {badgeToShow === "blacklisted" && (
-                <Badge variant="destructive" className="absolute top-2 right-2">
-                  Blacklist
-                </Badge>
+          >
+            <Avatar className="h-20 w-20 shrink-0 border border-brand-border">
+              {candidate.image && (
+                <AvatarImage src={candidate.image} alt={candidate.name} />
               )}
-              {badgeToShow === "via-pratt" && (
-                <Badge
-                  variant="secondary"
-                  className="absolute text-white top-2 right-2 bg-green-500/90 hover:bg-green-500 truncate whitespace-nowrap overflow-hidden max-w-[80px]"
-                >
-                  Via Pratt
-                </Badge>
-              )}
-            </div>
-            <CardContent className="p-4 w-3/4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  {candidate.linkedin && (
-                    <Link
-                      href={candidate.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Image
-                        src="/images/linkedin.svg"
-                        alt="LinkedIn"
-                        width={20}
-                        height={20}
-                        className="inline-block mr-2"
-                      />
-                    </Link>
-                  )}
+              <AvatarFallback className="bg-electric/5 text-electric text-sm font-semibold">
+                {getInitials(candidate.name)}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 pr-7">
+                {candidate.linkedin && (
                   <Link
-                    href={`/candidates/${candidate.id}`}
+                    href={candidate.linkedin}
                     target="_blank"
-                    className="font-bold text-lg hover:underline"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0"
                   >
-                    {candidate.name}
+                    <Image
+                      src="/images/linkedin.svg"
+                      alt="LinkedIn"
+                      width={14}
+                      height={14}
+                    />
                   </Link>
-                </div>
-              </div>
-              <div className="mb-2">
-                <CandidateStars stars={+candidate.stars} />
-              </div>
-              <div className="text-sm text-gray-500 mb-3">
-                {candidate.shortDescription && (
-                  <div className="text-sm mb-2">
-                    {candidate.shortDescription}
-                  </div>
                 )}
+                <Link
+                  href={`/candidates/${candidate.id}`}
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm font-semibold text-ink truncate hover:text-electric transition-colors"
+                >
+                  {candidate.name}
+                </Link>
+                {candidate.blacklist && (
+                  <Badge
+                    variant="destructive"
+                    className="ml-auto shrink-0 rounded-md px-1.5 py-0 text-[10px] font-semibold"
+                  >
+                    Blacklist
+                  </Badge>
+                )}
+                {candidate.isInCompanyViaPratt && !candidate.blacklist && (
+                  <Badge className="ml-auto shrink-0 rounded-md px-1.5 py-0 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border-0 hover:bg-emerald-50">
+                    via Pratt
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <CandidateStars stars={+candidate.stars} size="sm" />
+                {tags.slice(0, 2).map((tag) => (
+                  <CatalogBadge
+                    key={`${tag.type}-${tag.label}`}
+                    label={tag.label}
+                    type={tag.type}
+                  />
+                ))}
+              </div>
+
+              {candidate.shortDescription && (
+                <p className="text-xs text-slate-brand truncate mt-1.5">
+                  {candidate.shortDescription}
+                </p>
+              )}
+
+              <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-brand">
                 {candidate.email && (
-                  <div className="flex items-center mb-1">
-                    <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="flex items-center gap-1 min-w-0">
+                    <Mail className="h-3 w-3 shrink-0" />
                     <span className="truncate">{candidate.email}</span>
-                  </div>
+                  </span>
                 )}
                 {candidate.phone && (
-                  <div className="flex items-center">
-                    <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">{candidate.phone}</span>
-                  </div>
+                  <span className="flex items-center gap-1 shrink-0">
+                    <Phone className="h-3 w-3" />
+                    <span>{candidate.phone}</span>
+                  </span>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div
+              className={cn(
+                "absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
+                isSelected
+                  ? "bg-electric border-electric text-white"
+                  : "border-brand-border bg-surface text-transparent group-hover:border-electric/40",
+              )}
+            >
+              <Check className="h-3 w-3" strokeWidth={3} />
+            </div>
+          </button>
         );
       })}
     </div>

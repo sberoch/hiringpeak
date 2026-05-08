@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import { and, eq } from 'drizzle-orm';
 import { CompanyStatus } from '@workspace/shared/enums';
 import { companies } from '@workspace/shared/schemas';

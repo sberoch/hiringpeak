@@ -59,7 +59,7 @@ export class CandidateVacancyStatusController {
   }
 
   @Permissions(PermissionCode.VACANCY_MANAGE)
-  @AuditAction({ eventType: 'create_candidate_vacancy_status', entityType: 'candidate_vacancy_status' })
+  @AuditAction({ eventType: 'create_candidate_vacancy_status', entityType: 'candidate_vacancy_status', labelField: 'name' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -73,7 +73,7 @@ export class CandidateVacancyStatusController {
   }
 
   @Permissions(PermissionCode.VACANCY_MANAGE)
-  @AuditAction({ eventType: 'update_candidate_vacancy_status', entityType: 'candidate_vacancy_status' })
+  @AuditAction({ eventType: 'update_candidate_vacancy_status', entityType: 'candidate_vacancy_status', labelField: 'name' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -88,7 +88,7 @@ export class CandidateVacancyStatusController {
   }
 
   @Permissions(PermissionCode.VACANCY_MANAGE)
-  @AuditAction({ eventType: 'delete_candidate_vacancy_status', entityType: 'candidate_vacancy_status' })
+  @AuditAction({ eventType: 'delete_candidate_vacancy_status', entityType: 'candidate_vacancy_status', labelField: 'name' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(

@@ -53,7 +53,14 @@ export class CandidateVacancyController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_candidate_vacancy', entityType: 'candidate_vacancy' })
+  @AuditAction({
+    eventType: 'create_candidate_vacancy',
+    entityType: 'candidate_vacancy',
+    relatedFields: [
+      { type: 'candidate', field: 'candidate.name' },
+      { type: 'vacancy', field: 'vacancy.title' },
+    ],
+  })
   @Post()
   async create(
     @Body() createCandidateVacancyDto: CreateCandidateVacancyDto,
@@ -66,7 +73,14 @@ export class CandidateVacancyController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_candidate_vacancy', entityType: 'candidate_vacancy' })
+  @AuditAction({
+    eventType: 'update_candidate_vacancy',
+    entityType: 'candidate_vacancy',
+    relatedFields: [
+      { type: 'candidate', field: 'candidate.name' },
+      { type: 'vacancy', field: 'vacancy.title' },
+    ],
+  })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -80,7 +94,14 @@ export class CandidateVacancyController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_candidate_vacancy', entityType: 'candidate_vacancy' })
+  @AuditAction({
+    eventType: 'delete_candidate_vacancy',
+    entityType: 'candidate_vacancy',
+    relatedFields: [
+      { type: 'candidate', field: 'candidate.name' },
+      { type: 'vacancy', field: 'vacancy.title' },
+    ],
+  })
   @Delete(':id')
   async remove(
     @Param('id') id: string,

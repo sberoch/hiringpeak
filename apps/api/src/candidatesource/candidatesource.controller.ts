@@ -56,7 +56,7 @@ export class CandidateSourceController {
   }
 
   @Permissions(PermissionCode.SETTINGS_MANAGE)
-  @AuditAction({ eventType: 'create_candidate_source', entityType: 'candidate_source' })
+  @AuditAction({ eventType: 'create_candidate_source', entityType: 'candidate_source', labelField: 'name' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -70,7 +70,7 @@ export class CandidateSourceController {
   }
 
   @Permissions(PermissionCode.SETTINGS_MANAGE)
-  @AuditAction({ eventType: 'update_candidate_source', entityType: 'candidate_source' })
+  @AuditAction({ eventType: 'update_candidate_source', entityType: 'candidate_source', labelField: 'name' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -85,7 +85,7 @@ export class CandidateSourceController {
   }
 
   @Permissions(PermissionCode.SETTINGS_MANAGE)
-  @AuditAction({ eventType: 'delete_candidate_source', entityType: 'candidate_source' })
+  @AuditAction({ eventType: 'delete_candidate_source', entityType: 'candidate_source', labelField: 'name' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(

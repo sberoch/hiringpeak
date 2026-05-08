@@ -52,7 +52,7 @@ export class CommentController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_comment', entityType: 'comment' })
+  @AuditAction({ eventType: 'create_comment', entityType: 'comment', labelField: 'comment' })
   @Post()
   async create(
     @Body() createCommentDto: CreateCommentDto,
@@ -65,7 +65,7 @@ export class CommentController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_comment', entityType: 'comment' })
+  @AuditAction({ eventType: 'update_comment', entityType: 'comment', labelField: 'comment' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -79,7 +79,7 @@ export class CommentController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_comment', entityType: 'comment' })
+  @AuditAction({ eventType: 'delete_comment', entityType: 'comment', labelField: 'comment' })
   @Delete(':id')
   async remove(
     @Param('id') id: string,

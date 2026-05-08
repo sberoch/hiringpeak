@@ -95,7 +95,7 @@ export class CandidateController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'create_candidate', entityType: 'candidate', labelField: 'name' })
   @Post()
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async create(
@@ -109,7 +109,7 @@ export class CandidateController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'blacklist_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'blacklist_candidate', entityType: 'candidate', labelField: 'name' })
   @Post(':id/blacklist')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async blacklist(
@@ -127,7 +127,7 @@ export class CandidateController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'update_candidate', entityType: 'candidate', labelField: 'name' })
   @Patch(':id')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async update(
@@ -142,7 +142,7 @@ export class CandidateController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'delete_candidate', entityType: 'candidate', labelField: 'name' })
   @Delete(':id')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async remove(

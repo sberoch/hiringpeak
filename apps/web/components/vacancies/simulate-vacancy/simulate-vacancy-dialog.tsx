@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
@@ -12,7 +13,6 @@ import { cn } from "@/lib/utils";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 import { SimulateVacancyFilters } from "./simulate-vacancy-filters";
 import { SimulateVacancySelection } from "./simulate-vacancy-selection";
-import { SimulateVacancyTargetSelection } from "./simulate-vacancy-target-selection";
 
 interface SimulateVacancyDialogProps {
   isOpen: boolean;
@@ -23,14 +23,8 @@ export const SimulateVacancyDialog = ({
   isOpen,
   onClose,
 }: SimulateVacancyDialogProps) => {
-  const [phase, setPhase] = useState<
-    "selection" | "filters" | "target-selection"
-  >("selection");
+  const [phase, setPhase] = useState<"selection" | "filters">("selection");
   const [baseVacancy, setBaseVacancy] = useState<Vacancy | undefined>(undefined);
-  const [selectedCandidates, setSelectedCandidates] = useState<number[]>([]);
-  const [targetVacancy, setTargetVacancy] = useState<Vacancy | undefined>(
-    undefined
-  );
 
   const handleContinue = (vacancy?: Vacancy) => {
     setBaseVacancy(vacancy);
@@ -38,60 +32,43 @@ export const SimulateVacancyDialog = ({
   };
 
   const handleBack = () => {
-    if (phase === "target-selection") {
-      setPhase("filters");
-    } else {
-      setPhase("selection");
-    }
-  };
-
-  const handleTargetSelection = (candidates: number[]) => {
-    setSelectedCandidates(candidates);
-    setPhase("target-selection");
-  };
-
-  const handleVacancySelected = () => {
-    handleClose();
+    setPhase("selection");
   };
 
   const handleClose = () => {
     onClose();
-    if (!isOpen) {
-      setPhase("selection");
-      setBaseVacancy(undefined);
-      setSelectedCandidates([]);
-      setTargetVacancy(undefined);
-    }
+    setPhase("selection");
+    setBaseVacancy(undefined);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         className={cn(
-          "w-[90%] max-w-none max-h-[90vh] overflow-y-auto",
-          phase === "filters" ? "lg:w-[80%]" : "lg:w-[50%]"
+          "w-[90%] max-h-[90vh] overflow-y-auto",
+          phase === "selection"
+            ? "lg:w-[75%] sm:max-w-[900px]"
+            : "lg:w-[85%] sm:max-w-[1200px]"
         )}
       >
         <DialogHeader>
-          <DialogTitle className="!leading-tight text-xl">
+          <DialogTitle className="!leading-tight text-2xl font-bold tracking-tight text-ink">
             Simular búsqueda
           </DialogTitle>
+          <DialogDescription className="text-slate-brand">
+            Probá filtros sin crear una vacante en la base de datos.
+          </DialogDescription>
         </DialogHeader>
 
         {phase === "selection" ? (
-          <SimulateVacancySelection onContinue={handleContinue} />
-        ) : phase === "target-selection" ? (
-          <SimulateVacancyTargetSelection
-            onBack={handleBack}
-            onSuccess={handleVacancySelected}
-            selectedCandidates={selectedCandidates}
+          <SimulateVacancySelection
+            onContinue={handleContinue}
+            onCancel={handleClose}
           />
         ) : (
           <SimulateVacancyFilters
-            baseVacancy={baseVacancy || targetVacancy}
+            baseVacancy={baseVacancy}
             onBack={handleBack}
-            close={handleClose}
-            onTargetSelection={baseVacancy ? undefined : handleTargetSelection}
           />
         )}
       </DialogContent>

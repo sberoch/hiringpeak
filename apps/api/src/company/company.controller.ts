@@ -90,7 +90,7 @@ export class CompanyController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_company', entityType: 'company' })
+  @AuditAction({ eventType: 'create_company', entityType: 'company', labelField: 'name' })
   @Permissions(PermissionCode.COMPANY_MANAGE)
   @Post()
   async create(
@@ -108,7 +108,7 @@ export class CompanyController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_company', entityType: 'company' })
+  @AuditAction({ eventType: 'update_company', entityType: 'company', labelField: 'name' })
   @Permissions(PermissionCode.COMPANY_MANAGE)
   @Patch(':id')
   async update(
@@ -127,7 +127,7 @@ export class CompanyController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_company', entityType: 'company' })
+  @AuditAction({ eventType: 'delete_company', entityType: 'company', labelField: 'name' })
   @Permissions(PermissionCode.COMPANY_MANAGE)
   @Delete(':id')
   async remove(

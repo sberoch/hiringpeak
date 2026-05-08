@@ -315,6 +315,8 @@ importers:
         specifier: ^5.9.2
         version: 5.9.3
 
+  apps/extension: {}
+
   apps/landing:
     dependencies:
       '@radix-ui/react-accordion':
@@ -391,8 +393,8 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.3)
       '@hookform/resolvers':
-        specifier: ^4.0.0
-        version: 4.1.3(react-hook-form@7.71.1(react@19.2.3))
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.71.1(react@19.2.3))
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.1.18

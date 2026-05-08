@@ -235,16 +235,16 @@ export class CandidateVacancyService {
   }
 
   async remove(id: number, organizationId: number) {
-    const [candidateVacancy] = await this.db
+    const existing = await this.findOne(id, organizationId);
+    await this.db
       .delete(candidateVacancies)
       .where(
         and(
           eq(candidateVacancies.id, id),
           eq(candidateVacancies.organizationId, organizationId),
         ),
-      )
-      .returning();
-    return candidateVacancy;
+      );
+    return existing;
   }
 
   /**

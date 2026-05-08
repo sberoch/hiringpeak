@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import { and, eq } from 'drizzle-orm';
 import { PermissionCode } from '@workspace/shared/enums';
 import {

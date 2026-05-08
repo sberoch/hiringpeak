@@ -1,35 +1,38 @@
 {
   "manifest_version": 3,
-  "name": "HiringPeak - Extensión LinkedIn",
-  "description": "Extensión de HiringPeak para importar candidatos desde LinkedIn",
+  "name": "HiringPeak | Extractor de Datos de Perfil de LinkedIn",
   "version": "1.0.0",
-  "permissions": ["activeTab", "storage"],
+  "description": "Extensión de HiringPeak para importar candidatos desde LinkedIn",
+  "permissions": ["activeTab", "scripting", "tabs"],
   "host_permissions": ["*://*.linkedin.com/*"],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png"
-    },
-    "default_title": "HiringPeak - Importar candidato"
+  "background": {
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["*://*.linkedin.com/*"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_end"
     }
   ],
-  "background": {
-    "service_worker": "background.js"
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["*://*.linkedin.com/*"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "HiringPeak | Extractor de Datos de Perfil de LinkedIn",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/logo.png"
+    }
   },
   "icons": {
     "16": "icons/icon16.png",
-    "48": "icons/icon48.png"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["icons/logo.png", "icons/logo-text.png"],
-      "matches": ["*://*.linkedin.com/*"]
-    }
-  ]
+    "48": "icons/icon48.png",
+    "128": "icons/logo.png"
+  }
 }

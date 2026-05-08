@@ -51,7 +51,7 @@ export class BlacklistController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_blacklist_entry', entityType: 'blacklist' })
+  @AuditAction({ eventType: 'create_blacklist_entry', entityType: 'blacklist', labelField: 'reason' })
   @Post()
   async create(
     @Body() createBlacklistDto: CreateBlacklistDto,
@@ -64,7 +64,7 @@ export class BlacklistController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_blacklist_entry', entityType: 'blacklist' })
+  @AuditAction({ eventType: 'update_blacklist_entry', entityType: 'blacklist', labelField: 'reason' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -78,7 +78,7 @@ export class BlacklistController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_blacklist_entry', entityType: 'blacklist' })
+  @AuditAction({ eventType: 'delete_blacklist_entry', entityType: 'blacklist', labelField: 'reason' })
   @Delete(':id')
   async remove(
     @Param('id') id: string,
@@ -88,7 +88,7 @@ export class BlacklistController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'remove_candidate_from_blacklist', entityType: 'blacklist' })
+  @AuditAction({ eventType: 'remove_candidate_from_blacklist', entityType: 'blacklist', labelField: 'reason' })
   @Delete('candidate/:id')
   async removeByCandidateId(
     @Param('id') id: string,

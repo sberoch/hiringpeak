@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import {
   ArrowRight,
@@ -39,8 +40,6 @@ import { PermissionCode } from "@workspace/shared/enums";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 import { PermissionGuard } from "../auth/permission-guard";
 import { DeleteVacancyDialog } from "./delete-vacancy-dialog";
-import { EditVacancySheet } from "./edit-vacancy-sheet";
-import { DuplicateVacancySheet } from "./duplicate-vacancy-sheet";
 
 interface VacancyPreviewPanelProps {
   vacancy: Vacancy | null;
@@ -51,9 +50,8 @@ export function VacancyPreviewPanel({
   vacancy,
   isLoading,
 }: VacancyPreviewPanelProps) {
+  const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const [isDuplicateSheetOpen, setIsDuplicateSheetOpen] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const downloadReportMutation = useMutation({
     mutationFn: () =>
@@ -150,19 +148,23 @@ export function VacancyPreviewPanel({
             <Button
               size="sm"
               variant="brand-ghost"
-              onClick={() => setIsEditSheetOpen(true)}
+              onClick={() => router.push(`/vacancies/${vacancy.id}/edit`)}
             >
               <Edit className="h-3.5 w-3.5 mr-1.5" />
               Editar
             </Button>
-            <Button
-              size="sm"
-              variant="brand-ghost"
-              onClick={() => setIsDuplicateSheetOpen(true)}
-            >
-              <Copy className="h-3.5 w-3.5 mr-1.5" />
-              Duplicar
-            </Button>
+            <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
+              <Button
+                size="sm"
+                variant="brand-ghost"
+                onClick={() =>
+                  router.push(`/vacancies/new?duplicateFrom=${vacancy.id}`)
+                }
+              >
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                Duplicar
+              </Button>
+            </PermissionGuard>
             <Button
               size="sm"
               variant="brand-ghost"
@@ -426,18 +428,6 @@ export function VacancyPreviewPanel({
           vacancy={vacancy}
         />
       )}
-      {isEditSheetOpen && (
-        <EditVacancySheet
-          isOpen={isEditSheetOpen}
-          onClose={() => setIsEditSheetOpen(false)}
-          vacancy={vacancy}
-        />
-      )}
-      <DuplicateVacancySheet
-        isOpen={isDuplicateSheetOpen}
-        onClose={() => setIsDuplicateSheetOpen(false)}
-        vacancy={vacancy}
-      />
     </div>
   );
 }
