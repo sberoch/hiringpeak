@@ -9,8 +9,7 @@
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
     "typecheck": "pnpm -r --if-present typecheck",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "sandcastle": "pnpm dlx tsx .sandcastle/main.mts"
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
@@ -31,8 +30,5 @@
     "overrides": {
       "@types/react": "19.2.13"
     }
-  },
-  "dependencies": {
-    "@ai-hero/sandcastle": "^0.5.5"
   }
 }
