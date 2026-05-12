@@ -3,7 +3,6 @@ import { passwordSchema } from "../lib/password.schema.js";
 import { PaginationParamsSchema } from "./pagination.dto.js";
 
 const CreateUserSchemaBase = z.object({
-  organizationId: z.number().nullable(),
   email: z.email(),
   password: passwordSchema,
   name: z.string().min(1),
@@ -11,23 +10,8 @@ const CreateUserSchemaBase = z.object({
   active: z.boolean().optional(),
 });
 
-/** Organization ID is required when roleId is set (tenant user). */
-const organizationIdRefinement = (data: any) => ({
-  condition:
-    data.roleId == null ||
-    (data.organizationId !== undefined && data.organizationId !== null),
-  params: {
-    message: "Organization ID is required when role is assigned",
-    path: ["organizationId"],
-  },
-});
+export const CreateUserSchema = CreateUserSchemaBase;
 
-export const CreateUserSchema = CreateUserSchemaBase.refine(
-  (data) => organizationIdRefinement(data).condition,
-  organizationIdRefinement({}).params
-);
-
-/** Update: no refinement (organizationId comes from route context). */
 export const UpdateUserSchema = CreateUserSchemaBase.partial();
 
 export const UserQueryParamsSchema = PaginationParamsSchema.extend({
