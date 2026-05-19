@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { SlidersHorizontal } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Input } from "@workspace/ui/components/input";
 import {
   MultiSelector,
@@ -29,6 +29,7 @@ import {
   provinceGroups,
 } from "@workspace/shared/static/catalogs";
 import type { AiVacancyDraftFilters } from "@workspace/shared/types/vacancy-ai";
+import { AiVacancySection, fieldClassName } from "./ai-vacancy-section";
 
 interface AiVacancyFiltersEditorProps {
   filters: AiVacancyDraftFilters;
@@ -79,16 +80,16 @@ export function AiVacancyFiltersEditor({
   }, [filters.countries]);
 
   const filterGridClass =
-    "grid min-w-0 grid-cols-1 gap-3 @sm:grid-cols-2 @lg:grid-cols-3";
+    "@container min-w-0 grid grid-cols-1 gap-3 @sm:grid-cols-2 @lg:grid-cols-3";
 
   return (
-    <Card className="@container min-w-0 rounded-2xl border-brand-border bg-surface">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-ink">
-          Filtros sugeridos
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="min-w-0 space-y-4">
+    <AiVacancySection
+      icon={SlidersHorizontal}
+      title="Filtros sugeridos"
+      description="Ajustá el universo de candidatos; los cambios actualizan la vista automáticamente."
+      className="border-b border-brand-border"
+    >
+      <div className="space-y-4">
         <div className={filterGridClass}>
           <MultiSelector
             className="min-w-0"
@@ -110,17 +111,13 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger className="min-w-0">
+            <MultiSelectorTrigger className={`min-w-0 ${fieldClassName}`}>
               <MultiSelectorInput placeholder="Seleccionar seniority" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
-              <MultiSelectorList className="bg-white">
+              <MultiSelectorList className="bg-surface">
                 {senioritiesData?.items.map((seniority) => (
-                  <MultiSelectorItem
-                    key={seniority.id}
-                    value={seniority.name}
-                    className="my-1 bg-white"
-                  >
+                  <MultiSelectorItem key={seniority.id} value={seniority.name}>
                     {seniority.name}
                   </MultiSelectorItem>
                 ))}
@@ -146,17 +143,13 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger className="min-w-0">
+            <MultiSelectorTrigger className={`min-w-0 ${fieldClassName}`}>
               <MultiSelectorInput placeholder="Seleccionar área" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
-              <MultiSelectorList className="bg-white">
+              <MultiSelectorList className="bg-surface">
                 {areasData?.items.map((area) => (
-                  <MultiSelectorItem
-                    key={area.id}
-                    value={area.name}
-                    className="my-1 bg-white"
-                  >
+                  <MultiSelectorItem key={area.id} value={area.name}>
                     {area.name}
                   </MultiSelectorItem>
                 ))}
@@ -184,17 +177,13 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger className="min-w-0">
+            <MultiSelectorTrigger className={`min-w-0 ${fieldClassName}`}>
               <MultiSelectorInput placeholder="Seleccionar industria" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
-              <MultiSelectorList className="bg-white">
+              <MultiSelectorList className="bg-surface">
                 {industriesData?.items.map((industry) => (
-                  <MultiSelectorItem
-                    key={industry.id}
-                    value={industry.name}
-                    className="my-1 bg-white"
-                  >
+                  <MultiSelectorItem key={industry.id} value={industry.name}>
                     {industry.name}
                   </MultiSelectorItem>
                 ))}
@@ -205,7 +194,7 @@ export function AiVacancyFiltersEditor({
 
         <div className={filterGridClass}>
           <Input
-            className="min-w-0"
+            className={`min-w-0 ${fieldClassName}`}
             type="number"
             min="0"
             max="5"
@@ -229,7 +218,7 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <SelectTrigger className="min-w-0 w-full">
+            <SelectTrigger className={`min-w-0 w-full ${fieldClassName}`}>
               <SelectValue placeholder="Sin preferencia de género" />
             </SelectTrigger>
             <SelectContent>
@@ -241,7 +230,7 @@ export function AiVacancyFiltersEditor({
 
           <div className="grid min-w-0 grid-cols-2 gap-3">
             <Input
-              className="min-w-0"
+              className={`min-w-0 ${fieldClassName}`}
               type="number"
               min="18"
               placeholder="Edad mín."
@@ -254,7 +243,7 @@ export function AiVacancyFiltersEditor({
               }}
             />
             <Input
-              className="min-w-0"
+              className={`min-w-0 ${fieldClassName}`}
               type="number"
               min="18"
               placeholder="Edad máx."
@@ -288,17 +277,13 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger className="min-w-0">
+            <MultiSelectorTrigger className={`min-w-0 ${fieldClassName}`}>
               <MultiSelectorInput placeholder="Seleccionar país" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
-              <MultiSelectorList className="bg-white">
+              <MultiSelectorList className="bg-surface">
                 {countries.map((country) => (
-                  <MultiSelectorItem
-                    key={country.code}
-                    value={country.name}
-                    className="my-1 bg-white"
-                  >
+                  <MultiSelectorItem key={country.code} value={country.name}>
                     {country.name}
                   </MultiSelectorItem>
                 ))}
@@ -316,17 +301,13 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger className="min-w-0">
+            <MultiSelectorTrigger className={`min-w-0 ${fieldClassName}`}>
               <MultiSelectorInput placeholder="Seleccionar provincia" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
-              <MultiSelectorList className="bg-white">
+              <MultiSelectorList className="bg-surface">
                 {availableProvinces.map((province) => (
-                  <MultiSelectorItem
-                    key={province}
-                    value={province}
-                    className="my-1 bg-white"
-                  >
+                  <MultiSelectorItem key={province} value={province}>
                     {province}
                   </MultiSelectorItem>
                 ))}
@@ -344,17 +325,13 @@ export function AiVacancyFiltersEditor({
               });
             }}
           >
-            <MultiSelectorTrigger className="min-w-0">
+            <MultiSelectorTrigger className={`min-w-0 ${fieldClassName}`}>
               <MultiSelectorInput placeholder="Seleccionar idioma" />
             </MultiSelectorTrigger>
             <MultiSelectorContent>
-              <MultiSelectorList className="bg-white">
+              <MultiSelectorList className="bg-surface">
                 {languages.map((language) => (
-                  <MultiSelectorItem
-                    key={language.code}
-                    value={language.name}
-                    className="my-1 bg-white"
-                  >
+                  <MultiSelectorItem key={language.code} value={language.name}>
                     {language.name}
                   </MultiSelectorItem>
                 ))}
@@ -362,8 +339,7 @@ export function AiVacancyFiltersEditor({
             </MultiSelectorContent>
           </MultiSelector>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </AiVacancySection>
   );
 }
-
