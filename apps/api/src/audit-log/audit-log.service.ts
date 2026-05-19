@@ -1,6 +1,9 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { AuditLogQueryParamsDto } from '@workspace/shared/dtos';
-import type { AuditLogItem } from '@workspace/shared/types/audit-log';
+import type {
+  AuditLogItem,
+  AuditMetadata,
+} from '@workspace/shared/types/audit-log';
 import { auditEvents, users } from '@workspace/shared/schemas';
 import type { AnyColumn } from 'drizzle-orm';
 import { and, asc, count, desc, eq, gte, lte, SQL } from 'drizzle-orm';
@@ -77,13 +80,54 @@ export class AuditLogService {
       actorUserId: row.actorUserId,
       entityType: row.entityType,
       entityId: row.entityId,
-      metadata: row.metadata as Record<string, unknown> | null,
+      metadata: row.metadata as AuditMetadata | null,
       createdAt: row.createdAt.toISOString(),
       actorName: row.actorName ?? undefined,
       actorEmail: row.actorEmail ?? undefined,
     }));
 
     return paginatedResponse(items, totalItems, paginationQuery);
+  }
+
+  async findAllForExport(
+    params: AuditLogFindAllParams,
+  ): Promise<AuditLogItem[]> {
+    const whereClause = this.buildWhereClause(params);
+    const orderClause = this.buildOrderBy({
+      key: 'createdAt',
+      direction: 'desc',
+    });
+
+    const rows = await this.db
+      .select({
+        id: auditEvents.id,
+        eventType: auditEvents.eventType,
+        organizationId: auditEvents.organizationId,
+        actorUserId: auditEvents.actorUserId,
+        entityType: auditEvents.entityType,
+        entityId: auditEvents.entityId,
+        metadata: auditEvents.metadata,
+        createdAt: auditEvents.createdAt,
+        actorName: users.name,
+        actorEmail: users.email,
+      })
+      .from(auditEvents)
+      .leftJoin(users, eq(auditEvents.actorUserId, users.id))
+      .where(whereClause)
+      .orderBy(...orderClause);
+
+    return rows.map((row) => ({
+      id: row.id,
+      eventType: row.eventType,
+      organizationId: row.organizationId,
+      actorUserId: row.actorUserId,
+      entityType: row.entityType,
+      entityId: row.entityId,
+      metadata: row.metadata as AuditMetadata | null,
+      createdAt: row.createdAt.toISOString(),
+      actorName: row.actorName ?? undefined,
+      actorEmail: row.actorEmail ?? undefined,
+    }));
   }
 
   private buildWhereClause(params: AuditLogFindAllParams): SQL {

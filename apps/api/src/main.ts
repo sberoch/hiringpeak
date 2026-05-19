@@ -25,13 +25,19 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, cleanupOpenApiDoc(document));
 
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.BACKOFFICE_URL,
+    process.env.LANDING_URL,
+  ].filter((origin): origin is string => Boolean(origin));
+
   app.enableCors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    credentials: true,
     exposedHeaders: ['Content-Disposition'],
   });
-  const port = process.env.SERVER_PORT || '5000';
-
-  await app.listen(port);
-  logger.log(`Server is running on port ${port}`, 'Bootstrap');
+  await app.listen(process.env.SERVER_PORT || '5000', '0.0.0.0');
+  console.log(`Server is running on port ${process.env.SERVER_PORT || '5000'}`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

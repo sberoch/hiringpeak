@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "HiringPeak | Extractor de Datos de Perfil de LinkedIn",
+  "version": "1.0.0",
+  "description": "Extensión de HiringPeak para importar candidatos desde LinkedIn",
+  "permissions": ["activeTab", "scripting", "tabs"],
+  "host_permissions": ["*://*.linkedin.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.linkedin.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["*://*.linkedin.com/*"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "HiringPeak | Extractor de Datos de Perfil de LinkedIn",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/logo.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/logo.png"
+  }
+}

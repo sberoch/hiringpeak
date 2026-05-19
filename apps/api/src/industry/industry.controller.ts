@@ -54,7 +54,7 @@ export class IndustryController {
   }
 
   @Permissions(PermissionCode.SETTINGS_MANAGE)
-  @AuditAction({ eventType: 'create_industry', entityType: 'industry' })
+  @AuditAction({ eventType: 'create_industry', entityType: 'industry', labelField: 'name' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -68,7 +68,7 @@ export class IndustryController {
   }
 
   @Permissions(PermissionCode.SETTINGS_MANAGE)
-  @AuditAction({ eventType: 'update_industry', entityType: 'industry' })
+  @AuditAction({ eventType: 'update_industry', entityType: 'industry', labelField: 'name' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -83,7 +83,7 @@ export class IndustryController {
   }
 
   @Permissions(PermissionCode.SETTINGS_MANAGE)
-  @AuditAction({ eventType: 'delete_industry', entityType: 'industry' })
+  @AuditAction({ eventType: 'delete_industry', entityType: 'industry', labelField: 'name' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(

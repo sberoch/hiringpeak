@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import { and, eq, isNull } from 'drizzle-orm';
 import { UserType } from '@workspace/shared/enums';
 import { hashPassword, users } from '@workspace/shared/schemas';

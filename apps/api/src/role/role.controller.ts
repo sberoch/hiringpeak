@@ -52,7 +52,7 @@ export class RoleController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_role', entityType: 'role' })
+  @AuditAction({ eventType: 'create_role', entityType: 'role', labelField: 'name' })
   @Post()
   @Permissions(PermissionCode.ROLE_MANAGE)
   async create(
@@ -63,7 +63,7 @@ export class RoleController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_role', entityType: 'role' })
+  @AuditAction({ eventType: 'update_role', entityType: 'role', labelField: 'name' })
   @Patch(':id')
   @Permissions(PermissionCode.ROLE_MANAGE)
   async update(
@@ -75,7 +75,7 @@ export class RoleController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_role', entityType: 'role' })
+  @AuditAction({ eventType: 'delete_role', entityType: 'role', labelField: 'name' })
   @Delete(':id')
   @Permissions(PermissionCode.ROLE_MANAGE)
   async remove(

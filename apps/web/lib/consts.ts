@@ -19,9 +19,8 @@ export const PAGE_AUTHORIZATION_ACCESS: Record<string, true> = {
   "/users/new": true,
   "/vacancies": true,
   "/vacancies/:id": true,
-  "/vacancies/:id/candidate-selection": true,
+  "/vacancies/:id/edit": true,
   "/vacancies/new": true,
-  "/vacancies/new/candidate-selection": true,
 } as const;
 
 export enum DialogsIdsEnum {

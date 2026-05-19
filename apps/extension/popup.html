@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo-section">
+        <div class="brand">
+          <img src="icons/logo.png" alt="HiringPeak" class="brand-mark" />
+          <span class="brand-name">HiringPeak</span>
+        </div>
+        <p class="subtitle">Extractor de datos</p>
+      </div>
+
+      <div id="statusMessage" class="status-message">
+        Listo para obtener datos del candidato
+      </div>
+
+      <div id="step1" class="step">
+        <p class="step-instruction">
+          Primero, descarga el perfil como PDF desde LinkedIn (... → Guardar en
+          PDF)
+        </p>
+        <button id="ackButton" class="btn">Ya descargué el PDF</button>
+      </div>
+
+      <div id="step2" class="step" style="display: none">
+        <p class="step-instruction">
+          Se te enviará a una nueva pestaña donde deberás adjuntar el PDF del
+          candidato.
+        </p>
+        <div id="imageSelection" class="image-selection" style="display: none">
+          <p class="image-selection-title">Imagen detectada para extraer</p>
+          <img
+            id="imagePreview"
+            class="image-preview"
+            alt="Vista previa de la foto de perfil"
+          />
+          <p id="imagePreviewCaption" class="image-preview-caption"></p>
+        </div>
+        <button id="extractButton" class="btn">Extraer datos</button>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

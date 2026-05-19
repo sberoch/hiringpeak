@@ -93,3 +93,13 @@ export type BlacklistCandidateDto = z.infer<typeof BlacklistCandidateSchema>;
 export type CandidateQueryParamsDto = z.infer<
   typeof CandidateQueryParamsSchema
 >;
+
+export const ParsePdfResponseSchema = z.object({
+  name: z.string(),
+  linkedin: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  shortDescription: z.string(),
+});
+
+export type ParsePdfResponseDto = z.infer<typeof ParsePdfResponseSchema>;

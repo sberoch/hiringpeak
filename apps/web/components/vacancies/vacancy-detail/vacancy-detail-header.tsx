@@ -25,7 +25,6 @@ import { WorkflowInfoDialog } from "@workspace/ui/components/workflow-info-dialo
 import { downloadVacancyReportPdf } from "@/lib/api/vacancy";
 import { PermissionGuard } from "../../auth/permission-guard";
 import { DeleteVacancyDialog } from "../delete-vacancy-dialog";
-import { EditVacancySheet } from "../edit-vacancy-sheet";
 import { AddCandidatesDialog } from "./add-candidates-dialog";
 
 interface VacancyDetailHeaderProps {
@@ -39,7 +38,6 @@ export const VacancyDetailHeader = ({
 }: VacancyDetailHeaderProps) => {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isAddCandidatesDialogOpen, setIsAddCandidatesDialogOpen] =
     useState(false);
   const [isWorkflowInfoDialogOpen, setIsWorkflowInfoDialogOpen] =
@@ -136,7 +134,7 @@ export const VacancyDetailHeader = ({
             size="sm"
             variant="brand-ghost"
             className="bg-white"
-            onClick={() => setIsEditSheetOpen(true)}
+            onClick={() => router.push(`/vacancies/${vacancy.id}/edit`)}
           >
             <Edit className="h-4 w-4 mr-1.5" />
             Editar
@@ -172,13 +170,6 @@ export const VacancyDetailHeader = ({
         onClose={() => setIsDeleteDialogOpen(false)}
         vacancy={vacancy}
       />
-      {isEditSheetOpen && (
-        <EditVacancySheet
-          isOpen={isEditSheetOpen}
-          onClose={() => setIsEditSheetOpen(false)}
-          vacancy={vacancy}
-        />
-      )}
       {isAddCandidatesDialogOpen && (
         <AddCandidatesDialog
           isOpen={isAddCandidatesDialogOpen}

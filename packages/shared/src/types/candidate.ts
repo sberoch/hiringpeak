@@ -114,3 +114,5 @@ export type CandidateFilters = PaginationFilters &
     industries?: Industry[];
     areas?: Area[];
   };
+
+export type { ParsePdfResponseDto as ParsePdfResponse } from "../dtos/candidate.dto.js";

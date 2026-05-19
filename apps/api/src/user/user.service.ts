@@ -51,7 +51,7 @@ export class UserService {
       .from(users)
       .where(whereClause);
 
-    let [items, [{ count: totalItems }]] = await Promise.all([
+    const [items, [{ count: totalItems }]] = await Promise.all([
       itemsQuery,
       countQuery,
     ]);

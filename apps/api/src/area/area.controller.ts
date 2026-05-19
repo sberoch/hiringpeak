@@ -55,7 +55,7 @@ export class AreaController {
   }
 
   @Permissions(PermissionCode.AREA_MANAGE)
-  @AuditAction({ eventType: 'create_area', entityType: 'area' })
+  @AuditAction({ eventType: 'create_area', entityType: 'area', labelField: 'name' })
   @ApiCreatedResponse()
   @Post()
   async create(
@@ -66,7 +66,7 @@ export class AreaController {
   }
 
   @Permissions(PermissionCode.AREA_MANAGE)
-  @AuditAction({ eventType: 'update_area', entityType: 'area' })
+  @AuditAction({ eventType: 'update_area', entityType: 'area', labelField: 'name' })
   @ApiOkResponse()
   @Patch(':id')
   async update(
@@ -78,7 +78,7 @@ export class AreaController {
   }
 
   @Permissions(PermissionCode.AREA_MANAGE)
-  @AuditAction({ eventType: 'delete_area', entityType: 'area' })
+  @AuditAction({ eventType: 'delete_area', entityType: 'area', labelField: 'name' })
   @ApiOkResponse()
   @Delete(':id')
   async remove(

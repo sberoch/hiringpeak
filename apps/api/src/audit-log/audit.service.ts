@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { auditEvents } from '@workspace/shared/schemas';
+import type { AuditMetadata } from '@workspace/shared/types/audit-log';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 
@@ -9,7 +10,7 @@ export interface RecordAuditEventInput {
   actorUserId: number;
   entityType: string;
   entityId?: number | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: AuditMetadata | null;
 }
 
 @Injectable()

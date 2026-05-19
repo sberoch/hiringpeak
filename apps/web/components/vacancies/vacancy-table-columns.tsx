@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
@@ -28,8 +29,6 @@ import {
 } from "@workspace/ui/components/tooltip";
 import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { DeleteVacancyDialog } from "./delete-vacancy-dialog";
-import { EditVacancySheet } from "./edit-vacancy-sheet";
-import { DuplicateVacancySheet } from "./duplicate-vacancy-sheet";
 import {
   getInitials,
   stringToColor,
@@ -44,9 +43,8 @@ interface CellActionsProps {
 }
 
 const CellActions = ({ vacancy }: CellActionsProps) => {
+  const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const [isDuplicateSheetOpen, setIsDuplicateSheetOpen] = useState(false);
 
   return (
     <>
@@ -61,16 +59,20 @@ const CellActions = ({ vacancy }: CellActionsProps) => {
           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
           <DropdownMenuItem
             className="cursor-pointer"
-            onClick={() => setIsEditSheetOpen(true)}
+            onClick={() => router.push(`/vacancies/${vacancy.id}/edit`)}
           >
             Editar vacante
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => setIsDuplicateSheetOpen(true)}
-          >
-            Duplicar vacante
-          </DropdownMenuItem>
+          <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() =>
+                router.push(`/vacancies/new?duplicateFrom=${vacancy.id}`)
+              }
+            >
+              Duplicar vacante
+            </DropdownMenuItem>
+          </PermissionGuard>
           <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
             <DropdownMenuItem
               className="text-red-600 cursor-pointer"
@@ -88,18 +90,6 @@ const CellActions = ({ vacancy }: CellActionsProps) => {
           vacancy={vacancy}
         />
       )}
-      {isEditSheetOpen && (
-        <EditVacancySheet
-          isOpen={isEditSheetOpen}
-          onClose={() => setIsEditSheetOpen(false)}
-          vacancy={vacancy}
-        />
-      )}
-      <DuplicateVacancySheet
-        isOpen={isDuplicateSheetOpen}
-        onClose={() => setIsDuplicateSheetOpen(false)}
-        vacancy={vacancy}
-      />
     </>
   );
 };

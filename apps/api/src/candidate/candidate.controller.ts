@@ -1,22 +1,29 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  InternalServerErrorException,
   Param,
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CandidateService } from './candidate.service';
+import { ParsePdfService } from './parse-pdf.service';
 import {
   CreateCandidateDto,
   UpdateCandidateDto,
@@ -36,7 +43,26 @@ import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 @ApiTags('Candidates')
 @Controller('candidate')
 export class CandidateController {
-  constructor(private readonly candidateService: CandidateService) {}
+  constructor(
+    private readonly candidateService: CandidateService,
+    private readonly parsePdfService: ParsePdfService,
+  ) {}
+
+  @ApiCreatedResponse()
+  @ApiConsumes('multipart/form-data')
+  @Post('parse-pdf')
+  @Permissions(PermissionCode.CANDIDATE_MANAGE)
+  @UseInterceptors(FileInterceptor('file'))
+  async parsePdf(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    try {
+      return await this.parsePdfService.parse(file.buffer);
+    } catch {
+      throw new InternalServerErrorException('Failed to parse PDF');
+    }
+  }
 
   @ApiOkResponse()
   @Get()
@@ -69,7 +95,7 @@ export class CandidateController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'create_candidate', entityType: 'candidate', labelField: 'name' })
   @Post()
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async create(
@@ -83,7 +109,7 @@ export class CandidateController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'blacklist_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'blacklist_candidate', entityType: 'candidate', labelField: 'name' })
   @Post(':id/blacklist')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async blacklist(
@@ -101,7 +127,7 @@ export class CandidateController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'update_candidate', entityType: 'candidate', labelField: 'name' })
   @Patch(':id')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async update(
@@ -116,7 +142,7 @@ export class CandidateController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_candidate', entityType: 'candidate' })
+  @AuditAction({ eventType: 'delete_candidate', entityType: 'candidate', labelField: 'name' })
   @Delete(':id')
   @Permissions(PermissionCode.CANDIDATE_MANAGE)
   async remove(

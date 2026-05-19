@@ -201,7 +201,7 @@ export class VacancyController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_vacancy', entityType: 'vacancy' })
+  @AuditAction({ eventType: 'create_vacancy', entityType: 'vacancy', labelField: 'title' })
   @Post()
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async create(
@@ -215,7 +215,7 @@ export class VacancyController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_vacancy', entityType: 'vacancy' })
+  @AuditAction({ eventType: 'update_vacancy', entityType: 'vacancy', labelField: 'title' })
   @Patch(':id')
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async update(
@@ -230,7 +230,7 @@ export class VacancyController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_vacancy', entityType: 'vacancy' })
+  @AuditAction({ eventType: 'delete_vacancy', entityType: 'vacancy', labelField: 'title' })
   @Delete(':id')
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async remove(

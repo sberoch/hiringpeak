@@ -3,6 +3,7 @@ import {
   Candidate,
   CandidateParams,
   CreateCandidateDto,
+  ParsePdfResponse,
   UpdateCandidateDto,
 } from "@workspace/shared/types/candidate";
 
@@ -54,5 +55,18 @@ export async function blacklistCandidate(id: Candidate["id"], reason: string) {
   const response = await api.post<Candidate>(`/candidate/${id}/blacklist`, {
     reason,
   });
+  return response.data;
+}
+
+export async function parseCandidatePdf(
+  file: File
+): Promise<ParsePdfResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await api.post<ParsePdfResponse>(
+    "/candidate/parse-pdf",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
   return response.data;
 }

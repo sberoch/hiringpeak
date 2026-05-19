@@ -80,6 +80,9 @@ export const editVacancySchema = z.object({
       gender: z.string().optional(),
       minAge: z.number().min(18).optional().nullable(),
       maxAge: z.number().optional().nullable(),
+      countries: z.array(z.string()).optional(),
+      provinces: z.array(z.string()).optional(),
+      languages: z.array(z.string()).optional(),
     })
     .optional(),
   createdBy: z.number({

@@ -51,7 +51,7 @@ export class CandidateFileController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_candidate_file', entityType: 'candidate_file' })
+  @AuditAction({ eventType: 'create_candidate_file', entityType: 'candidate_file', labelField: 'name' })
   @Post()
   async create(
     @Body() createCandidateFileDto: CreateCandidateFileDto,
@@ -64,7 +64,7 @@ export class CandidateFileController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_candidate_file', entityType: 'candidate_file' })
+  @AuditAction({ eventType: 'update_candidate_file', entityType: 'candidate_file', labelField: 'name' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -78,7 +78,7 @@ export class CandidateFileController {
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_candidate_file', entityType: 'candidate_file' })
+  @AuditAction({ eventType: 'delete_candidate_file', entityType: 'candidate_file', labelField: 'name' })
   @Delete(':id')
   async remove(
     @Param('id') id: string,

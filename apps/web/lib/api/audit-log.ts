@@ -26,3 +26,21 @@ export async function getAllAuditLogs(params: AuditLogParams) {
   );
   return response.data;
 }
+
+export async function downloadAuditLogCsv(params: AuditLogParams) {
+  const exportParams: Omit<AuditLogParams, "page" | "limit"> = {
+    order: params.order,
+    actorUserId: params.actorUserId,
+    entityType: params.entityType,
+    eventType: params.eventType,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  };
+  const searchParams = filtersToSearchParams(
+    exportParams as Parameters<typeof filtersToSearchParams>[0]
+  );
+  const response = await api.get<Blob>(`/audit-log/export${searchParams}`, {
+    responseType: "blob",
+  });
+  return response.data;
+}

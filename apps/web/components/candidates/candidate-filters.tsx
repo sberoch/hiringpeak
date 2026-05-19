@@ -2,10 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, RotateCcw, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, RotateCcw, Search } from "lucide-react";
 
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
@@ -76,12 +75,14 @@ export function CandidateFilters({
   }, [filters.countries]);
 
   return (
-    <Card className={cn("rounded-2xl border-brand-border bg-surface", isCollapsed && "gap-0")}>
-      <CardHeader className={cn("pb-0 gap-0 relative flex flex-row items-center w-full justify-between", !isCollapsed && "pt-4 px-4")}>
-        <CardTitle className="text-base font-semibold text-ink flex items-center gap-2">
-          <Search className="h-4 w-4 text-electric" />
-          Filtros y Búsqueda
-        </CardTitle>
+    <div className="rounded-2xl border border-brand-border bg-surface px-4 py-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
+            <Filter className="h-3.5 w-3.5" />
+          </div>
+          <h3 className="text-sm font-semibold text-ink">Filtros</h3>
+        </div>
         <Button
           variant="ghost"
           size="sm"
@@ -94,10 +95,9 @@ export function CandidateFilters({
             <ChevronUp className="h-4 w-4" />
           )}
         </Button>
-      </CardHeader>
-      {!isCollapsed ? (
-        <CardContent className="p-4">
-          <div>
+      </div>
+      {!isCollapsed && (
+        <div className="mt-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 lg:gap-4">
               <div>
                 <div className="relative">
@@ -412,11 +412,8 @@ export function CandidateFilters({
                 )}
               </div>
             </div>
-          </div>
-        </CardContent>
-      ) : (
-        <div className="p-0" />
+        </div>
       )}
-    </Card>
+    </div>
   );
 }

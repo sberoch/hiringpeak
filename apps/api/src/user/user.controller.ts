@@ -52,7 +52,7 @@ export class UserController {
 
   @ApiCreatedResponse()
   @Permissions(PermissionCode.USER_MANAGE)
-  @AuditAction({ eventType: 'create_user', entityType: 'user' })
+  @AuditAction({ eventType: 'create_user', entityType: 'user', labelField: 'name' })
   @Post()
   async create(
     @Body() createUserDto: CreateUserDto,
@@ -63,7 +63,7 @@ export class UserController {
 
   @ApiOkResponse()
   @Permissions(PermissionCode.USER_MANAGE)
-  @AuditAction({ eventType: 'update_user', entityType: 'user' })
+  @AuditAction({ eventType: 'update_user', entityType: 'user', labelField: 'name' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -75,7 +75,7 @@ export class UserController {
 
   @ApiOkResponse()
   @Permissions(PermissionCode.USER_MANAGE)
-  @AuditAction({ eventType: 'delete_user', entityType: 'user' })
+  @AuditAction({ eventType: 'delete_user', entityType: 'user', labelField: 'name' })
   @Delete(':id')
   async remove(
     @Param('id') id: string,
