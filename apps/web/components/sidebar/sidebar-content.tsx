@@ -103,6 +103,12 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
             requiredPermissions: [PermissionCode.VACANCY_READ],
           },
           {
+            id: "create-vacancy-ai",
+            title: "Crear vacante con IA",
+            url: "/vacancies/new-ai",
+            requiredPermissions: [PermissionCode.VACANCY_MANAGE],
+          },
+          {
             id: "simulate-vacancy",
             title: "Simular búsqueda",
             url: "#",

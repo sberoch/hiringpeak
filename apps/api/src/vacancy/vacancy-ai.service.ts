@@ -64,6 +64,12 @@ import {
   resolveSourceType,
   type VacancyAiUploadFile,
 } from './vacancy-ai-files';
+import {
+  buildSeniorityInferenceGuidelines,
+  inferSeniorityBandFromText,
+  resolveSeniorityIdsFromInference,
+  senioritySearchQueriesForBand,
+} from './vacancy-ai-seniority';
 
 const VACANCY_AI_DESCRIPTION_MAX_LENGTH = 1500;
 
@@ -388,6 +394,37 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
   return sanitizedDraft;
 }
 
+function enrichDraftSeniorityFromRoleText(
+  draft: AiVacancyDraft,
+  catalogs: CatalogContext,
+  roleText: string,
+): AiVacancyDraft {
+  if (draft.filters.seniorityIds?.length) {
+    return draft;
+  }
+
+  const combinedText = [roleText, draft.title, draft.description]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(' ');
+
+  const inferredIds = resolveSeniorityIdsFromInference(
+    combinedText,
+    catalogs.seniorities,
+  );
+
+  if (!inferredIds?.length) {
+    return draft;
+  }
+
+  return {
+    ...draft,
+    filters: {
+      ...draft.filters,
+      seniorityIds: inferredIds,
+    },
+  };
+}
+
 function combineUsage(...usages: Array<{ [key: string]: any } | undefined>) {
   const definedUsages = usages.filter((usage): usage is NonNullable<typeof usage> =>
     usage != null,
@@ -460,7 +497,8 @@ Reglas:
 - Haz el mejor esfuerzo para inferir title y description si el usuario no los expresa literalmente.
 ${buildDescriptionGuidelines()}
 - Nunca inventes ids.
-- Para seniority, area, industry y company usa solamente ids devueltos por herramientas.
+- Para area, industry y company usa solamente ids devueltos por herramientas.
+${buildSeniorityInferenceGuidelines(catalogs.seniorities)}
 - companyId es opcional y debe ser conservador: solo completar si el match es realmente consistente.
 - assignedTo y statusId NO forman parte de esta extracción.
 - Interpreta listas con "y" u "o" como arreglos OR. Nunca conviertas eso en lógica AND estructurada.
@@ -585,7 +623,11 @@ export class VacancyAiService {
 
       const resolvedContext = getSubmittedDraftContext(contextResult.toolCalls);
       const sanitizedContext: ExtractionResult = {
-        draft: sanitizeDraft(resolvedContext.draft, catalogs),
+        draft: enrichDraftSeniorityFromRoleText(
+          sanitizeDraft(resolvedContext.draft, catalogs),
+          catalogs,
+          promptText,
+        ),
         metadata: resolvedContext.metadata,
       };
 
@@ -604,7 +646,11 @@ export class VacancyAiService {
         }),
       });
 
-      const sanitizedDraft = sanitizeDraft(structuredResult.output.draft, catalogs);
+      const sanitizedDraft = enrichDraftSeniorityFromRoleText(
+        sanitizeDraft(structuredResult.output.draft, catalogs),
+        catalogs,
+        promptText,
+      );
       this.logger.debug({
         model: modelName,
         publicToken,
@@ -938,15 +984,38 @@ export class VacancyAiService {
     );
 
     return {
+      inferSeniorityFromRole: tool({
+        description:
+          'Infer seniority band and catalog ids from a job title or role description (e.g. gerente comercial, CEO, data entry). Use before findSeniorities when the prompt implies a level.',
+        inputSchema: z.object({
+          roleText: z.string().min(1),
+        }),
+        execute: async ({ roleText }) => {
+          const band = inferSeniorityBandFromText(roleText);
+          const inferredIds = resolveSeniorityIdsFromInference(
+            roleText,
+            catalogs.seniorities,
+          );
+
+          return {
+            band,
+            inferredIds: inferredIds ?? [],
+            suggestedSearchQueries: band
+              ? senioritySearchQueriesForBand(band)
+              : [],
+          };
+        },
+      }),
       findSeniorities: tool({
-        description: 'Search seniority options and return matching ids.',
+        description:
+          'Search seniority catalog options by name and return matching ids. Prefer queries like "Gerente", "Director", "CEO" derived from inferSeniorityFromRole.',
         inputSchema: z.object({
           query: z.string().min(1),
         }),
         execute: async ({ query }) => ({
           matches: searchIdCatalog(query, catalogs.seniorities, {
-            autoSelectThreshold: 0.58,
-            minimumScore: 0.2,
+            autoSelectThreshold: 0.52,
+            minimumScore: 0.18,
             limit: 5,
           }),
         }),

@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { AiVacancyAgentLayout } from "./ai-vacancy-agent-layout";
+import { AiVacancyPageLayout } from "./ai-vacancy-page-layout";
 import { AiVacancyCandidatesSection } from "./ai-vacancy-candidates-section";
 import { AiVacancyDraftFieldsSection } from "./ai-vacancy-draft-fields";
 import { AiVacancyFiltersEditor } from "./ai-vacancy-filters-editor";
@@ -67,7 +68,6 @@ export function AiVacancyPage() {
     queryKey: [VACANCY_AI_API_KEY, "runs"],
     queryFn: listAiVacancyRuns,
     retry: false,
-    enabled: hasStarted,
   });
 
   const candidateParams = useMemo(() => {
@@ -221,6 +221,7 @@ export function AiVacancyPage() {
     setAssignedTo("");
     setHasStarted(true);
     setOpen(false);
+    toast.success("Borrador cargado desde el historial.");
   }, [setOpen]);
 
   const handleFilterChange = useCallback(
@@ -250,6 +251,17 @@ export function AiVacancyPage() {
       activeToken={token}
       isLoading={isLoadingRuns}
       onSelectRun={handleSelectRun}
+      variant="sidebar"
+    />
+  );
+
+  const mobileHistoryPanel = (
+    <AiVacancyRunsSidebar
+      runs={runs}
+      activeToken={token}
+      isLoading={isLoadingRuns}
+      onSelectRun={handleSelectRun}
+      variant="panel"
     />
   );
 
@@ -288,32 +300,36 @@ export function AiVacancyPage() {
 
   return (
     <AiVacancyShell>
-      {isWorkspace ? (
-        <AiVacancyAgentLayout
-          historySidebar={historySidebar}
-          promptPane={
-            <AiVacancyPromptPane
-              prompt={prompt}
-              files={files}
-              onPromptChange={setPrompt}
-              onFilesChange={setFiles}
-              onSubmit={handlePromptSubmit}
-              isGenerating={extractMutation.isPending}
-              selectedRunDocuments={selectedRunDocuments}
-            />
-          }
-          reviewPane={reviewPane}
-        />
-      ) : (
-        <AiVacancyPromptLanding
-          prompt={prompt}
-          files={files}
-          onPromptChange={setPrompt}
-          onFilesChange={setFiles}
-          onSubmit={handlePromptSubmit}
-          isGenerating={extractMutation.isPending}
-        />
-      )}
+      <AiVacancyPageLayout
+        historySidebar={historySidebar}
+        mobileHistory={mobileHistoryPanel}
+      >
+        {isWorkspace ? (
+          <AiVacancyAgentLayout
+            promptPane={
+              <AiVacancyPromptPane
+                prompt={prompt}
+                files={files}
+                onPromptChange={setPrompt}
+                onFilesChange={setFiles}
+                onSubmit={handlePromptSubmit}
+                isGenerating={extractMutation.isPending}
+                selectedRunDocuments={selectedRunDocuments}
+              />
+            }
+            reviewPane={reviewPane}
+          />
+        ) : (
+          <AiVacancyPromptLanding
+            prompt={prompt}
+            files={files}
+            onPromptChange={setPrompt}
+            onFilesChange={setFiles}
+            onSubmit={handlePromptSubmit}
+            isGenerating={extractMutation.isPending}
+          />
+        )}
+      </AiVacancyPageLayout>
     </AiVacancyShell>
   );
 }

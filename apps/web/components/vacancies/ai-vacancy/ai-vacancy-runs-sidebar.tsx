@@ -22,6 +22,8 @@ interface AiVacancyRunsSidebarProps {
   activeToken: string | null;
   isLoading: boolean;
   onSelectRun: (run: AiVacancyRunSummary) => void;
+  /** `sidebar` = left column on desktop; `panel` = compact block below landing on mobile. */
+  variant?: "sidebar" | "panel";
 }
 
 export function AiVacancyRunsSidebar({
@@ -29,16 +31,28 @@ export function AiVacancyRunsSidebar({
   activeToken,
   isLoading,
   onSelectRun,
+  variant = "sidebar",
 }: AiVacancyRunsSidebarProps) {
+  const isPanel = variant === "panel";
+
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-r border-brand-border bg-canvas lg:w-64 lg:shrink-0">
+    <aside
+      className={cn(
+        "flex w-full flex-col bg-canvas",
+        isPanel
+          ? "max-h-52 shrink-0 border-t border-brand-border"
+          : "h-full min-h-0 border-r border-brand-border lg:w-64 lg:shrink-0",
+      )}
+    >
       <div className="border-b border-brand-border px-4 py-4">
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-electric" />
           <h3 className="text-sm font-semibold text-ink">Historial</h3>
         </div>
         <p className="mt-1 text-xs text-muted-brand">
-          Generaciones recientes de esta cuenta.
+          {isPanel
+            ? "Tocá una generación para reutilizar su borrador."
+            : "Generaciones recientes de esta cuenta."}
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
