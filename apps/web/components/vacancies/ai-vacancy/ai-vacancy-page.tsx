@@ -205,9 +205,16 @@ export function AiVacancyPage() {
   const isWorkspace = hasStarted;
 
   const reviewPane = draft ? (
-    <div className="rounded-2xl border border-brand-border bg-surface lg:m-4 lg:overflow-hidden">
+    <>
       <AiVacancyDraftFieldsSection draft={draft} onUpdate={updateDraft} />
       <AiVacancyFiltersEditor filters={draft.filters} onChange={handleFilterChange} />
+      <AiVacancyCandidatesSection
+        candidates={candidates?.items ?? []}
+        totalItems={candidates?.meta.totalItems ?? 0}
+        selectedCandidateIds={selectedCandidateIds}
+        isLoading={isFetchingCandidates}
+        onToggleSelection={toggleCandidateSelection}
+      />
       <AiVacancyManualConfirmSection
         draft={draft}
         companies={companiesData?.items ?? []}
@@ -223,14 +230,7 @@ export function AiVacancyPage() {
         onAssignedToChange={setAssignedTo}
         onCreate={() => createMutation.mutate()}
       />
-      <AiVacancyCandidatesSection
-        candidates={candidates?.items ?? []}
-        totalItems={candidates?.meta.totalItems ?? 0}
-        selectedCandidateIds={selectedCandidateIds}
-        isLoading={isFetchingCandidates}
-        onToggleSelection={toggleCandidateSelection}
-      />
-    </div>
+    </>
   ) : extractMutation.isPending ? (
     <AiVacancyReviewLoading />
   ) : (

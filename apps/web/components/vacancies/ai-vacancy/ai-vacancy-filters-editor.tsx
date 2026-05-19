@@ -87,7 +87,6 @@ export function AiVacancyFiltersEditor({
       icon={SlidersHorizontal}
       title="Filtros sugeridos"
       description="Ajustá el universo de candidatos; los cambios actualizan la vista automáticamente."
-      className="border-b border-brand-border"
     >
       <div className="space-y-4">
         <div className={filterGridClass}>

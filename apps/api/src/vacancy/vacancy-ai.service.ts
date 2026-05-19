@@ -31,6 +31,10 @@ import {
   languages,
   provinceGroups,
 } from '@workspace/shared/static/catalogs';
+import {
+  inferCountriesFromProvinces,
+  inferDefaultLanguagesFromCountries,
+} from '@workspace/shared/static/location-defaults';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { VacancyAiAnalyticsService } from './vacancy-ai.analytics.service';
@@ -45,6 +49,8 @@ import {
   type IdCatalogOption,
 } from './vacancy-ai.matcher';
 import { VacancyService } from './vacancy.service';
+
+const VACANCY_AI_DESCRIPTION_MAX_LENGTH = 1500;
 
 const EXTRACTION_METADATA_SCHEMA = z.object({
   inferredFields: z.array(z.string()).default([]),
@@ -125,6 +131,109 @@ function normalizeOptionalSalary(value?: string | null) {
   return trimmedValue.length > 0 ? trimmedValue : undefined;
 }
 
+function clampVacancyDescription(value: string) {
+  if (value.length <= VACANCY_AI_DESCRIPTION_MAX_LENGTH) {
+    return value;
+  }
+
+  const truncated = value.slice(0, VACANCY_AI_DESCRIPTION_MAX_LENGTH - 1);
+  const lastSpaceIndex = truncated.lastIndexOf(' ');
+
+  if (lastSpaceIndex > VACANCY_AI_DESCRIPTION_MAX_LENGTH * 0.75) {
+    return `${truncated.slice(0, lastSpaceIndex).trimEnd()}…`;
+  }
+
+  return `${truncated.trimEnd()}…`;
+}
+
+function resolveCatalogNames(
+  ids: number[] | undefined,
+  catalog: IdCatalogOption[],
+) {
+  if (!ids?.length) {
+    return undefined;
+  }
+
+  const namesById = new Map(catalog.map((item) => [item.id, item.name]));
+  const names = ids
+    .map((id) => namesById.get(id))
+    .filter((name): name is string => Boolean(name));
+
+  return names.length > 0 ? names : undefined;
+}
+
+function formatResolvedFiltersSummary(
+  draft: AiVacancyDraft,
+  catalogs: CatalogContext,
+) {
+  const lines: string[] = [];
+  const seniorityNames = resolveCatalogNames(
+    draft.filters.seniorityIds,
+    catalogs.seniorities,
+  );
+  const areaNames = resolveCatalogNames(draft.filters.areaIds, catalogs.areas);
+  const industryNames = resolveCatalogNames(
+    draft.filters.industryIds,
+    catalogs.industries,
+  );
+
+  if (seniorityNames) {
+    lines.push(`- Experiencia / seniority: ${seniorityNames.join(', ')}`);
+  }
+
+  if (areaNames) {
+    lines.push(`- Áreas / rol: ${areaNames.join(', ')}`);
+  }
+
+  if (industryNames) {
+    lines.push(`- Industrias: ${industryNames.join(', ')}`);
+  }
+
+  if (draft.filters.countries?.length) {
+    lines.push(`- Países: ${draft.filters.countries.join(', ')}`);
+  }
+
+  if (draft.filters.provinces?.length) {
+    lines.push(`- Provincias: ${draft.filters.provinces.join(', ')}`);
+  }
+
+  if (draft.filters.languages?.length) {
+    lines.push(`- Idiomas: ${draft.filters.languages.join(', ')}`);
+  }
+
+  if (draft.filters.minAge != null || draft.filters.maxAge != null) {
+    const minAge = draft.filters.minAge ?? 'sin mínimo';
+    const maxAge = draft.filters.maxAge ?? 'sin máximo';
+    lines.push(`- Rango de edad: ${minAge} – ${maxAge}`);
+  }
+
+  if (draft.companyId != null) {
+    const company = catalogs.companies.find(
+      (item) => item.id === draft.companyId,
+    );
+
+    if (company) {
+      lines.push(`- Empresa: ${company.name}`);
+    }
+  }
+
+  return lines.length > 0
+    ? lines.join('\n')
+    : 'Sin filtros adicionales resueltos.';
+}
+
+function buildDescriptionGuidelines() {
+  return `
+Descripción (campo description):
+- Redacta un breve perfil de la vacante en lenguaje formal y profesional (tono de usted).
+- Debe ser un texto útil para publicar o compartir la búsqueda: rol u objetivo, competencias o habilidades esperadas, y requisitos clave inferidos del prompt.
+- Incorpora de forma natural, solo si están en el contexto resuelto: rango de experiencia (seniority), idiomas, país y provincia.
+- Evita listas extensas de viñetas; prefiere uno o dos párrafos breves y, como máximo, una lista corta de 3 a 5 ítems.
+- Máximo ${VACANCY_AI_DESCRIPTION_MAX_LENGTH} caracteres.
+- No repitas el título literalmente; complétalo.
+- No inventes ubicación, idiomas, experiencia ni competencias que no estén respaldadas por el prompt o el contexto resuelto.`;
+}
+
 function uniqueNumbers(values?: number[]) {
   if (!values || values.length === 0) {
     return undefined;
@@ -193,6 +302,24 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
   const normalizedSalary = normalizeOptionalSalary(draft.salary ?? undefined);
   const normalizedMinAge = draft.filters.minAge;
   const normalizedMaxAge = draft.filters.maxAge;
+  const provinces = filterAllowedStrings(
+    draft.filters.provinces,
+    allowedProvinces,
+  );
+  const countries = filterAllowedStrings(
+    inferCountriesFromProvinces(
+      provinces ?? [],
+      filterAllowedStrings(draft.filters.countries, allowedCountries),
+    ),
+    allowedCountries,
+  );
+  const languages = filterAllowedStrings(
+    inferDefaultLanguagesFromCountries(
+      countries ?? [],
+      filterAllowedStrings(draft.filters.languages, allowedLanguages),
+    ),
+    allowedLanguages,
+  );
 
   const filters = {
     seniorityIds: filterAllowedIds(
@@ -218,9 +345,9 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
       normalizedMinAge > normalizedMaxAge
         ? undefined
         : normalizedMaxAge,
-    countries: filterAllowedStrings(draft.filters.countries, allowedCountries),
-    provinces: filterAllowedStrings(draft.filters.provinces, allowedProvinces),
-    languages: filterAllowedStrings(draft.filters.languages, allowedLanguages),
+    provinces,
+    countries,
+    languages,
   };
 
   const sanitizedDraft: AiVacancyDraft = {
@@ -232,7 +359,7 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
   }
 
   if (normalizedDescription) {
-    sanitizedDraft.description = normalizedDescription;
+    sanitizedDraft.description = clampVacancyDescription(normalizedDescription);
   }
 
   if (normalizedSalary) {
@@ -293,6 +420,7 @@ Objetivo:
 
 Reglas:
 - Haz el mejor esfuerzo para inferir title y description si el usuario no los expresa literalmente.
+${buildDescriptionGuidelines()}
 - Nunca inventes ids.
 - Para seniority, area, industry y company usa solamente ids devueltos por herramientas.
 - companyId es opcional y debe ser conservador: solo completar si el match es realmente consistente.
@@ -315,7 +443,13 @@ Contexto adicional:
 function buildStructuredExtractionPrompt(
   originalPrompt: string,
   resolvedContext: ExtractionResult,
+  catalogs: CatalogContext,
 ) {
+  const filtersSummary = formatResolvedFiltersSummary(
+    resolvedContext.draft,
+    catalogs,
+  );
+
   return `
 Eres un extractor final de vacantes para un ATS.
 
@@ -326,11 +460,16 @@ Instrucciones:
 - Conserva exactamente los ids y listas ya resueltos en el contexto.
 - Nunca inventes ids nuevos.
 - Puedes mejorar title, description y salary para que sean claros y útiles.
+${buildDescriptionGuidelines()}
+- Prioriza reescribir description en la extracción final: debe reflejar el resumen de filtros resueltos cuando aplique.
 - Si falta un dato, déjalo vacío.
 - filters siempre debe existir.
 
 Prompt original:
 ${originalPrompt}
+
+Filtros resueltos (referencia legible para la descripción):
+${filtersSummary}
 
 Contexto resuelto:
 ${JSON.stringify(resolvedContext, null, 2)}
@@ -392,7 +531,11 @@ export class VacancyAiService {
       const structuredResult = await generateText({
         model: google(modelName),
         system: 'Eres un extractor final de vacantes para un ATS.',
-        prompt: buildStructuredExtractionPrompt(params.prompt, sanitizedContext),
+        prompt: buildStructuredExtractionPrompt(
+          params.prompt,
+          sanitizedContext,
+          catalogs,
+        ),
         output: Output.object({
           schema: EXTRACTION_RESULT_SCHEMA,
           name: 'vacancy_draft_extraction',

@@ -29,7 +29,7 @@ export function AiVacancySection({
   return (
     <section
       className={cn(
-        "overflow-hidden border-b border-brand-border bg-surface last:border-b-0",
+        "overflow-hidden border-b border-brand-border last:border-b-0",
         className,
       )}
     >
