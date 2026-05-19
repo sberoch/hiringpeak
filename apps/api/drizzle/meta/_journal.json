@@ -29,6 +29,13 @@
       "when": 1775769611497,
       "tag": "0003_quick_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775850000000,
+      "tag": "0004_ai_vacancy_run_documents",
+      "breakpoints": true
     }
   ]
 }

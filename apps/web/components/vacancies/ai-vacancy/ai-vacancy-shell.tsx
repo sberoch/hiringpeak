@@ -17,7 +17,7 @@ export function AiVacancyShell({ children }: AiVacancyShellProps) {
         <PageHeading
           icon={BriefcaseBusiness}
           title="Nueva vacante asistida"
-          description="Describí el rol en texto libre; generamos un borrador para que revises datos, filtros y candidatos."
+          description="Describí el rol en texto, adjuntá documentos o ambos; generamos un borrador para revisar."
         />
         <Button
           asChild

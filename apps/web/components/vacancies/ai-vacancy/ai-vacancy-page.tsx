@@ -14,6 +14,7 @@ import { AiVacancyPromptLanding } from "./ai-vacancy-prompt-landing";
 import { AiVacancyPromptPane } from "./ai-vacancy-prompt-pane";
 import { AiVacancyReviewEmpty } from "./ai-vacancy-review-empty";
 import { AiVacancyReviewLoading } from "./ai-vacancy-review-loading";
+import { AiVacancyRunsSidebar } from "./ai-vacancy-runs-sidebar";
 import { AiVacancyShell } from "./ai-vacancy-shell";
 import { useSidebar } from "@workspace/ui/components/sidebar";
 import {
@@ -25,6 +26,7 @@ import { USERS_API_KEY, getAllUsers } from "@/lib/api/user";
 import {
   createVacancyWithAi,
   extractVacancyWithAi,
+  listAiVacancyRuns,
   VACANCY_AI_API_KEY,
 } from "@/lib/api/vacancy-ai";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
@@ -34,7 +36,10 @@ import {
 } from "@/lib/api/vacancy-status";
 import { aiDraftToCandidateParams, normalizeAiVacancyDraft } from "@/lib/vacancy-ai";
 import { CompanyStatusEnum } from "@workspace/shared/types/company";
-import type { AiVacancyDraft } from "@workspace/shared/types/vacancy-ai";
+import type {
+  AiVacancyDraft,
+  AiVacancyRunSummary,
+} from "@workspace/shared/types/vacancy-ai";
 
 function hasSelectedCompany(draft: AiVacancyDraft | null) {
   return draft?.companyId != null;
@@ -46,13 +51,24 @@ export function AiVacancyPage() {
   const { setOpen } = useSidebar();
   const [hasStarted, setHasStarted] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [draft, setDraft] = useState<AiVacancyDraft | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [selectedRunDocuments, setSelectedRunDocuments] = useState<
+    { fileName: string }[]
+  >([]);
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<number[]>([]);
   const [statusId, setStatusId] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
 
   const hasDraft = draft !== null;
+
+  const { data: runs = [], isLoading: isLoadingRuns } = useQuery({
+    queryKey: [VACANCY_AI_API_KEY, "runs"],
+    queryFn: listAiVacancyRuns,
+    retry: false,
+    enabled: hasStarted,
+  });
 
   const candidateParams = useMemo(() => {
     if (!draft) {
@@ -105,7 +121,11 @@ export function AiVacancyPage() {
   });
 
   const extractMutation = useMutation({
-    mutationFn: (nextPrompt: string) => extractVacancyWithAi(nextPrompt),
+    mutationFn: () =>
+      extractVacancyWithAi({
+        prompt: prompt.trim() || undefined,
+        files,
+      }),
     onSuccess: (response) => {
       const normalizedDraft = normalizeAiVacancyDraft(response.draft);
 
@@ -114,6 +134,8 @@ export function AiVacancyPage() {
       setSelectedCandidateIds([]);
       setStatusId("");
       setAssignedTo("");
+      setFiles([]);
+      void queryClient.invalidateQueries({ queryKey: [VACANCY_AI_API_KEY, "runs"] });
       toast.success("Borrador generado. Revísalo antes de guardar.");
     },
     onError: () => {
@@ -170,8 +192,8 @@ export function AiVacancyPage() {
   );
 
   const handlePromptSubmit = useCallback(() => {
-    if (prompt.trim().length === 0) {
-      toast.error("Escribe un prompt antes de continuar.");
+    if (prompt.trim().length === 0 && files.length === 0) {
+      toast.error("Escribe un prompt o adjunta al menos un archivo.");
       return;
     }
 
@@ -180,8 +202,26 @@ export function AiVacancyPage() {
       setHasStarted(true);
     }
 
-    extractMutation.mutate(prompt.trim());
-  }, [extractMutation, hasStarted, prompt, setOpen]);
+    extractMutation.mutate();
+  }, [extractMutation, files.length, hasStarted, prompt, setOpen]);
+
+  const handleSelectRun = useCallback((run: AiVacancyRunSummary) => {
+    if (!run.draft) {
+      toast.error("No hay borrador guardado para esta generación.");
+      return;
+    }
+
+    setToken(run.publicToken);
+    setDraft(normalizeAiVacancyDraft(run.draft));
+    setPrompt(run.userPrompt ?? "");
+    setFiles([]);
+    setSelectedRunDocuments(run.documents);
+    setSelectedCandidateIds([]);
+    setStatusId("");
+    setAssignedTo("");
+    setHasStarted(true);
+    setOpen(false);
+  }, [setOpen]);
 
   const handleFilterChange = useCallback(
     (nextFilters: AiVacancyDraft["filters"]) => {
@@ -203,6 +243,15 @@ export function AiVacancyPage() {
   }, []);
 
   const isWorkspace = hasStarted;
+
+  const historySidebar = (
+    <AiVacancyRunsSidebar
+      runs={runs}
+      activeToken={token}
+      isLoading={isLoadingRuns}
+      onSelectRun={handleSelectRun}
+    />
+  );
 
   const reviewPane = draft ? (
     <>
@@ -241,12 +290,16 @@ export function AiVacancyPage() {
     <AiVacancyShell>
       {isWorkspace ? (
         <AiVacancyAgentLayout
+          historySidebar={historySidebar}
           promptPane={
             <AiVacancyPromptPane
               prompt={prompt}
+              files={files}
               onPromptChange={setPrompt}
+              onFilesChange={setFiles}
               onSubmit={handlePromptSubmit}
               isGenerating={extractMutation.isPending}
+              selectedRunDocuments={selectedRunDocuments}
             />
           }
           reviewPane={reviewPane}
@@ -254,7 +307,9 @@ export function AiVacancyPage() {
       ) : (
         <AiVacancyPromptLanding
           prompt={prompt}
+          files={files}
           onPromptChange={setPrompt}
+          onFilesChange={setFiles}
           onSubmit={handlePromptSubmit}
           isGenerating={extractMutation.isPending}
         />

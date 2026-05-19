@@ -9,8 +9,17 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import type { JsonValue } from "../types/vacancy-ai";
+import { aiVacancyRunDocuments } from "./ai-vacancy-run-document.schema";
 import { organizations } from "./organization.schema";
 import { users } from "./user.schema";
+
+export const AI_VACANCY_SOURCE_TYPES = [
+  "prompt",
+  "documents",
+  "mixed",
+] as const;
+
+export type AiVacancySourceType = (typeof AI_VACANCY_SOURCE_TYPES)[number];
 
 export const aiVacancyRuns = pgTable(
   "ai_vacancy_runs",
@@ -28,6 +37,11 @@ export const aiVacancyRuns = pgTable(
         onDelete: "cascade",
       }),
     prompt: text("prompt").notNull(),
+    sourceType: text("source_type")
+      .notNull()
+      .default("prompt")
+      .$type<AiVacancySourceType>(),
+    userPrompt: text("user_prompt"),
     model: text("model").notNull(),
     status: text("status").notNull(),
     responseText: text("response_text"),
@@ -69,6 +83,7 @@ export const aiVacancyRunsRelations = relations(
       references: [users.id],
     }),
     events: many(aiVacancyRunEvents),
+    documents: many(aiVacancyRunDocuments),
   }),
 );
 

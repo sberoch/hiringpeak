@@ -5,12 +5,20 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { generateText, hasToolCall, Output, stepCountIs, tool } from 'ai';
+import {
+  generateText,
+  hasToolCall,
+  Output,
+  stepCountIs,
+  tool,
+  type UserModelMessage,
+} from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import { asc, and, eq, inArray } from 'drizzle-orm';
 import type {
   AiVacancyDraft,
+  AiVacancyRunDetail,
   ExtractVacancyAiResponse,
 } from '@workspace/shared/types/vacancy-ai';
 import { AiVacancyDraftSchema } from '@workspace/shared/dtos';
@@ -23,6 +31,7 @@ import {
   industries,
   seniorities,
   users,
+  vacancies,
   vacancyStatuses,
 } from '@workspace/shared/schemas';
 import { CompanyStatus } from '@workspace/shared/enums';
@@ -49,6 +58,12 @@ import {
   type IdCatalogOption,
 } from './vacancy-ai.matcher';
 import { VacancyService } from './vacancy.service';
+import {
+  assertExtractHasInput,
+  buildExtractionPromptText,
+  resolveSourceType,
+  type VacancyAiUploadFile,
+} from './vacancy-ai-files';
 
 const VACANCY_AI_DESCRIPTION_MAX_LENGTH = 1500;
 
@@ -306,16 +321,16 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
     draft.filters.provinces,
     allowedProvinces,
   );
-  const countries = filterAllowedStrings(
+  const resolvedCountries = filterAllowedStrings(
     inferCountriesFromProvinces(
       provinces ?? [],
       filterAllowedStrings(draft.filters.countries, allowedCountries),
     ),
     allowedCountries,
   );
-  const languages = filterAllowedStrings(
+  const resolvedLanguages = filterAllowedStrings(
     inferDefaultLanguagesFromCountries(
-      countries ?? [],
+      resolvedCountries ?? [],
       filterAllowedStrings(draft.filters.languages, allowedLanguages),
     ),
     allowedLanguages,
@@ -346,8 +361,8 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
         ? undefined
         : normalizedMaxAge,
     provinces,
-    countries,
-    languages,
+    countries: resolvedCountries,
+    languages: resolvedLanguages,
   };
 
   const sanitizedDraft: AiVacancyDraft = {
@@ -409,12 +424,35 @@ function combineUsage(...usages: Array<{ [key: string]: any } | undefined>) {
   };
 }
 
-function buildContextGenerationPrompt(catalogs: CatalogContext) {
+function buildStage1UserMessage(
+  files: VacancyAiUploadFile[],
+  promptText: string,
+): UserModelMessage {
+  return {
+    role: 'user',
+    content: [
+      ...files.map((file) => ({
+        type: 'file' as const,
+        data: file.buffer,
+        mediaType: file.mimeType,
+      })),
+      {
+        type: 'text' as const,
+        text: promptText,
+      },
+    ],
+  };
+}
+
+function buildContextGenerationPrompt(
+  catalogs: CatalogContext,
+  hasDocuments: boolean,
+) {
   return `
 Eres un resolutor de contexto para vacantes en un ATS.
 
 Objetivo:
-- Leer un prompt libre del usuario.
+- Leer ${hasDocuments ? 'los documentos adjuntos y el prompt del usuario' : 'un prompt libre del usuario'}.
 - Resolver ids y listas permitidas usando herramientas.
 - Construir un contexto preliminar para una extracción estructurada posterior.
 
@@ -502,6 +540,19 @@ export class VacancyAiService {
   async extract(
     params: ExtractVacancyAiServiceParams,
   ): Promise<ExtractVacancyAiResponse> {
+    const files = params.files ?? [];
+    const userPrompt = params.userPrompt?.trim() || undefined;
+    assertExtractHasInput(userPrompt, files);
+
+    const sourceType = resolveSourceType(userPrompt, files);
+    const promptText = buildExtractionPromptText(userPrompt, files);
+    const documentInputs = files.map((file, index) => ({
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      sizeBytes: file.sizeBytes,
+      sortOrder: index,
+    }));
+
     const publicToken = crypto.randomUUID();
     const startedAt = Date.now();
     const apiKey =
@@ -511,16 +562,26 @@ export class VacancyAiService {
       this.configService.get<string>('VACANCY_AI_MODEL') ?? 'gemini-2.5-flash';
     const google = createGoogleGenerativeAI(apiKey ? { apiKey } : {});
     const catalogs = await this.loadCatalogContext(params.organizationId);
+    const hasDocuments = files.length > 0;
 
     try {
-      const contextResult = await generateText({
-        model: google(modelName),
-        system: buildContextGenerationPrompt(catalogs),
-        prompt: params.prompt,
-        tools: this.buildContextTools(catalogs),
-        toolChoice: 'required',
-        stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
-      });
+      const contextResult = hasDocuments
+        ? await generateText({
+            model: google(modelName),
+            system: buildContextGenerationPrompt(catalogs, true),
+            messages: [buildStage1UserMessage(files, promptText)],
+            tools: this.buildContextTools(catalogs),
+            toolChoice: 'required',
+            stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
+          })
+        : await generateText({
+            model: google(modelName),
+            system: buildContextGenerationPrompt(catalogs, false),
+            prompt: promptText,
+            tools: this.buildContextTools(catalogs),
+            toolChoice: 'required',
+            stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
+          });
 
       const resolvedContext = getSubmittedDraftContext(contextResult.toolCalls);
       const sanitizedContext: ExtractionResult = {
@@ -532,7 +593,7 @@ export class VacancyAiService {
         model: google(modelName),
         system: 'Eres un extractor final de vacantes para un ATS.',
         prompt: buildStructuredExtractionPrompt(
-          params.prompt,
+          promptText,
           sanitizedContext,
           catalogs,
         ),
@@ -556,16 +617,20 @@ export class VacancyAiService {
         publicToken,
         organizationId: params.organizationId,
         userId: params.userId,
-        prompt: params.prompt,
+        prompt: promptText,
+        sourceType,
+        userPrompt: userPrompt ?? null,
         model: modelName,
         status: 'succeeded',
         responseText: structuredResult.text,
         draft: sanitizedDraft,
+        documents: documentInputs,
         extractionMetadata: toJsonValue({
           contextMetadata: sanitizedContext.metadata,
           contextSteps: contextResult.steps,
           finalMetadata: structuredResult.output.metadata,
           structuredSteps: structuredResult.steps,
+          documentCount: files.length,
         }),
         totalUsage: toJsonValue({
           contextGeneration: contextResult.usage,
@@ -593,10 +658,13 @@ export class VacancyAiService {
         publicToken,
         organizationId: params.organizationId,
         userId: params.userId,
-        prompt: params.prompt,
+        prompt: promptText,
+        sourceType,
+        userPrompt: userPrompt ?? null,
         model: modelName,
         status: 'failed',
         draft: fallbackDraft,
+        documents: documentInputs,
         errorMessage,
         latencyMs,
       });
@@ -606,6 +674,44 @@ export class VacancyAiService {
         draft: fallbackDraft,
       };
     }
+  }
+
+  listRuns(organizationId: number, userId: number) {
+    return this.vacancyAiAnalyticsService.listRuns(organizationId, userId);
+  }
+
+  findRunByToken(
+    publicToken: string,
+    organizationId: number,
+    userId: number,
+  ): Promise<AiVacancyRunDetail> {
+    return this.vacancyAiAnalyticsService.findRunDetailByToken(
+      publicToken,
+      organizationId,
+      userId,
+    );
+  }
+
+  async findAiSourceForVacancy(vacancyId: number, organizationId: number) {
+    const vacancy = await this.db.query.vacancies.findFirst({
+      where: and(
+        eq(vacancies.id, vacancyId),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      columns: {
+        id: true,
+        aiVacancyRunId: true,
+      },
+    });
+
+    if (!vacancy?.aiVacancyRunId) {
+      return null;
+    }
+
+    return this.vacancyAiAnalyticsService.findRunDetailById(
+      vacancy.aiVacancyRunId,
+      organizationId,
+    );
   }
 
   async create(params: CreateAiVacancyServiceDto) {

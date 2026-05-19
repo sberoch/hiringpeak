@@ -22,7 +22,39 @@ export const AiVacancyDraftSchema = z.object({
 });
 
 export const ExtractVacancyAiSchema = z.object({
-  prompt: z.string().min(1),
+  prompt: z.string().min(1).optional(),
+});
+
+export const AiVacancySourceTypeSchema = z.enum([
+  "prompt",
+  "documents",
+  "mixed",
+]);
+
+export const AiVacancyRunDocumentSummarySchema = z.object({
+  id: z.number().int(),
+  fileName: z.string(),
+  mimeType: z.string(),
+  sizeBytes: z.number().int(),
+  sortOrder: z.number().int(),
+});
+
+export const AiVacancyRunSummarySchema = z.object({
+  publicToken: z.string(),
+  sourceType: AiVacancySourceTypeSchema,
+  userPrompt: z.string().nullable(),
+  prompt: z.string(),
+  status: z.string(),
+  model: z.string(),
+  draft: AiVacancyDraftSchema.nullable(),
+  documents: z.array(AiVacancyRunDocumentSummarySchema),
+  createdAt: z.string(),
+});
+
+export const AiVacancyRunDetailSchema = AiVacancyRunSummarySchema.extend({
+  extractionMetadata: z.unknown().nullable(),
+  errorMessage: z.string().nullable(),
+  latencyMs: z.number().int(),
 });
 
 export const ExtractVacancyAiResponseSchema = z.object({

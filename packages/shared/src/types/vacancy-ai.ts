@@ -44,3 +44,31 @@ export type VacancyAiRunEventType =
   | "extract_failed"
   | "submitted"
   | "created";
+
+export type AiVacancySourceType = "prompt" | "documents" | "mixed";
+
+export type AiVacancyRunDocumentSummary = {
+  id: number;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  sortOrder: number;
+};
+
+export type AiVacancyRunSummary = {
+  publicToken: string;
+  sourceType: AiVacancySourceType;
+  userPrompt: string | null;
+  prompt: string;
+  status: string;
+  model: string;
+  draft: AiVacancyDraft | null;
+  documents: AiVacancyRunDocumentSummary[];
+  createdAt: string;
+};
+
+export type AiVacancyRunDetail = AiVacancyRunSummary & {
+  extractionMetadata: JsonValue | null;
+  errorMessage: string | null;
+  latencyMs: number;
+};

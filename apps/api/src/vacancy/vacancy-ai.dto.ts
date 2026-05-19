@@ -1,16 +1,15 @@
 import { createZodDto } from 'nestjs-zod';
-import {
-  CreateAiVacancySchema,
-  ExtractVacancyAiSchema,
-} from '@workspace/shared/dtos';
-
-export class ExtractVacancyAiDto extends createZodDto(ExtractVacancyAiSchema) {}
+import { CreateAiVacancySchema } from '@workspace/shared/dtos';
 
 export class CreateAiVacancyDto extends createZodDto(CreateAiVacancySchema) {}
 
-export type ExtractVacancyAiServiceParams = ExtractVacancyAiDto & {
+import type { VacancyAiUploadFile } from './vacancy-ai-files';
+
+export type ExtractVacancyAiServiceParams = {
   organizationId: number;
   userId: number;
+  userPrompt?: string;
+  files?: VacancyAiUploadFile[];
 };
 
 export type CreateAiVacancyServiceDto = CreateAiVacancyDto & {
