@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -28,6 +28,11 @@ import {
 } from "@workspace/ui/components/select";
 
 import {
+  AttachmentPicker,
+  attachmentToPayload,
+  type AttachmentValue,
+} from "./attachment-picker";
+import {
   newTaskFormSchema,
   type NewTaskFormSchema,
 } from "./new-task.schema";
@@ -50,6 +55,7 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
     resolver: zodResolver(newTaskFormSchema),
     defaultValues: { title: "", dueDate: "" },
   });
+  const [attachment, setAttachment] = useState<AttachmentValue>(null);
 
   useEffect(() => {
     if (session.status !== "authenticated") return;
@@ -64,6 +70,7 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
         title: values.title,
         dueDate: values.dueDate ? values.dueDate : null,
         assignedTo: values.assignedTo,
+        ...attachmentToPayload(attachment),
       }),
     onSuccess: () => {
       toast.success("Tarea creada");
@@ -71,6 +78,7 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
         .invalidateQueries({ queryKey: [TASK_API_KEY] })
         .then(() => onSubmit?.());
       form.reset({ title: "", dueDate: "", assignedTo: form.getValues("assignedTo") });
+      setAttachment(null);
     },
     onError: () => {
       toast.error("No se pudo crear la tarea");
@@ -141,6 +149,14 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
               </FormItem>
             )}
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <FormLabel>Vínculo (opcional)</FormLabel>
+          <AttachmentPicker value={attachment} onChange={setAttachment} />
+          <p className="text-xs text-slate-brand">
+            Vinculá la tarea a un candidato, búsqueda, postulación o cliente.
+          </p>
         </div>
 
         <div className="pt-2">

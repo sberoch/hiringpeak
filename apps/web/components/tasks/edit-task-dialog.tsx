@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -34,21 +34,18 @@ import {
 } from "@workspace/ui/components/select";
 import type { TaskWithRelations } from "@workspace/shared/types/task";
 
+import {
+  AttachmentPicker,
+  attachmentToPayload,
+  taskToAttachment,
+  type AttachmentValue,
+} from "./attachment-picker";
 import { newTaskFormSchema, type NewTaskFormSchema } from "./new-task.schema";
 
 interface EditTaskDialogProps {
   task: TaskWithRelations | null;
   isOpen: boolean;
   onClose: () => void;
-}
-
-function hasAttachment(t: TaskWithRelations) {
-  return (
-    t.candidateId != null ||
-    t.vacancyId != null ||
-    t.candidateVacancyId != null ||
-    t.companyId != null
-  );
 }
 
 export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
@@ -64,6 +61,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
     resolver: zodResolver(newTaskFormSchema),
     defaultValues: { title: "", dueDate: "", assignedTo: undefined },
   });
+  const [attachment, setAttachment] = useState<AttachmentValue>(null);
 
   useEffect(() => {
     if (!task) return;
@@ -72,6 +70,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
       dueDate: task.dueDate ?? "",
       assignedTo: task.assignedTo,
     });
+    setAttachment(taskToAttachment(task));
   }, [task, form]);
 
   const { mutateAsync, isPending } = useMutation({
@@ -81,6 +80,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
         title: values.title,
         dueDate: values.dueDate ? values.dueDate : null,
         assignedTo: values.assignedTo,
+        ...attachmentToPayload(attachment),
       });
     },
     onSuccess: () => {
@@ -89,23 +89,6 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
       onClose();
     },
     onError: () => toast.error("No se pudo actualizar la tarea"),
-  });
-
-  const detachMutation = useMutation({
-    mutationFn: async () => {
-      if (!task) throw new Error("Sin tarea");
-      return updateTask(task.id, {
-        candidateId: null,
-        vacancyId: null,
-        candidateVacancyId: null,
-        companyId: null,
-      });
-    },
-    onSuccess: () => {
-      toast.success("Vínculo eliminado");
-      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
-    },
-    onError: () => toast.error("No se pudo quitar el vínculo"),
   });
 
   return (
@@ -185,25 +168,10 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
               />
             </div>
 
-            {task && hasAttachment(task) && (
-              <div className="rounded-lg border border-brand-border bg-canvas p-3">
-                <p className="text-xs text-slate-brand mb-2">
-                  Esta tarea está vinculada a otro registro.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => detachMutation.mutate()}
-                  disabled={detachMutation.isPending}
-                  className="rounded-md text-ink"
-                >
-                  {detachMutation.isPending
-                    ? "Quitando..."
-                    : "Quitar vínculo"}
-                </Button>
-              </div>
-            )}
+            <div className="space-y-1.5">
+              <FormLabel>Vínculo (opcional)</FormLabel>
+              <AttachmentPicker value={attachment} onChange={setAttachment} />
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button

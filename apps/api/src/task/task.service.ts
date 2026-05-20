@@ -46,6 +46,10 @@ export class TaskService {
       with: {
         assignedToUser: true,
         createdByUser: true,
+        candidate: true,
+        vacancy: true,
+        candidateVacancy: { with: { candidate: true, vacancy: true } },
+        company: true,
       },
     });
 

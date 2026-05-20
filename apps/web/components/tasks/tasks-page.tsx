@@ -1,7 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ListChecks, Pencil, Trash2 } from "lucide-react";
+import {
+  Building2,
+  GitBranch,
+  ListChecks,
+  Pencil,
+  Trash2,
+  User,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -36,6 +44,30 @@ function todayIsoDay() {
 
 function isOverdue(task: TaskWithRelations, today: string) {
   return !task.completed && !!task.dueDate && task.dueDate < today;
+}
+
+type AttachChipData = { icon: LucideIcon; label: string };
+
+function attachmentChip(task: TaskWithRelations): AttachChipData | null {
+  if (task.candidateId != null) {
+    return {
+      icon: User,
+      label: task.candidate?.name ?? `Postulante #${task.candidateId}`,
+    };
+  }
+  if (task.vacancyId != null) {
+    return {
+      icon: GitBranch,
+      label: task.vacancy?.title ?? `Vacante #${task.vacancyId}`,
+    };
+  }
+  if (task.companyId != null) {
+    return {
+      icon: Building2,
+      label: task.company?.name ?? `Empresa #${task.companyId}`,
+    };
+  }
+  return null;
 }
 
 export function TasksPage() {
@@ -159,9 +191,20 @@ export function TasksPage() {
                     >
                       {task.title}
                     </p>
-                    <p className="text-xs text-slate-brand mt-0.5">
-                      Responsable: {owner}
-                    </p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-brand">
+                      <span>Responsable: {owner}</span>
+                      {(() => {
+                        const chip = attachmentChip(task);
+                        if (!chip) return null;
+                        const Icon = chip.icon;
+                        return (
+                          <span className="inline-flex max-w-[260px] items-center gap-1 rounded-md bg-electric/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-electric">
+                            <Icon className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{chip.label}</span>
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
 
                   <div

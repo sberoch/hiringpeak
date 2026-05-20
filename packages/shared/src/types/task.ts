@@ -4,6 +4,15 @@ import type { User } from "./user.js";
 
 export type { Task };
 
+export type TaskAttachedCandidate = { id: number; name: string };
+export type TaskAttachedVacancy = { id: number; title: string };
+export type TaskAttachedCompany = { id: number; name: string };
+export type TaskAttachedCandidateVacancy = {
+  id: number;
+  candidate?: { id: number; name: string } | null;
+  vacancy?: { id: number; title: string } | null;
+};
+
 export type BaseTask = {
   title: string;
   dueDate?: string | null;
@@ -27,6 +36,10 @@ export type UpdateTaskPayload = {
 export type TaskWithRelations = Task & {
   assignedToUser?: User;
   createdByUser?: User;
+  candidate?: TaskAttachedCandidate | null;
+  vacancy?: TaskAttachedVacancy | null;
+  candidateVacancy?: TaskAttachedCandidateVacancy | null;
+  company?: TaskAttachedCompany | null;
 };
 
 export type TaskFilters = PaginationFilters & {
