@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { DrizzleModule } from './common/database/drizzle.module';
 import { ClsModule } from 'nestjs-cls';
@@ -37,6 +38,7 @@ import { NotificationModule } from './notification/notification.module';
   imports: [
     AuditLogModule,
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
