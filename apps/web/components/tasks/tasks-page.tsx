@@ -10,6 +10,7 @@ import {
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -32,6 +33,8 @@ import { DeleteTaskDialog } from "./delete-task-dialog";
 import { EditTaskDialog } from "./edit-task-dialog";
 import { NewTaskForm } from "./new-task-form";
 import { NotificationsList } from "./notifications-list";
+
+type Chip = "mine" | "all" | "overdue" | "none" | "notif";
 
 function formatDueDate(dueDate: string | null | undefined) {
   if (!dueDate) return "Sin fecha";
@@ -77,7 +80,11 @@ function attachmentChip(task: TaskWithRelations): AttachChipData | null {
 
 export function TasksPage() {
   const queryClient = useQueryClient();
+  const session = useSession();
   const today = useMemo(() => todayIsoDay(), []);
+  const currentUserId = session.data?.userId
+    ? parseInt(session.data.userId, 10)
+    : null;
 
   const { data, isLoading } = useQuery({
     queryKey: [TASK_API_KEY, { order: "createdAt:desc", limit: 100 }],
@@ -94,9 +101,18 @@ export function TasksPage() {
   });
   const unreadCount = unread?.count ?? 0;
 
-  const [view, setView] = useState<"tasks" | "notifications">("tasks");
+  const [chip, setChip] = useState<Chip>("mine");
   const [editing, setEditing] = useState<TaskWithRelations | null>(null);
   const [deleting, setDeleting] = useState<TaskWithRelations | null>(null);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (chip === "mine") return t.assignedTo === currentUserId;
+      if (chip === "overdue") return isOverdue(t, today);
+      if (chip === "none") return !t.dueDate && !t.completed;
+      return true;
+    });
+  }, [tasks, chip, currentUserId, today]);
 
   const completeMutation = useMutation({
     mutationFn: (id: number) => completeTask(id),
@@ -148,56 +164,64 @@ export function TasksPage() {
             Listado
           </h2>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setView("tasks")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
-                view === "tasks"
-                  ? "bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]"
-                  : "bg-surface text-ink ring-1 ring-brand-border hover:ring-electric/30",
-              )}
-            >
-              Tareas
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("notifications")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
-                view === "notifications"
-                  ? "bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]"
-                  : "bg-surface text-ink ring-1 ring-brand-border hover:ring-electric/30",
-              )}
-            >
-              Notificaciones
-              {unreadCount > 0 ? (
-                <span
+            {(
+              [
+                { key: "mine", label: "Mis tareas" },
+                { key: "all", label: "Todas" },
+                { key: "overdue", label: "Vencidas" },
+                { key: "none", label: "Sin fecha" },
+                { key: "notif", label: "Notificaciones" },
+              ] as { key: Chip; label: string }[]
+            ).map(({ key, label }) => {
+              const active = chip === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setChip(key)}
                   className={cn(
-                    "rounded-full px-1.5 text-[11px] font-bold",
-                    view === "notifications"
-                      ? "bg-white/20 text-white"
-                      : "bg-electric/10 text-electric",
+                    "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
+                    active
+                      ? "bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]"
+                      : "bg-surface text-ink ring-1 ring-brand-border hover:ring-electric/30",
                   )}
                 >
-                  {unreadCount}
-                </span>
-              ) : null}
-            </button>
+                  {label}
+                  {key === "notif" && unreadCount > 0 ? (
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 text-[11px] font-bold",
+                        active
+                          ? "bg-white/20 text-white"
+                          : "bg-electric/10 text-electric",
+                      )}
+                    >
+                      {unreadCount}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {view === "notifications" ? (
+        {chip === "notif" ? (
           <NotificationsList />
         ) : isLoading ? (
           <p className="text-sm text-slate-brand">Cargando tareas...</p>
-        ) : tasks.length === 0 ? (
+        ) : filteredTasks.length === 0 ? (
           <p className="text-sm text-slate-brand">
-            Todavía no hay tareas en esta organización.
+            {chip === "mine"
+              ? "No tenés tareas asignadas."
+              : chip === "overdue"
+                ? "No hay tareas vencidas."
+                : chip === "none"
+                  ? "No hay tareas sin fecha."
+                  : "Todavía no hay tareas en esta organización."}
           </p>
         ) : (
           <ul className="divide-y divide-brand-border">
-            {tasks.map((task) => {
+            {filteredTasks.map((task) => {
               const owner = task.assignedToUser?.name ?? "—";
               const overdue = isOverdue(task, today);
               return (
