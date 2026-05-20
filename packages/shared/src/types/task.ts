@@ -7,11 +7,6 @@ export type { Task };
 export type TaskAttachedCandidate = { id: number; name: string };
 export type TaskAttachedVacancy = { id: number; title: string };
 export type TaskAttachedCompany = { id: number; name: string };
-export type TaskAttachedCandidateVacancy = {
-  id: number;
-  candidate?: { id: number; name: string } | null;
-  vacancy?: { id: number; title: string } | null;
-};
 
 export type BaseTask = {
   title: string;
@@ -19,7 +14,6 @@ export type BaseTask = {
   assignedTo: number;
   candidateId?: number | null;
   vacancyId?: number | null;
-  candidateVacancyId?: number | null;
   companyId?: number | null;
 };
 
@@ -29,7 +23,6 @@ export type UpdateTaskPayload = {
   assignedTo?: number;
   candidateId?: number | null;
   vacancyId?: number | null;
-  candidateVacancyId?: number | null;
   companyId?: number | null;
 };
 
@@ -38,7 +31,6 @@ export type TaskWithRelations = Task & {
   createdByUser?: User;
   candidate?: TaskAttachedCandidate | null;
   vacancy?: TaskAttachedVacancy | null;
-  candidateVacancy?: TaskAttachedCandidateVacancy | null;
   company?: TaskAttachedCompany | null;
 };
 
@@ -48,7 +40,6 @@ export type TaskFilters = PaginationFilters & {
   completed?: boolean;
   candidateId?: number;
   vacancyId?: number;
-  candidateVacancyId?: number;
   companyId?: number;
 };
 

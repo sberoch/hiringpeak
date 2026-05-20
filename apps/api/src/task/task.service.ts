@@ -48,7 +48,6 @@ export class TaskService {
         createdByUser: true,
         candidate: true,
         vacancy: true,
-        candidateVacancy: { with: { candidate: true, vacancy: true } },
         company: true,
       },
     });
@@ -75,7 +74,7 @@ export class TaskService {
   async create(dto: CreateTaskServiceDto) {
     if (!TaskTargetPolicy.isValid(dto)) {
       throw new BadRequestException(
-        'A Task can be attached to at most one of candidate, vacancy, candidacy, or company',
+        'A Task can be attached to at most one of candidate, vacancy, or company',
       );
     }
 
@@ -89,7 +88,6 @@ export class TaskService {
         organizationId: dto.organizationId,
         candidateId: dto.candidateId ?? null,
         vacancyId: dto.vacancyId ?? null,
-        candidateVacancyId: dto.candidateVacancyId ?? null,
         companyId: dto.companyId ?? null,
       } as NewTask)
       .returning();
@@ -112,16 +110,12 @@ export class TaskService {
         dto.candidateId !== undefined ? dto.candidateId : existing.candidateId,
       vacancyId:
         dto.vacancyId !== undefined ? dto.vacancyId : existing.vacancyId,
-      candidateVacancyId:
-        dto.candidateVacancyId !== undefined
-          ? dto.candidateVacancyId
-          : existing.candidateVacancyId,
       companyId:
         dto.companyId !== undefined ? dto.companyId : existing.companyId,
     };
     if (!TaskTargetPolicy.isValid(merged)) {
       throw new BadRequestException(
-        'A Task can be attached to at most one of candidate, vacancy, candidacy, or company',
+        'A Task can be attached to at most one of candidate, vacancy, or company',
       );
     }
 
@@ -131,8 +125,6 @@ export class TaskService {
     if (dto.assignedTo !== undefined) updates.assignedTo = dto.assignedTo;
     if (dto.candidateId !== undefined) updates.candidateId = dto.candidateId;
     if (dto.vacancyId !== undefined) updates.vacancyId = dto.vacancyId;
-    if (dto.candidateVacancyId !== undefined)
-      updates.candidateVacancyId = dto.candidateVacancyId;
     if (dto.companyId !== undefined) updates.companyId = dto.companyId;
 
     const [task] = await this.db
@@ -211,8 +203,6 @@ export class TaskService {
     if (params.candidateId)
       filters.push(eq(tasks.candidateId, params.candidateId));
     if (params.vacancyId) filters.push(eq(tasks.vacancyId, params.vacancyId));
-    if (params.candidateVacancyId)
-      filters.push(eq(tasks.candidateVacancyId, params.candidateVacancyId));
     if (params.companyId) filters.push(eq(tasks.companyId, params.companyId));
     return and(...filters);
   }

@@ -31,6 +31,7 @@ import { companyDetailColumns as vacancyColumns } from "@/components/vacancies/v
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { DeleteCompanyDialog } from "@/components/companies/delete-company-dialog";
 import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
+import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
 import {
   COMPANIES_API_KEY,
   downloadCompanyReportPdf,
@@ -314,6 +315,12 @@ export default function CompanyDetailPage({
           }}
         />
       </div>
+
+      {/* Tasks in context — secondary surface below the vacancies table */}
+      <TasksInContextCard
+        variant="compact"
+        context={{ type: "company", id: companyId, label: company.name }}
+      />
 
       {isDeleteDialogOpen && (
         <DeleteCompanyDialog

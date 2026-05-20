@@ -39,9 +39,10 @@ import {
 
 interface NewTaskFormProps {
   onSubmit?: () => void;
+  lockedAttachment?: NonNullable<AttachmentValue>;
 }
 
-export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
+export function NewTaskForm({ onSubmit, lockedAttachment }: NewTaskFormProps) {
   const session = useSession();
   const queryClient = useQueryClient();
 
@@ -55,7 +56,9 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
     resolver: zodResolver(newTaskFormSchema),
     defaultValues: { title: "", dueDate: "" },
   });
-  const [attachment, setAttachment] = useState<AttachmentValue>(null);
+  const [attachment, setAttachment] = useState<AttachmentValue>(
+    lockedAttachment ?? null,
+  );
 
   useEffect(() => {
     if (session.status !== "authenticated") return;
@@ -70,7 +73,7 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
         title: values.title,
         dueDate: values.dueDate ? values.dueDate : null,
         assignedTo: values.assignedTo,
-        ...attachmentToPayload(attachment),
+        ...attachmentToPayload(lockedAttachment ?? attachment),
       }),
     onSuccess: () => {
       toast.success("Tarea creada");
@@ -78,7 +81,7 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
         .invalidateQueries({ queryKey: [TASK_API_KEY] })
         .then(() => onSubmit?.());
       form.reset({ title: "", dueDate: "", assignedTo: form.getValues("assignedTo") });
-      setAttachment(null);
+      setAttachment(lockedAttachment ?? null);
     },
     onError: () => {
       toast.error("No se pudo crear la tarea");
@@ -151,13 +154,15 @@ export function NewTaskForm({ onSubmit }: NewTaskFormProps) {
           />
         </div>
 
-        <div className="space-y-1.5">
-          <FormLabel>Vínculo (opcional)</FormLabel>
-          <AttachmentPicker value={attachment} onChange={setAttachment} />
-          <p className="text-xs text-slate-brand">
-            Vinculá la tarea a un candidato, búsqueda, postulación o cliente.
-          </p>
-        </div>
+        {!lockedAttachment && (
+          <div className="space-y-1.5">
+            <FormLabel>Vínculo (opcional)</FormLabel>
+            <AttachmentPicker value={attachment} onChange={setAttachment} />
+            <p className="text-xs text-slate-brand">
+              Vinculá la tarea a un candidato, búsqueda, postulación o cliente.
+            </p>
+          </div>
+        )}
 
         <div className="pt-2">
           <Button

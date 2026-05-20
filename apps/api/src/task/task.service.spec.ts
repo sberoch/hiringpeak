@@ -40,7 +40,6 @@ describe('TaskService.create', () => {
         organizationId: 42,
         candidateId: null,
         vacancyId: null,
-        candidateVacancyId: null,
         companyId: null,
         dueDate: null,
       }),

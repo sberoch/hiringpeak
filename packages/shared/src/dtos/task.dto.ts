@@ -12,7 +12,6 @@ export const CreateTaskSchema = z.object({
   assignedTo: z.number().int(),
   candidateId: z.number().int().nullable().optional(),
   vacancyId: z.number().int().nullable().optional(),
-  candidateVacancyId: z.number().int().nullable().optional(),
   companyId: z.number().int().nullable().optional(),
 });
 
@@ -26,7 +25,6 @@ export const UpdateTaskSchema = z.object({
   assignedTo: z.number().int().optional(),
   candidateId: z.number().int().nullable().optional(),
   vacancyId: z.number().int().nullable().optional(),
-  candidateVacancyId: z.number().int().nullable().optional(),
   companyId: z.number().int().nullable().optional(),
 });
 
@@ -40,7 +38,6 @@ export const TaskQueryParamsSchema = PaginationParamsSchema.extend({
     .optional(),
   candidateId: z.coerce.number().optional(),
   vacancyId: z.coerce.number().optional(),
-  candidateVacancyId: z.coerce.number().optional(),
   companyId: z.coerce.number().optional(),
 });
 

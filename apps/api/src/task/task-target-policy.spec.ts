@@ -7,7 +7,6 @@ describe('TaskTargetPolicy', () => {
       TaskTargetPolicy.isValid({
         candidateId: null,
         vacancyId: null,
-        candidateVacancyId: null,
         companyId: null,
       }),
     ).toBe(true);
@@ -16,16 +15,14 @@ describe('TaskTargetPolicy', () => {
   it('accepts exactly one target', () => {
     expect(TaskTargetPolicy.isValid({ candidateId: 1 })).toBe(true);
     expect(TaskTargetPolicy.isValid({ vacancyId: 1 })).toBe(true);
-    expect(TaskTargetPolicy.isValid({ candidateVacancyId: 1 })).toBe(true);
     expect(TaskTargetPolicy.isValid({ companyId: 1 })).toBe(true);
   });
 
-  it('treats null as absent — one set + three nulls is a single target', () => {
+  it('treats null as absent — one set + two nulls is a single target', () => {
     expect(
       TaskTargetPolicy.isValid({
         candidateId: 7,
         vacancyId: null,
-        candidateVacancyId: null,
         companyId: null,
       }),
     ).toBe(true);
@@ -33,8 +30,7 @@ describe('TaskTargetPolicy', () => {
       TaskTargetPolicy.isValid({
         candidateId: null,
         vacancyId: null,
-        candidateVacancyId: 7,
-        companyId: null,
+        companyId: 7,
       }),
     ).toBe(true);
   });
@@ -47,41 +43,20 @@ describe('TaskTargetPolicy', () => {
       ]
     > = [
       ['candidateId', 'vacancyId'],
-      ['candidateId', 'candidateVacancyId'],
       ['candidateId', 'companyId'],
-      ['vacancyId', 'candidateVacancyId'],
       ['vacancyId', 'companyId'],
-      ['candidateVacancyId', 'companyId'],
     ];
     for (const [a, b] of pairs) {
       expect(TaskTargetPolicy.isValid({ [a]: 1, [b]: 2 })).toBe(false);
     }
   });
 
-  it('rejects three targets', () => {
+  it('rejects all three targets', () => {
     expect(
       TaskTargetPolicy.isValid({
         candidateId: 1,
         vacancyId: 2,
-        candidateVacancyId: 3,
-      }),
-    ).toBe(false);
-    expect(
-      TaskTargetPolicy.isValid({
-        vacancyId: 1,
-        candidateVacancyId: 2,
         companyId: 3,
-      }),
-    ).toBe(false);
-  });
-
-  it('rejects all four targets', () => {
-    expect(
-      TaskTargetPolicy.isValid({
-        candidateId: 1,
-        vacancyId: 2,
-        candidateVacancyId: 3,
-        companyId: 4,
       }),
     ).toBe(false);
   });
@@ -90,7 +65,6 @@ describe('TaskTargetPolicy', () => {
     expect(TaskTargetPolicy.countTargets({})).toBe(0);
     expect(TaskTargetPolicy.countTargets({ candidateId: 5 })).toBe(1);
     expect(TaskTargetPolicy.countTargets({ vacancyId: 5 })).toBe(1);
-    expect(TaskTargetPolicy.countTargets({ candidateVacancyId: 5 })).toBe(1);
     expect(TaskTargetPolicy.countTargets({ companyId: 5 })).toBe(1);
     expect(
       TaskTargetPolicy.countTargets({ candidateId: 5, companyId: 7 }),
@@ -99,9 +73,8 @@ describe('TaskTargetPolicy', () => {
       TaskTargetPolicy.countTargets({
         candidateId: 1,
         vacancyId: 2,
-        candidateVacancyId: 3,
-        companyId: 4,
+        companyId: 3,
       }),
-    ).toBe(4);
+    ).toBe(3);
   });
 });

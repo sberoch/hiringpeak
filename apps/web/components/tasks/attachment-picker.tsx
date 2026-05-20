@@ -40,7 +40,6 @@ const ATTACH_TYPES: AttachmentType[] = ["candidate", "vacancy", "company"];
 export type AttachmentPayload = {
   candidateId: number | null;
   vacancyId: number | null;
-  candidateVacancyId: number | null;
   companyId: number | null;
 };
 
@@ -50,7 +49,6 @@ export function attachmentToPayload(
   return {
     candidateId: value?.type === "candidate" ? value.id : null,
     vacancyId: value?.type === "vacancy" ? value.id : null,
-    candidateVacancyId: null,
     companyId: value?.type === "company" ? value.id : null,
   };
 }

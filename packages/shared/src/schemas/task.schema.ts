@@ -9,7 +9,6 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { candidates } from "./candidate.schema";
-import { candidateVacancies } from "./candidatevacancy.schema";
 import { companies } from "./company.schema";
 import { organizations } from "./organization.schema";
 import { users } from "./user.schema";
@@ -42,10 +41,6 @@ export const tasks = pgTable("tasks", {
   vacancyId: integer("vacancy_id").references(() => vacancies.id, {
     onDelete: "cascade",
   }),
-  candidateVacancyId: integer("candidate_vacancy_id").references(
-    () => candidateVacancies.id,
-    { onDelete: "cascade" }
-  ),
   companyId: integer("company_id").references(() => companies.id, {
     onDelete: "cascade",
   }),
@@ -80,10 +75,6 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
   vacancy: one(vacancies, {
     fields: [tasks.vacancyId],
     references: [vacancies.id],
-  }),
-  candidateVacancy: one(candidateVacancies, {
-    fields: [tasks.candidateVacancyId],
-    references: [candidateVacancies.id],
   }),
   company: one(companies, {
     fields: [tasks.companyId],
