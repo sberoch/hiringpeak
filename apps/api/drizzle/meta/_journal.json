@@ -22,6 +22,20 @@
       "when": 1775686825832,
       "tag": "0002_free_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779278216299,
+      "tag": "0003_familiar_famine",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779278271955,
+      "tag": "0004_backfill_task_permissions",
+      "breakpoints": true
     }
   ]
 }

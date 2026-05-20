@@ -35,6 +35,7 @@ const READ_ONLY_CODES = [
   PermissionCode.COMPANY_READ,
   PermissionCode.AREA_READ,
   PermissionCode.SETTINGS_READ,
+  PermissionCode.TASK_READ,
 ];
 const MANAGER_CODES = ALL_PERMISSION_CODES.filter(
   (c) => c !== PermissionCode.ROLE_MANAGE,

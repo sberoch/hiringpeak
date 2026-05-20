@@ -14,6 +14,7 @@ export * from "./permission.schema";
 export * from "./role.schema";
 export * from "./role-permission.schema";
 export * from "./seniority.schema";
+export * from "./task.schema";
 export * from "./user.schema";
 export * from "./vacancy.schema";
 export * from "./vacancyfilters.schema";

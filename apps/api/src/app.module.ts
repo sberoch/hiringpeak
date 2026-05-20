@@ -30,6 +30,7 @@ import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 import { PermissionModule } from './permission/permission.module';
 import { RoleModule } from './role/role.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { TaskModule } from './task/task.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     DashboardModule,
     OrganizationModule,
     OnboardModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [

@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Landmark,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   Settings,
   Users,
@@ -81,6 +82,13 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
         title: "Dashboard",
         url: "/dashboard",
         icon: <LayoutDashboard className="w-4 h-4" />,
+      },
+      {
+        id: "tasks",
+        title: "Tareas",
+        url: "/tasks",
+        icon: <ListChecks className="w-4 h-4" />,
+        requiredPermissions: [PermissionCode.TASK_READ],
       },
       {
         id: "candidates",
