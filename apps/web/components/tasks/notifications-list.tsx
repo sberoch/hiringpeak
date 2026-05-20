@@ -1,11 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellRing, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
-  dismissNotification,
   getAllNotifications,
   markNotificationRead,
   NOTIFICATION_API_KEY,
@@ -13,39 +11,29 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import type { NotificationWithRelations } from "@workspace/shared/types/notification";
 
-function formatRelative(date: Date | string) {
-  const d = typeof date === "string" ? new Date(date) : date;
-  const diff = Date.now() - d.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "hace un momento";
-  if (mins < 60) return `hace ${mins} min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `hace ${hrs} h`;
-  const days = Math.floor(hrs / 24);
-  return `hace ${days} d`;
-}
+import {
+  NOTIF_ICON,
+  NOTIF_LABEL,
+  relativeTime,
+  type NotificationKind,
+} from "./_shared";
 
-function notificationLabel(n: NotificationWithRelations) {
-  if (n.kind === "assigned") return "Te asignaron una tarea";
-  if (n.kind === "due") return "Tarea próxima a vencer";
-  if (n.kind === "overdue") return "Tarea vencida";
-  return "Notificación";
+function isKnownKind(kind: string): kind is NotificationKind {
+  return kind === "assigned" || kind === "due" || kind === "overdue";
 }
 
 export function NotificationsList() {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: [
-      NOTIFICATION_API_KEY,
-      { order: "createdAt:desc", limit: 100 },
-    ],
+    queryKey: [NOTIFICATION_API_KEY, { order: "createdAt:desc", limit: 100 }],
     queryFn: () =>
       getAllNotifications({ order: "createdAt:desc", limit: 100 }),
     staleTime: 0,
   });
 
   const items = data?.items ?? [];
+  const unread = items.filter((n) => !n.readAt);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: [NOTIFICATION_API_KEY] });
@@ -57,89 +45,105 @@ export function NotificationsList() {
     onError: () => toast.error("No se pudo marcar como leída"),
   });
 
-  const dismissMutation = useMutation({
-    mutationFn: (id: number) => dismissNotification(id),
-    onSuccess: invalidate,
-    onError: () => toast.error("No se pudo descartar la notificación"),
-  });
-
-  if (isLoading) {
-    return (
-      <p className="text-sm text-slate-brand">Cargando notificaciones...</p>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <p className="text-sm text-slate-brand">
-        No tenés notificaciones por ahora.
-      </p>
-    );
-  }
+  const markAllRead = async () => {
+    try {
+      await Promise.all(unread.map((n) => markNotificationRead(n.id)));
+      invalidate();
+    } catch {
+      toast.error("No se pudo marcar todo como leído");
+    }
+  };
 
   return (
-    <ul className="divide-y divide-brand-border">
-      {items.map((n) => {
-        const unread = !n.readAt;
-        return (
-          <li
+    <div className="overflow-hidden rounded-2xl border border-brand-border bg-surface">
+      <div className="flex items-center justify-between border-b border-brand-border px-4 py-2.5">
+        <span className="text-sm font-semibold text-ink">Notificaciones</span>
+        <button
+          type="button"
+          onClick={markAllRead}
+          disabled={unread.length === 0}
+          className="text-xs font-medium text-electric hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline"
+        >
+          Marcar todo como leído
+        </button>
+      </div>
+
+      {isLoading ? (
+        <p className="px-6 py-16 text-center text-sm text-muted-brand">
+          Cargando notificaciones…
+        </p>
+      ) : items.length === 0 ? (
+        <p className="px-6 py-16 text-center text-sm text-muted-brand">
+          No tenés notificaciones por ahora.
+        </p>
+      ) : (
+        items.map((n, i) => (
+          <NotifRow
             key={n.id}
-            className={cn(
-              "flex items-start gap-3 py-3",
-              !unread && "opacity-70",
-            )}
-          >
-            <span
-              className={cn(
-                "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                unread ? "bg-electric/10 text-electric" : "bg-canvas text-slate-brand",
-              )}
-            >
-              <BellRing className="h-3.5 w-3.5" />
-            </span>
+            n={n}
+            bordered={i !== 0}
+            onClick={() => {
+              if (!n.readAt) readMutation.mutate(n.id);
+            }}
+          />
+        ))
+      )}
+    </div>
+  );
+}
 
-            <div className="min-w-0 flex-1">
-              <p
-                className={cn(
-                  "text-sm",
-                  unread ? "font-semibold text-ink" : "text-slate-brand",
-                )}
-              >
-                {notificationLabel(n)}
-              </p>
-              <p className="mt-0.5 truncate text-xs text-slate-brand">
-                «{n.task?.title ?? `Tarea #${n.taskId}`}»
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-brand">
-                {formatRelative(n.createdAt)}
-              </p>
-            </div>
-
-            <div className="ml-2 flex shrink-0 items-center gap-1">
-              {unread && (
-                <button
-                  type="button"
-                  onClick={() => readMutation.mutate(n.id)}
-                  disabled={readMutation.isPending}
-                  aria-label="Marcar como leída"
-                  className="rounded-md p-1.5 text-slate-brand hover:bg-canvas hover:text-ink"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => dismissMutation.mutate(n.id)}
-                disabled={dismissMutation.isPending}
-                aria-label="Descartar notificación"
-                className="rounded-md p-1.5 text-slate-brand hover:bg-red-50 hover:text-red-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+function NotifRow({
+  n,
+  bordered,
+  onClick,
+}: {
+  n: NotificationWithRelations;
+  bordered: boolean;
+  onClick: () => void;
+}) {
+  const isUnread = !n.readAt;
+  const kind: NotificationKind = isKnownKind(n.kind) ? n.kind : "assigned";
+  const meta = NOTIF_ICON[kind];
+  const Icon = meta.icon;
+  const title = n.task?.title ?? `Tarea #${n.taskId}`;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors",
+        bordered && "border-t border-brand-border",
+        isUnread ? "bg-electric/[0.04]" : "bg-surface",
+      )}
+    >
+      {isUnread && (
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-electric" />
+      )}
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+          meta.bg,
+          !isUnread && "opacity-60",
+        )}
+      >
+        <Icon className={cn("h-4 w-4", meta.tone)} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p
+          className={cn(
+            "text-sm",
+            isUnread
+              ? "font-semibold text-ink"
+              : "font-normal text-slate-brand",
+          )}
+        >
+          {NOTIF_LABEL[kind]}
+        </p>
+        <p className="truncate text-xs text-slate-brand">«{title}»</p>
+      </div>
+      <span className="shrink-0 text-[11px] text-muted-brand">
+        {relativeTime(n.createdAt)}
+      </span>
+    </button>
   );
 }

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TareasNextPage() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full">
       <TasksPage />
     </div>
   );

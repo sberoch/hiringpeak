@@ -1,59 +1,31 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import {
-  Building2,
-  CalendarClock,
-  GitBranch,
-  User,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarClock } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { getMyDueSoonTasks, TASK_API_KEY } from "@/lib/api/tasks";
-import { cn } from "@workspace/ui/lib/utils";
+import {
+  completeTask,
+  getMyDueSoonTasks,
+  reopenTask,
+  TASK_API_KEY,
+} from "@/lib/api/tasks";
 import type { TaskWithRelations } from "@workspace/shared/types/task";
 
-function todayIsoDay() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function formatDueDate(dueDate: string | null | undefined) {
-  if (!dueDate) return "Sin fecha";
-  const [y, m, d] = dueDate.split("-");
-  return `${d}/${m}/${y}`;
-}
-
-function attachmentChip(task: TaskWithRelations):
-  | { icon: LucideIcon; label: string }
-  | null {
-  if (task.candidateId != null) {
-    return {
-      icon: User,
-      label: task.candidate?.name ?? `Postulante #${task.candidateId}`,
-    };
-  }
-  if (task.vacancyId != null) {
-    return {
-      icon: GitBranch,
-      label: task.vacancy?.title ?? `Vacante #${task.vacancyId}`,
-    };
-  }
-  if (task.companyId != null) {
-    return {
-      icon: Building2,
-      label: task.company?.name ?? `Empresa #${task.companyId}`,
-    };
-  }
-  return null;
-}
+import { TaskRow, todayIsoDay } from "../tasks/_shared";
+import { TaskSheet } from "../tasks/task-sheet";
 
 export function DueSoonWidget() {
-  const today = todayIsoDay();
+  const queryClient = useQueryClient();
+  const session = useSession();
+  const today = useMemo(() => todayIsoDay(), []);
+  const currentUserId = session.data?.userId
+    ? parseInt(session.data.userId, 10)
+    : null;
+
   const { data, isLoading } = useQuery({
     queryKey: [TASK_API_KEY, "due-soon"],
     queryFn: getMyDueSoonTasks,
@@ -61,9 +33,34 @@ export function DueSoonWidget() {
   });
   const tasks = data ?? [];
 
+  const [editing, setEditing] = useState<TaskWithRelations | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const completeMutation = useMutation({
+    mutationFn: (id: number) => completeTask(id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] }),
+    onError: () => toast.error("No se pudo completar la tarea"),
+  });
+  const reopenMutation = useMutation({
+    mutationFn: (id: number) => reopenTask(id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] }),
+    onError: () => toast.error("No se pudo reabrir la tarea"),
+  });
+  const busy = completeMutation.isPending || reopenMutation.isPending;
+  const toggleDone = (t: TaskWithRelations) => {
+    if (t.completed) reopenMutation.mutate(t.id);
+    else completeMutation.mutate(t.id);
+  };
+  const openEdit = (t: TaskWithRelations) => {
+    setEditing(t);
+    setSheetOpen(true);
+  };
+
   return (
     <div className="rounded-2xl border border-brand-border bg-surface overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
+      <div className="flex items-center justify-between border-b border-brand-border px-5 py-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-electric/10 text-electric">
             <CalendarClock className="h-4 w-4" />
@@ -85,50 +82,38 @@ export function DueSoonWidget() {
         </Link>
       </div>
 
-      <div className="px-5 py-4">
-        {isLoading ? (
-          <p className="text-sm text-slate-brand">Cargando…</p>
-        ) : tasks.length === 0 ? (
-          <p className="text-sm text-slate-brand">
-            No tenés tareas próximas. ¡Buen trabajo!
-          </p>
-        ) : (
-          <ul className="divide-y divide-brand-border">
-            {tasks.map((task) => {
-              const overdue = !!task.dueDate && task.dueDate < today;
-              const chip = attachmentChip(task);
-              const Icon = chip?.icon;
-              return (
-                <li key={task.id} className="flex items-center gap-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink">
-                      {task.title}
-                    </p>
-                    {chip && Icon ? (
-                      <div className="mt-0.5">
-                        <span className="inline-flex max-w-[260px] items-center gap-1 rounded-md bg-electric/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-electric">
-                          <Icon className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{chip.label}</span>
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                  <div
-                    className={cn(
-                      "ml-2 shrink-0 text-right text-xs font-semibold",
-                      overdue ? "text-red-600" : "text-slate-brand",
-                    )}
-                  >
-                    {overdue
-                      ? `Vencida · ${formatDueDate(task.dueDate)}`
-                      : formatDueDate(task.dueDate)}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+      {isLoading ? (
+        <p className="px-6 py-10 text-center text-sm text-muted-brand">
+          Cargando…
+        </p>
+      ) : tasks.length === 0 ? (
+        <p className="px-6 py-10 text-center text-sm text-muted-brand">
+          No tenés tareas próximas. ¡Buen trabajo!
+        </p>
+      ) : (
+        tasks.map((task, i) => (
+          <TaskRow
+            key={task.id}
+            task={task}
+            today={today}
+            currentUserId={currentUserId}
+            onOpen={openEdit}
+            onToggleDone={toggleDone}
+            busy={busy}
+            bordered={i !== 0}
+            hideOwner
+          />
+        ))
+      )}
+
+      <TaskSheet
+        open={sheetOpen}
+        onOpenChange={(o) => {
+          setSheetOpen(o);
+          if (!o) setEditing(null);
+        }}
+        task={editing}
+      />
     </div>
   );
 }

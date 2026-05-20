@@ -446,7 +446,7 @@ function TareasOpenBadge() {
   const count = data?.count ?? 0;
   if (count <= 0) return null;
   return (
-    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-electric/10 px-1.5 text-[11px] font-semibold tabular-nums text-electric group-data-[collapsible=icon]:hidden">
+    <span className="ml-auto text-[11px] font-semibold tabular-nums text-muted-brand group-data-[collapsible=icon]:hidden">
       {count}
     </span>
   );
