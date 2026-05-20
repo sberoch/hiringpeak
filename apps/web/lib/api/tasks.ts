@@ -25,6 +25,11 @@ export async function getMyOpenTaskCount() {
   return response.data;
 }
 
+export async function getMyDueSoonTasks() {
+  const response = await api.get<TaskWithRelations[]>(`/task/due-soon`);
+  return response.data;
+}
+
 export async function createTask(task: BaseTask) {
   const response = await api.post<Task>("/task", task);
   return response.data;

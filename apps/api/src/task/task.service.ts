@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNotNull, lte, SQL } from 'drizzle-orm';
 import {
   excludePassword,
   tasks,
@@ -73,6 +73,40 @@ export class TaskService {
     }));
 
     return paginatedResponse(items, totalItems, paginationQuery);
+  }
+
+  async dueSoonForUser(
+    organizationId: number,
+    ownerUserId: number,
+    withinDays = 7,
+    now: Date = new Date(),
+  ) {
+    const upper = new Date(now);
+    upper.setDate(upper.getDate() + withinDays);
+    const upperStr = formatLocalDay(upper);
+
+    const items = await this.db.query.tasks.findMany({
+      where: and(
+        eq(tasks.organizationId, organizationId),
+        eq(tasks.assignedTo, ownerUserId),
+        eq(tasks.completed, false),
+        isNotNull(tasks.dueDate),
+        lte(tasks.dueDate, upperStr),
+      ),
+      orderBy: [asc(tasks.dueDate)],
+      with: {
+        assignedToUser: true,
+        candidate: true,
+        vacancy: true,
+        company: true,
+      },
+      limit: 10,
+    });
+
+    return items.map((t) => ({
+      ...t,
+      assignedToUser: excludePassword(t.assignedToUser),
+    }));
   }
 
   async openCountFor(organizationId: number, ownerUserId: number) {
@@ -248,4 +282,11 @@ export class TaskService {
     if (params.companyId) filters.push(eq(tasks.companyId, params.companyId));
     return and(...filters);
   }
+}
+
+function formatLocalDay(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }

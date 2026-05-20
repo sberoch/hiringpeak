@@ -54,6 +54,18 @@ export class TaskController {
     return this.taskService.openCountFor(organizationId, ownerUserId);
   }
 
+  @ApiOkResponse()
+  @Get('due-soon')
+  @Permissions(PermissionCode.TASK_READ)
+  async dueSoon(
+    @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
+  ) {
+    const ownerUserId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    return this.taskService.dueSoonForUser(organizationId, ownerUserId);
+  }
+
   @ApiCreatedResponse()
   @AuditAction({
     eventType: 'create_task',

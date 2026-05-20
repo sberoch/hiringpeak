@@ -235,6 +235,63 @@ describe('TaskService.update — assignment Notification', () => {
   });
 });
 
+describe('TaskService.dueSoonForUser', () => {
+  let service: TaskService;
+  const findMany = vi.fn();
+  const mockDb = {
+    query: { tasks: { findMany } },
+  } as unknown as Record<string, unknown>;
+  const notificationFactory = { ensure: vi.fn() } as unknown as NotificationFactory;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        TaskService,
+        { provide: DrizzleProvider, useValue: mockDb },
+        { provide: NotificationFactory, useValue: notificationFactory },
+      ],
+    }).compile();
+    service = module.get<TaskService>(TaskService);
+  });
+
+  it('queries open Tasks for the given Org+User with a dueDate within the window', async () => {
+    findMany.mockResolvedValueOnce([]);
+
+    const now = new Date('2026-05-20T10:00:00Z');
+    await service.dueSoonForUser(42, 7, 7, now);
+
+    expect(findMany).toHaveBeenCalledTimes(1);
+    const arg = findMany.mock.calls[0][0];
+    expect(arg.limit).toBe(10);
+    expect(arg.with).toMatchObject({
+      assignedToUser: true,
+      candidate: true,
+      vacancy: true,
+      company: true,
+    });
+  });
+
+  it('strips the password field from assignedToUser', async () => {
+    findMany.mockResolvedValueOnce([
+      {
+        id: 1,
+        title: 't',
+        organizationId: 42,
+        assignedTo: 7,
+        dueDate: '2026-05-21',
+        completed: false,
+        assignedToUser: { id: 7, name: 'A', password: 'secret' },
+      },
+    ]);
+
+    const items = await service.dueSoonForUser(42, 7);
+
+    expect(items[0].assignedToUser).not.toHaveProperty('password');
+    expect(items[0].assignedToUser).toMatchObject({ id: 7, name: 'A' });
+  });
+});
+
 describe('TaskService.openCountFor', () => {
   let service: TaskService;
   const where = vi.fn();
