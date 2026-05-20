@@ -19,6 +19,10 @@ import {
   reopenTask,
   TASK_API_KEY,
 } from "@/lib/api/tasks";
+import {
+  getUnreadNotificationCount,
+  NOTIFICATION_API_KEY,
+} from "@/lib/api/notifications";
 import { Card } from "@workspace/ui/components/card";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import { cn } from "@workspace/ui/lib/utils";
@@ -27,6 +31,7 @@ import type { TaskWithRelations } from "@workspace/shared/types/task";
 import { DeleteTaskDialog } from "./delete-task-dialog";
 import { EditTaskDialog } from "./edit-task-dialog";
 import { NewTaskForm } from "./new-task-form";
+import { NotificationsList } from "./notifications-list";
 
 function formatDueDate(dueDate: string | null | undefined) {
   if (!dueDate) return "Sin fecha";
@@ -82,6 +87,14 @@ export function TasksPage() {
 
   const tasks = data?.items ?? [];
 
+  const { data: unread } = useQuery({
+    queryKey: [NOTIFICATION_API_KEY, "unread-count"],
+    queryFn: getUnreadNotificationCount,
+    staleTime: 0,
+  });
+  const unreadCount = unread?.count ?? 0;
+
+  const [view, setView] = useState<"tasks" | "notifications">("tasks");
   const [editing, setEditing] = useState<TaskWithRelations | null>(null);
   const [deleting, setDeleting] = useState<TaskWithRelations | null>(null);
 
@@ -130,11 +143,53 @@ export function TasksPage() {
       </Card>
 
       <Card className="rounded-2xl border border-brand-border bg-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <h2 className="text-lg font-bold tracking-tight text-ink mb-4">
-          Listado
-        </h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold tracking-tight text-ink">
+            Listado
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setView("tasks")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
+                view === "tasks"
+                  ? "bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]"
+                  : "bg-surface text-ink ring-1 ring-brand-border hover:ring-electric/30",
+              )}
+            >
+              Tareas
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("notifications")}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
+                view === "notifications"
+                  ? "bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]"
+                  : "bg-surface text-ink ring-1 ring-brand-border hover:ring-electric/30",
+              )}
+            >
+              Notificaciones
+              {unreadCount > 0 ? (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[11px] font-bold",
+                    view === "notifications"
+                      ? "bg-white/20 text-white"
+                      : "bg-electric/10 text-electric",
+                  )}
+                >
+                  {unreadCount}
+                </span>
+              ) : null}
+            </button>
+          </div>
+        </div>
 
-        {isLoading ? (
+        {view === "notifications" ? (
+          <NotificationsList />
+        ) : isLoading ? (
           <p className="text-sm text-slate-brand">Cargando tareas...</p>
         ) : tasks.length === 0 ? (
           <p className="text-sm text-slate-brand">

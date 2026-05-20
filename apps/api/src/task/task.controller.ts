@@ -76,10 +76,14 @@ export class TaskController {
     @Param('id') id: string,
     @Body() updateTaskDto: UpdateTaskDto,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
+    const actorUserId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
     return this.taskService.update(+id, {
       ...updateTaskDto,
       organizationId,
+      actorUserId,
     });
   }
 

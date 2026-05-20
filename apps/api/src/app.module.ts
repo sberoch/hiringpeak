@@ -31,6 +31,7 @@ import { PermissionModule } from './permission/permission.module';
 import { RoleModule } from './role/role.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { TaskModule } from './task/task.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { TaskModule } from './task/task.module';
     OrganizationModule,
     OnboardModule,
     TaskModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

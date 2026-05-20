@@ -13,6 +13,7 @@ import {
 } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import { NotificationFactory } from '../notification/notification-factory';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
 import {
   buildPaginationQuery,
@@ -29,7 +30,10 @@ export type TaskApiResponse = Task;
 
 @Injectable()
 export class TaskService {
-  constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
+  constructor(
+    @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
+    private readonly notificationFactory: NotificationFactory,
+  ) {}
 
   async findAll(
     params: TaskFindAllServiceParams,
@@ -91,6 +95,16 @@ export class TaskService {
         companyId: dto.companyId ?? null,
       } as NewTask)
       .returning();
+
+    if (task.assignedTo !== dto.createdBy) {
+      await this.notificationFactory.ensure({
+        recipientUserId: task.assignedTo,
+        organizationId: task.organizationId,
+        kind: 'assigned',
+        taskId: task.id,
+      });
+    }
+
     return task;
   }
 
@@ -134,6 +148,20 @@ export class TaskService {
         and(eq(tasks.id, id), eq(tasks.organizationId, dto.organizationId)),
       )
       .returning();
+
+    const reassignedToOther =
+      dto.assignedTo !== undefined &&
+      dto.assignedTo !== existing.assignedTo &&
+      dto.assignedTo !== dto.actorUserId;
+    if (reassignedToOther) {
+      await this.notificationFactory.ensure({
+        recipientUserId: task.assignedTo,
+        organizationId: task.organizationId,
+        kind: 'assigned',
+        taskId: task.id,
+      });
+    }
+
     return task;
   }
 

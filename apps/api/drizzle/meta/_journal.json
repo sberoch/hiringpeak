@@ -43,6 +43,13 @@
       "when": 1779285013314,
       "tag": "0005_sleepy_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779285481852,
+      "tag": "0006_quiet_mad_thinker",
+      "breakpoints": true
     }
   ]
 }

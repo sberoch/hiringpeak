@@ -17,6 +17,7 @@ export type CreateTaskServiceDto = CreateTaskDto & {
 };
 export type UpdateTaskServiceDto = UpdateTaskDto & {
   organizationId: number;
+  actorUserId: number;
 };
 export type TaskFindAllServiceParams = TaskQueryParams & {
   organizationId: number;

@@ -9,6 +9,7 @@ export * from "./candidatevacancystatus.schema";
 export * from "./comment.schema";
 export * from "./company.schema";
 export * from "./industry.schema";
+export * from "./notification.schema";
 export * from "./organization.schema";
 export * from "./permission.schema";
 export * from "./role.schema";
