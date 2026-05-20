@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
   Building2,
@@ -21,6 +22,7 @@ import { ComponentProps } from "react";
 import { SidebarDialogs } from "@/components/sidebar/dialogs";
 import { usePermissions } from "@/contexts/permission-context";
 import { DialogsIdsEnum, REDIRECT_UNAUTHORIZED } from "@/lib/consts";
+import { getMyOpenTaskCount, TASK_API_KEY } from "@/lib/api/tasks";
 import { PermissionCode } from "@workspace/shared/enums";
 import {
   Collapsible,
@@ -269,6 +271,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
                             <Link href={item.url}>
                               {item.icon}
                               <span>{item.title}</span>
+                              {item.id === "tasks" && <TareasOpenBadge />}
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -431,5 +434,20 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
       <SidebarRail />
       <SidebarDialogs />
     </Sidebar>
+  );
+}
+
+function TareasOpenBadge() {
+  const { data } = useQuery({
+    queryKey: [TASK_API_KEY, "open-count"],
+    queryFn: getMyOpenTaskCount,
+    staleTime: 0,
+  });
+  const count = data?.count ?? 0;
+  if (count <= 0) return null;
+  return (
+    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-electric/10 px-1.5 text-[11px] font-semibold tabular-nums text-electric group-data-[collapsible=icon]:hidden">
+      {count}
+    </span>
   );
 }

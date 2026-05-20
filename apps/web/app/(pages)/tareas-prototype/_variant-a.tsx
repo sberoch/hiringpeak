@@ -10,14 +10,7 @@
  * Edit/create happens in a right-side Sheet (matches new-user-sheet pattern).
  */
 
-import {
-  Briefcase,
-  Building2,
-  LayoutDashboard,
-  ListTodo,
-  Plus,
-  Users,
-} from "lucide-react";
+import { ListTodo, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { cn } from "@workspace/ui/lib/utils";
@@ -266,8 +259,6 @@ export function VariantA() {
         </div>
       )}
 
-      <SidebarBadgeDemo tasks={tasks} />
-
       <ContextCard onAddTask={(att) => openNew(att)} tasks={tasks} />
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -370,112 +361,6 @@ function NotifList({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-/**
- * Global "always know I have X tasks" signal — a count of YOUR total open
- * tasks on the "Tareas" sidebar item (no overdue breakdown — that's the
- * notification bell's axis). Shown here as a faithful mock of the real
- * sidebar nav slice (the real sidebar is shared chrome and Tareas is
- * unbuilt — wire this in at implementation). The "En vivo" mock reads the
- * in-memory tasks, so completing tasks above updates the count.
- */
-function TareasBadge({ open }: { open: number }) {
-  if (open === 0) return null;
-  return (
-    <span className="ml-auto text-[11px] font-semibold text-muted-brand">
-      {open}
-    </span>
-  );
-}
-
-function NavRow({
-  icon: Icon,
-  label,
-  active,
-  badge,
-}: {
-  icon: typeof Users;
-  label: string;
-  active?: boolean;
-  badge?: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium",
-        active
-          ? "bg-electric/[0.08] text-electric"
-          : "text-slate-brand",
-      )}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span>{label}</span>
-      {badge}
-    </div>
-  );
-}
-
-function SidebarBadgeDemo({ tasks }: { tasks: Task[] }) {
-  const open = tasks.filter((t) => t.ownerId === "u1" && !t.done).length;
-
-  return (
-    <div className="rounded-2xl border border-dashed border-brand-border bg-canvas p-4">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-brand">
-        Señal global · contador de tus tareas abiertas en el ítem «Tareas» del
-        menú (visible en toda la app)
-      </p>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* En vivo — reads the tasks state above */}
-        <div>
-          <p className="mb-1.5 text-xs font-semibold text-ink">
-            En vivo (tus tareas abiertas)
-          </p>
-          <div className="rounded-xl border border-brand-border bg-surface p-2">
-            <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-brand">
-              Espacio de trabajo
-            </p>
-            <NavRow icon={LayoutDashboard} label="Dashboard" />
-            <NavRow icon={Users} label="Postulantes" />
-            <NavRow
-              icon={ListTodo}
-              label="Tareas"
-              active
-              badge={<TareasBadge open={open} />}
-            />
-            <NavRow icon={Briefcase} label="Vacantes" />
-            <NavRow icon={Building2} label="Empresas" />
-          </div>
-          <p className="mt-1.5 text-[11px] text-muted-brand">
-            Total de tus tareas abiertas. Completá tareas arriba y mirá cómo
-            baja.
-          </p>
-        </div>
-
-        {/* Empty */}
-        <div>
-          <p className="mb-1.5 text-xs font-semibold text-ink">Sin tareas</p>
-          <div className="rounded-xl border border-brand-border bg-surface p-2">
-            <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-brand">
-              Espacio de trabajo
-            </p>
-            <NavRow icon={LayoutDashboard} label="Dashboard" />
-            <NavRow icon={Users} label="Postulantes" />
-            <NavRow
-              icon={ListTodo}
-              label="Tareas"
-              badge={<TareasBadge open={0} />}
-            />
-            <NavRow icon={Briefcase} label="Vacantes" />
-            <NavRow icon={Building2} label="Empresas" />
-          </div>
-          <p className="mt-1.5 text-[11px] text-muted-brand">
-            Nada que mostrar: el ítem queda limpio.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

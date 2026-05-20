@@ -75,6 +75,20 @@ export class TaskService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
+  async openCountFor(organizationId: number, ownerUserId: number) {
+    const [{ count: c }] = await this.db
+      .select({ count: count(tasks.id) })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.organizationId, organizationId),
+          eq(tasks.assignedTo, ownerUserId),
+          eq(tasks.completed, false),
+        ),
+      );
+    return { count: c };
+  }
+
   async create(dto: CreateTaskServiceDto) {
     if (!TaskTargetPolicy.isValid(dto)) {
       throw new BadRequestException(

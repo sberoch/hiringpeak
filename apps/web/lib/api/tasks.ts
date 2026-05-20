@@ -20,6 +20,11 @@ export async function getAllTasks(params: TaskParams = {}) {
   return response.data;
 }
 
+export async function getMyOpenTaskCount() {
+  const response = await api.get<{ count: number }>(`/task/open-count`);
+  return response.data;
+}
+
 export async function createTask(task: BaseTask) {
   const response = await api.post<Task>("/task", task);
   return response.data;

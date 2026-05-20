@@ -235,6 +235,44 @@ describe('TaskService.update — assignment Notification', () => {
   });
 });
 
+describe('TaskService.openCountFor', () => {
+  let service: TaskService;
+  const where = vi.fn();
+  const from = vi.fn(() => ({ where }));
+  const select = vi.fn(() => ({ from }));
+  const mockDb = { select } as unknown as Record<string, unknown>;
+  const notificationFactory = { ensure: vi.fn() } as unknown as NotificationFactory;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        TaskService,
+        { provide: DrizzleProvider, useValue: mockDb },
+        { provide: NotificationFactory, useValue: notificationFactory },
+      ],
+    }).compile();
+    service = module.get<TaskService>(TaskService);
+  });
+
+  it('returns the count of the User\'s open owned Tasks for the Organization', async () => {
+    where.mockResolvedValueOnce([{ count: 3 }]);
+
+    const result = await service.openCountFor(42, 7);
+
+    expect(result).toEqual({ count: 3 });
+    expect(select).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns zero when the User has no open owned Tasks', async () => {
+    where.mockResolvedValueOnce([{ count: 0 }]);
+
+    const result = await service.openCountFor(42, 7);
+
+    expect(result).toEqual({ count: 0 });
+  });
+});
+
 describe('TaskService.complete / reopen', () => {
   let service: TaskService;
   const findFirst = vi.fn();

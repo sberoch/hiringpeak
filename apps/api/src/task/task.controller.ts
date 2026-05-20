@@ -42,6 +42,18 @@ export class TaskController {
     return this.taskService.findAll({ ...query, organizationId });
   }
 
+  @ApiOkResponse()
+  @Get('open-count')
+  @Permissions(PermissionCode.TASK_READ)
+  async openCount(
+    @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
+  ) {
+    const ownerUserId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    return this.taskService.openCountFor(organizationId, ownerUserId);
+  }
+
   @ApiCreatedResponse()
   @AuditAction({
     eventType: 'create_task',
