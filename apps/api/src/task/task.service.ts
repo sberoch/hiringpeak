@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { and, asc, count, desc, eq, SQL } from 'drizzle-orm';
 import {
@@ -20,6 +21,7 @@ import {
 import {
   CreateTaskServiceDto,
   TaskFindAllServiceParams,
+  UpdateTaskServiceDto,
 } from './task.dto';
 import { TaskTargetPolicy } from './task-target-policy';
 
@@ -86,6 +88,96 @@ export class TaskService {
         candidateVacancyId: dto.candidateVacancyId ?? null,
         companyId: dto.companyId ?? null,
       } as NewTask)
+      .returning();
+    return task;
+  }
+
+  async findOne(id: number, organizationId: number) {
+    const task = await this.db.query.tasks.findFirst({
+      where: and(eq(tasks.id, id), eq(tasks.organizationId, organizationId)),
+    });
+    if (!task) throw new NotFoundException('Not found');
+    return task;
+  }
+
+  async update(id: number, dto: UpdateTaskServiceDto) {
+    const existing = await this.findOne(id, dto.organizationId);
+
+    const merged = {
+      candidateId:
+        dto.candidateId !== undefined ? dto.candidateId : existing.candidateId,
+      vacancyId:
+        dto.vacancyId !== undefined ? dto.vacancyId : existing.vacancyId,
+      candidateVacancyId:
+        dto.candidateVacancyId !== undefined
+          ? dto.candidateVacancyId
+          : existing.candidateVacancyId,
+      companyId:
+        dto.companyId !== undefined ? dto.companyId : existing.companyId,
+    };
+    if (!TaskTargetPolicy.isValid(merged)) {
+      throw new BadRequestException(
+        'A Task can be attached to at most one of candidate, vacancy, candidacy, or company',
+      );
+    }
+
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (dto.title !== undefined) updates.title = dto.title;
+    if (dto.dueDate !== undefined) updates.dueDate = dto.dueDate;
+    if (dto.assignedTo !== undefined) updates.assignedTo = dto.assignedTo;
+    if (dto.candidateId !== undefined) updates.candidateId = dto.candidateId;
+    if (dto.vacancyId !== undefined) updates.vacancyId = dto.vacancyId;
+    if (dto.candidateVacancyId !== undefined)
+      updates.candidateVacancyId = dto.candidateVacancyId;
+    if (dto.companyId !== undefined) updates.companyId = dto.companyId;
+
+    const [task] = await this.db
+      .update(tasks)
+      .set(updates)
+      .where(
+        and(eq(tasks.id, id), eq(tasks.organizationId, dto.organizationId)),
+      )
+      .returning();
+    return task;
+  }
+
+  async complete(id: number, organizationId: number, completedBy: number) {
+    await this.findOne(id, organizationId);
+    const set: Record<string, unknown> = {
+      completed: true,
+      completedAt: new Date(),
+      completedBy,
+      updatedAt: new Date(),
+    };
+    const [task] = await this.db
+      .update(tasks)
+      .set(set)
+      .where(and(eq(tasks.id, id), eq(tasks.organizationId, organizationId)))
+      .returning();
+    return task;
+  }
+
+  async reopen(id: number, organizationId: number) {
+    await this.findOne(id, organizationId);
+    const set: Record<string, unknown> = {
+      completed: false,
+      completedAt: null,
+      completedBy: null,
+      updatedAt: new Date(),
+    };
+    const [task] = await this.db
+      .update(tasks)
+      .set(set)
+      .where(and(eq(tasks.id, id), eq(tasks.organizationId, organizationId)))
+      .returning();
+    return task;
+  }
+
+  async remove(id: number, organizationId: number) {
+    await this.findOne(id, organizationId);
+    const [task] = await this.db
+      .delete(tasks)
+      .where(and(eq(tasks.id, id), eq(tasks.organizationId, organizationId)))
       .returning();
     return task;
   }

@@ -1,12 +1,23 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { ListChecks } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ListChecks, Pencil, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { getAllTasks, TASK_API_KEY } from "@/lib/api/tasks";
+import {
+  completeTask,
+  getAllTasks,
+  reopenTask,
+  TASK_API_KEY,
+} from "@/lib/api/tasks";
 import { Card } from "@workspace/ui/components/card";
 import { PageHeading } from "@workspace/ui/components/page-heading";
+import { cn } from "@workspace/ui/lib/utils";
+import type { TaskWithRelations } from "@workspace/shared/types/task";
 
+import { DeleteTaskDialog } from "./delete-task-dialog";
+import { EditTaskDialog } from "./edit-task-dialog";
 import { NewTaskForm } from "./new-task-form";
 
 function formatDueDate(dueDate: string | null | undefined) {
@@ -15,7 +26,22 @@ function formatDueDate(dueDate: string | null | undefined) {
   return `${d}/${m}/${y}`;
 }
 
+function todayIsoDay() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isOverdue(task: TaskWithRelations, today: string) {
+  return !task.completed && !!task.dueDate && task.dueDate < today;
+}
+
 export function TasksPage() {
+  const queryClient = useQueryClient();
+  const today = useMemo(() => todayIsoDay(), []);
+
   const { data, isLoading } = useQuery({
     queryKey: [TASK_API_KEY, { order: "createdAt:desc", limit: 100 }],
     queryFn: () => getAllTasks({ order: "createdAt:desc", limit: 100 }),
@@ -23,6 +49,33 @@ export function TasksPage() {
   });
 
   const tasks = data?.items ?? [];
+
+  const [editing, setEditing] = useState<TaskWithRelations | null>(null);
+  const [deleting, setDeleting] = useState<TaskWithRelations | null>(null);
+
+  const completeMutation = useMutation({
+    mutationFn: (id: number) => completeTask(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+    },
+    onError: () => toast.error("No se pudo completar la tarea"),
+  });
+
+  const reopenMutation = useMutation({
+    mutationFn: (id: number) => reopenTask(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+    },
+    onError: () => toast.error("No se pudo reabrir la tarea"),
+  });
+
+  const toggleDone = (t: TaskWithRelations) => {
+    if (t.completed) {
+      reopenMutation.mutate(t.id);
+    } else {
+      completeMutation.mutate(t.id);
+    }
+  };
 
   return (
     <>
@@ -59,21 +112,84 @@ export function TasksPage() {
           <ul className="divide-y divide-brand-border">
             {tasks.map((task) => {
               const owner = task.assignedToUser?.name ?? "—";
+              const overdue = isOverdue(task, today);
               return (
                 <li
                   key={task.id}
-                  className="flex items-center justify-between py-3"
+                  className={cn(
+                    "flex items-center gap-3 py-3",
+                    task.completed && "opacity-60",
+                  )}
                 >
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={task.completed}
+                    onClick={() => toggleDone(task)}
+                    disabled={
+                      completeMutation.isPending || reopenMutation.isPending
+                    }
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all",
+                      task.completed
+                        ? "border-emerald-500 bg-emerald-500"
+                        : "border-brand-border hover:border-electric",
+                    )}
+                  >
+                    {task.completed && (
+                      <svg viewBox="0 0 12 12" className="h-3 w-3 text-white">
+                        <path
+                          d="M2 6l3 3 5-6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink">
+                    <p
+                      className={cn(
+                        "truncate text-sm font-medium text-ink",
+                        task.completed && "line-through",
+                      )}
+                    >
                       {task.title}
                     </p>
                     <p className="text-xs text-slate-brand mt-0.5">
                       Responsable: {owner}
                     </p>
                   </div>
-                  <div className="ml-4 shrink-0 text-right text-xs text-slate-brand">
-                    {formatDueDate(task.dueDate)}
+
+                  <div
+                    className={cn(
+                      "ml-2 shrink-0 text-right text-xs font-semibold",
+                      overdue ? "text-red-600" : "text-slate-brand",
+                    )}
+                  >
+                    {overdue ? `Vencida · ${formatDueDate(task.dueDate)}` : formatDueDate(task.dueDate)}
+                  </div>
+
+                  <div className="ml-2 flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(task)}
+                      aria-label="Editar tarea"
+                      className="rounded-md p-1.5 text-slate-brand hover:bg-canvas hover:text-ink"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(task)}
+                      aria-label="Eliminar tarea"
+                      className="rounded-md p-1.5 text-slate-brand hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </li>
               );
@@ -81,6 +197,17 @@ export function TasksPage() {
           </ul>
         )}
       </Card>
+
+      <EditTaskDialog
+        task={editing}
+        isOpen={!!editing}
+        onClose={() => setEditing(null)}
+      />
+      <DeleteTaskDialog
+        task={deleting}
+        isOpen={!!deleting}
+        onClose={() => setDeleting(null)}
+      />
     </>
   );
 }

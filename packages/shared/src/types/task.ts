@@ -14,6 +14,16 @@ export type BaseTask = {
   companyId?: number | null;
 };
 
+export type UpdateTaskPayload = {
+  title?: string;
+  dueDate?: string | null;
+  assignedTo?: number;
+  candidateId?: number | null;
+  vacancyId?: number | null;
+  candidateVacancyId?: number | null;
+  companyId?: number | null;
+};
+
 export type TaskWithRelations = Task & {
   assignedToUser?: User;
   createdByUser?: User;

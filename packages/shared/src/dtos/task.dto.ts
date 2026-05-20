@@ -16,6 +16,20 @@ export const CreateTaskSchema = z.object({
   companyId: z.number().int().nullable().optional(),
 });
 
+/**
+ * Edit a Task: title, due date, Task Owner, or clear the attachment.
+ * Mutation of completion state lives on dedicated endpoints.
+ */
+export const UpdateTaskSchema = z.object({
+  title: z.string().min(1).optional(),
+  dueDate: DayDateSchema.nullable().optional(),
+  assignedTo: z.number().int().optional(),
+  candidateId: z.number().int().nullable().optional(),
+  vacancyId: z.number().int().nullable().optional(),
+  candidateVacancyId: z.number().int().nullable().optional(),
+  companyId: z.number().int().nullable().optional(),
+});
+
 export const TaskQueryParamsSchema = PaginationParamsSchema.extend({
   id: z.coerce.number().optional(),
   assignedTo: z.coerce.number().optional(),
@@ -31,4 +45,5 @@ export const TaskQueryParamsSchema = PaginationParamsSchema.extend({
 });
 
 export type CreateTaskDto = z.infer<typeof CreateTaskSchema>;
+export type UpdateTaskDto = z.infer<typeof UpdateTaskSchema>;
 export type TaskQueryParamsDto = z.infer<typeof TaskQueryParamsSchema>;

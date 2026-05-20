@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -19,7 +22,7 @@ import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
-import { CreateTaskDto, TaskQueryParams } from './task.dto';
+import { CreateTaskDto, TaskQueryParams, UpdateTaskDto } from './task.dto';
 import { TaskService } from './task.service';
 
 @ApiBearerAuth()
@@ -59,5 +62,72 @@ export class TaskController {
       organizationId,
       createdBy,
     });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'update_task',
+    entityType: 'task',
+    labelField: 'title',
+  })
+  @Patch(':id')
+  @Permissions(PermissionCode.TASK_MANAGE)
+  async update(
+    @Param('id') id: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.taskService.update(+id, {
+      ...updateTaskDto,
+      organizationId,
+    });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'complete_task',
+    entityType: 'task',
+    labelField: 'title',
+  })
+  @Post(':id/complete')
+  @Permissions(PermissionCode.TASK_MANAGE)
+  async complete(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
+  ) {
+    const completedBy =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    return this.taskService.complete(+id, organizationId, completedBy);
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'reopen_task',
+    entityType: 'task',
+    labelField: 'title',
+  })
+  @Post(':id/reopen')
+  @Permissions(PermissionCode.TASK_MANAGE)
+  async reopen(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.taskService.reopen(+id, organizationId);
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'delete_task',
+    entityType: 'task',
+    labelField: 'title',
+  })
+  @Delete(':id')
+  @Permissions(PermissionCode.TASK_MANAGE)
+  async remove(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.taskService.remove(+id, organizationId);
   }
 }
