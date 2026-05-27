@@ -203,3 +203,10 @@ The project is designed for easy deployment:
    # Web
    cd apps/web && pnpm start
    ```
+
+
+docker compose --env-file infra/docker/.env.production -f infra/docker/docker-compose.yml \
+    -e ADMIN_EMAIL='admin@hiringpeak.com' \
+    -e ADMIN_PASSWORD='<your-real-password>' \
+    -e ORG_NAME='Pratt' \
+    api node dist/src/common/database/seed-prod-init.js

@@ -20,7 +20,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/common/database/seed.ts",
     "db:reset": "tsx src/common/database/seed-reset.ts",
-    "db:seed:prod": "tsx src/common/database/seed-prod-init.ts"
+    "db:seed:prod": "tsx src/common/database/seed-prod-init.ts",
+    "db:seed:demo": "tsx src/common/database/seed-demo.ts"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.2.6",
