@@ -42,6 +42,28 @@ export async function downloadVacancyReportPdf(
   };
 }
 
+/**
+ * Downloads the internal Vacancy List Report PDF for the active filters.
+ * `params` carries the same filter IDs as the list query (pagination is ignored
+ * server-side); `appliedFilters` are display-only labels for the report's echo.
+ */
+export async function downloadVacancyListReportPdf(
+  params: VacancyParams,
+  appliedFilters: string[]
+): Promise<VacancyReportDownload> {
+  const searchParams = filtersToSearchParams({ ...params, appliedFilters });
+  const response = await api.get<Blob>(`/vacancy/report/pdf${searchParams}`, {
+    responseType: "blob",
+  });
+
+  return {
+    blob: response.data,
+    fileName:
+      getFileNameFromContentDisposition(response.headers["content-disposition"]) ||
+      "listado-vacantes.pdf",
+  };
+}
+
 export async function createVacancy(vacancy: CreateVacancySchema) {
   const response = await api.post<Vacancy>("/vacancy", vacancy);
   return response.data;

@@ -93,6 +93,72 @@ export function useActiveVacancyFilterCount(filters: VacancyFiltersType) {
   }, [filters]);
 }
 
+interface NamedUser {
+  id: number;
+  name: string;
+}
+
+export interface VacancyFilterChip {
+  /** The filter key this chip represents; clearing it sets the key to undefined. */
+  id: keyof VacancyFiltersType;
+  label: string;
+}
+
+/**
+ * Builds the human-readable labels for the active vacancy filters — the single
+ * source of truth shared by the on-screen filter chips and the Vacancy List
+ * Report's "Filtros aplicados" echo. `users` resolves createdBy/assignedTo IDs
+ * to names (omit it and they fall back to `#id`).
+ */
+export function buildActiveVacancyFilterChips(
+  filters: VacancyFiltersType,
+  users?: NamedUser[]
+): VacancyFilterChip[] {
+  const chips: VacancyFilterChip[] = [];
+
+  if (filters.status) {
+    chips.push({ id: "status", label: `Estado: ${filters.status.name}` });
+  }
+  if (filters.seniorities?.length) {
+    const label =
+      filters.seniorities.length === 1
+        ? filters.seniorities[0]!.name
+        : `${filters.seniorities.length} seniorities`;
+    chips.push({ id: "seniorities", label: `Seniority: ${label}` });
+  }
+  if (filters.areas?.length) {
+    const label =
+      filters.areas.length === 1
+        ? filters.areas[0]!.name
+        : `${filters.areas.length} áreas`;
+    chips.push({ id: "areas", label: `Área: ${label}` });
+  }
+  if (filters.industries?.length) {
+    const label =
+      filters.industries.length === 1
+        ? filters.industries[0]!.name
+        : `${filters.industries.length} industrias`;
+    chips.push({ id: "industries", label: `Industria: ${label}` });
+  }
+  if (filters.company) {
+    chips.push({ id: "company", label: `Empresa: ${filters.company.name}` });
+  }
+  if (filters.createdBy) {
+    const userName =
+      users?.find((u) => u.id === filters.createdBy)?.name ??
+      `#${filters.createdBy}`;
+    chips.push({ id: "createdBy", label: `Creado por: ${userName}` });
+  }
+  if (filters.assignedTo) {
+    const userName =
+      users?.find((u) => u.id === filters.assignedTo)?.name ??
+      `#${filters.assignedTo}`;
+    chips.push({ id: "assignedTo", label: `Asignado a: ${userName}` });
+  }
+
+  return chips;
+}
+
 export function ActiveVacancyFilterChips({
   filters,
   onFiltersChange,
@@ -106,64 +172,7 @@ export function ActiveVacancyFilterChips({
     enabled: !!(filters.createdBy || filters.assignedTo),
   });
 
-  const chips: { label: string; onRemove: () => void }[] = [];
-
-  if (filters.status) {
-    chips.push({
-      label: `Estado: ${filters.status.name}`,
-      onRemove: () => onFiltersChange({ ...filters, status: undefined }),
-    });
-  }
-  if (filters.seniorities?.length) {
-    const label =
-      filters.seniorities.length === 1
-        ? filters.seniorities[0]!.name
-        : `${filters.seniorities.length} seniorities`;
-    chips.push({
-      label: `Seniority: ${label}`,
-      onRemove: () => onFiltersChange({ ...filters, seniorities: undefined }),
-    });
-  }
-  if (filters.areas?.length) {
-    const label =
-      filters.areas.length === 1
-        ? filters.areas[0]!.name
-        : `${filters.areas.length} áreas`;
-    chips.push({
-      label: `Área: ${label}`,
-      onRemove: () => onFiltersChange({ ...filters, areas: undefined }),
-    });
-  }
-  if (filters.industries?.length) {
-    const label =
-      filters.industries.length === 1
-        ? filters.industries[0]!.name
-        : `${filters.industries.length} industrias`;
-    chips.push({
-      label: `Industria: ${label}`,
-      onRemove: () => onFiltersChange({ ...filters, industries: undefined }),
-    });
-  }
-  if (filters.company) {
-    chips.push({
-      label: `Empresa: ${filters.company.name}`,
-      onRemove: () => onFiltersChange({ ...filters, company: undefined }),
-    });
-  }
-  if (filters.createdBy) {
-    const userName = users?.items.find((u) => u.id === filters.createdBy)?.name ?? `#${filters.createdBy}`;
-    chips.push({
-      label: `Creado por: ${userName}`,
-      onRemove: () => onFiltersChange({ ...filters, createdBy: undefined }),
-    });
-  }
-  if (filters.assignedTo) {
-    const userName = users?.items.find((u) => u.id === filters.assignedTo)?.name ?? `#${filters.assignedTo}`;
-    chips.push({
-      label: `Asignado a: ${userName}`,
-      onRemove: () => onFiltersChange({ ...filters, assignedTo: undefined }),
-    });
-  }
+  const chips = buildActiveVacancyFilterChips(filters, users?.items);
 
   if (chips.length === 0) return null;
 
@@ -171,9 +180,9 @@ export function ActiveVacancyFilterChips({
     <div className="flex flex-wrap gap-2">
       {chips.map((chip) => (
         <button
-          key={chip.label}
+          key={chip.id}
           type="button"
-          onClick={chip.onRemove}
+          onClick={() => onFiltersChange({ ...filters, [chip.id]: undefined })}
           className="group inline-flex items-center gap-1.5 rounded-lg bg-electric/[0.06] px-2.5 py-1 text-xs font-medium text-electric border border-electric/10 hover:bg-electric/[0.12] hover:border-electric/20 transition-all ease-[cubic-bezier(0.16,1,0.3,1)]"
         >
           {chip.label}

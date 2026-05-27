@@ -89,9 +89,27 @@ export const VacancyQueryParamsSchema = PaginationParamsSchema.extend({
   search: z.string().optional(),
 });
 
+/**
+ * Query params for the Vacancy List Report PDF: the same filter surface as the
+ * list endpoint, plus `appliedFilters` — display-only, human-readable filter
+ * labels echoed back from the frontend (which already holds the filter objects).
+ * These drive only the "Filtros aplicados" caption; the real filtering is done
+ * by the IDs above. Pagination params are accepted but ignored (the report
+ * exports the whole filtered set).
+ */
+export const VacancyListReportQueryParamsSchema =
+  VacancyQueryParamsSchema.extend({
+    appliedFilters: z
+      .union([z.array(z.string()), z.string().transform((v) => [v])])
+      .optional(),
+  });
+
 export type VacancyFiltersDto = z.infer<typeof VacancyFiltersSchema>;
 export type CreateVacancyDto = z.infer<typeof CreateVacancySchema>;
 export type UpdateVacancyDto = z.infer<typeof UpdateVacancySchema>;
 export type CloseVacancyDto = z.infer<typeof CloseVacancySchema>;
 export type ReopenVacancyDto = z.infer<typeof ReopenVacancySchema>;
 export type VacancyQueryParamsDto = z.infer<typeof VacancyQueryParamsSchema>;
+export type VacancyListReportQueryParamsDto = z.infer<
+  typeof VacancyListReportQueryParamsSchema
+>;

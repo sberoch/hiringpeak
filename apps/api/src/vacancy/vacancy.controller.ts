@@ -25,6 +25,7 @@ import {
   ReopenVacancyDto,
   UpdateVacancyDto,
   VacancyQueryParams,
+  VacancyListReportQueryParams,
 } from './vacancy.dto';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
@@ -51,6 +52,25 @@ export class VacancyController {
     @OrganizationId() organizationId: number,
   ) {
     return this.vacancyService.findAll({ ...query, organizationId });
+  }
+
+  @ApiOkResponse()
+  @Get('report/pdf')
+  @Permissions(PermissionCode.VACANCY_READ)
+  @ApiProduces('application/pdf')
+  async downloadListReport(
+    @Query() query: VacancyListReportQueryParams,
+    @OrganizationId() organizationId: number,
+  ): Promise<StreamableFile> {
+    const report = await this.vacancyReportService.generateVacancyListReportPdf(
+      { ...query, organizationId },
+    );
+
+    return new StreamableFile(report.buffer, {
+      type: report.contentType,
+      disposition: `attachment; filename="${report.fileName}"`,
+      length: report.buffer.length,
+    });
   }
 
   @ApiOkResponse()

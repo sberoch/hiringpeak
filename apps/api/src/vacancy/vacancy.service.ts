@@ -21,8 +21,10 @@ import {
   Industry,
   Seniority,
   Candidate,
+  candidates,
   CandidateSource,
   CandidateVacancy as CandidateVacancySchema,
+  candidateVacancies,
   CandidateVacancyStatus,
   RejectionReason,
   Company,
@@ -53,7 +55,9 @@ import {
   CreateVacancyServiceDto,
   UpdateVacancyServiceDto,
   VacancyFindAllServiceParams,
+  VacancyListReportServiceParams,
 } from './vacancy.dto';
+import type { VacancyListReportSourceRow } from './vacancy-list-report.types';
 
 type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
@@ -165,6 +169,98 @@ export class VacancyService {
 
     const parsedItems = items.map(this.transformQueryResult);
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
+  }
+
+  /**
+   * Lean projection backing the Vacancy List Report: the SAME filter/sort
+   * surface as `findAll` (reuses `buildWhereClause`/`buildOrderBy` so the
+   * exported set exactly matches the screen) but UNPAGINATED and WITHOUT
+   * hydrating the candidacy graph — the candidate count comes from a single
+   * grouped aggregate. No row cap (see CONTEXT.md accepted-risk note).
+   */
+  async findAllForListReport(
+    params: VacancyListReportServiceParams,
+  ): Promise<VacancyListReportSourceRow[]> {
+    const whereClause = this.buildWhereClause(params);
+    const orderClause = this.buildOrderBy(params);
+
+    const items = await this.db.query.vacancies.findMany({
+      where: whereClause,
+      orderBy: orderClause,
+      with: {
+        status: true,
+        company: true,
+        assignedTo: true,
+        filters: {
+          with: {
+            areaIds: { with: { area: true } },
+            industryIds: { with: { industry: true } },
+            seniorityIds: { with: { seniority: true } },
+          },
+        },
+      },
+    });
+
+    const candidateCounts = await this.countCandidaciesByVacancy(
+      items.map((vacancy) => vacancy.id),
+    );
+
+    return items.map((vacancy) => ({
+      id: vacancy.id,
+      title: vacancy.title,
+      companyName: vacancy.company?.name ?? '',
+      statusName: vacancy.status?.name ?? '',
+      ownerName: vacancy.assignedTo?.name ?? '',
+      salary: vacancy.salary ?? null,
+      seniorities:
+        vacancy.filters?.seniorityIds
+          ?.map((s) => s.seniority?.name)
+          .filter((name): name is string => Boolean(name)) ?? [],
+      areas:
+        vacancy.filters?.areaIds
+          ?.map((a) => a.area?.name)
+          .filter((name): name is string => Boolean(name)) ?? [],
+      industries:
+        vacancy.filters?.industryIds
+          ?.map((i) => i.industry?.name)
+          .filter((name): name is string => Boolean(name)) ?? [],
+      candidateCount: candidateCounts.get(vacancy.id) ?? 0,
+      createdAt: vacancy.createdAt,
+      closedAt: vacancy.closedAt,
+    }));
+  }
+
+  /**
+   * Candidacy counts per Vacancy, excluding soft-deleted Candidates — matching
+   * the count the list screen shows (`transformQueryResult` drops deleted ones).
+   */
+  private async countCandidaciesByVacancy(
+    vacancyIds: number[],
+  ): Promise<Map<number, number>> {
+    const counts = new Map<number, number>();
+    if (vacancyIds.length === 0) {
+      return counts;
+    }
+
+    const rows = await this.db
+      .select({
+        vacancyId: candidateVacancies.vacancyId,
+        value: count(candidateVacancies.id),
+      })
+      .from(candidateVacancies)
+      .innerJoin(candidates, eq(candidates.id, candidateVacancies.candidateId))
+      .where(
+        and(
+          inArray(candidateVacancies.vacancyId, vacancyIds),
+          eq(candidates.deleted, false),
+        ),
+      )
+      .groupBy(candidateVacancies.vacancyId);
+
+    for (const row of rows) {
+      counts.set(row.vacancyId, Number(row.value));
+    }
+    return counts;
   }
 
   async findOne(id: number, organizationId: number) {

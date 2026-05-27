@@ -3,34 +3,33 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useVacancyFilters } from "@/hooks/use-vacancy-filters";
 import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
 import type { PaginatedResponse } from "@workspace/shared/types/api";
 import type {
   Vacancy,
   VacancyFiltersType,
+  VacancyParams,
 } from "@workspace/shared/types/vacancy";
 import { VacancyListPanel } from "./vacancy-list-panel";
 import { VacancyPreviewPanel } from "./vacancy-preview-panel";
 
 interface VacancyTableProps {
-  initialFilters?: VacancyFiltersType;
+  filters: VacancyFiltersType;
+  setFilters: (filters: VacancyFiltersType) => void;
+  resetFilters: () => void;
+  params: VacancyParams;
 }
 
-export const VacancyTable = ({ initialFilters }: VacancyTableProps) => {
+export const VacancyTable = ({
+  filters,
+  setFilters,
+  resetFilters,
+  params,
+}: VacancyTableProps) => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedVacancyId, setSelectedVacancyId] = useState<number | null>(
     null,
   );
-
-  const { filters, params, resetFilters, setFilters } = useVacancyFilters({
-    initialValues: {
-      limit: 15,
-      page: 1,
-      order: "id:desc",
-      ...initialFilters,
-    },
-  });
 
   const { data, isLoading } = useQuery<PaginatedResponse<Vacancy>>({
     queryKey: [VACANCY_API_KEY, params],
