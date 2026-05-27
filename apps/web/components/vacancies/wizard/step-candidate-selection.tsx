@@ -12,10 +12,12 @@ import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { Badge } from "@workspace/ui/components/badge";
 import { CANDIDATE_API_KEY, getAllCandidates } from "@/lib/api/candidate";
 import { candidateVacancyFiltersAdapter, translateGender } from "@/lib/utils";
-import type { Vacancy, VacancyFiltersType } from "@workspace/shared/types/vacancy";
+import type { VacancyFiltersType } from "@workspace/shared/types/vacancy";
 
 interface StepCandidateSelectionProps {
-  vacancy: Vacancy;
+  vacancyFilters: VacancyFiltersType;
+  existingCandidateIds?: number[];
+  selectionKey: string;
   selectedCandidates: number[];
   onChangeSelected: (next: number[]) => void;
   onInitialized: (initial: number[]) => void;
@@ -55,8 +57,12 @@ function FilterRow({
   );
 }
 
-function VacancyBrief({ vacancy }: { vacancy: Vacancy }) {
-  const f = vacancy.filters;
+function VacancyBrief({
+  filters,
+}: {
+  filters: VacancyFiltersType | undefined;
+}) {
+  const f = filters ?? ({} as VacancyFiltersType);
   const hasFilters = hasAnyFilter(f);
 
   return (
@@ -75,77 +81,89 @@ function VacancyBrief({ vacancy }: { vacancy: Vacancy }) {
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm flex-1">
-          {!!f.seniorities?.length && (
-            <FilterRow label="Seniority">
-              {f.seniorities.map((s) => (
-                <CatalogBadge key={s.id} label={s.name} type="seniority" />
-              ))}
-            </FilterRow>
-          )}
-          {!!f.areas?.length && (
-            <FilterRow label="Áreas">
-              {f.areas.map((a) => (
-                <CatalogBadge key={a.id} label={a.name} type="area" />
-              ))}
-            </FilterRow>
-          )}
-          {!!f.industries?.length && (
-            <FilterRow label="Industrias">
-              {f.industries.map((i) => (
-                <CatalogBadge key={i.id} label={i.name} type="industry" />
-              ))}
-            </FilterRow>
-          )}
-          {f.minStars != null && (
-            <FilterRow label="Rating mínimo">
-              <Badge variant="outline" className={filterBadgeCn}>
-                {"⭐".repeat(f.minStars)}
-              </Badge>
-            </FilterRow>
-          )}
-          {(f.minAge != null || f.maxAge != null) && (
-            <FilterRow label="Rango de edad">
-              <Badge variant="outline" className={filterBadgeCn}>
-                {f.minAge != null ? f.minAge : ""}
-                {f.minAge != null && f.maxAge != null ? " - " : ""}
-                {f.maxAge != null ? f.maxAge : ""} años
-              </Badge>
-            </FilterRow>
-          )}
-          {!!f.gender && f.gender !== "none" && (
-            <FilterRow label="Género">
-              <Badge variant="outline" className={filterBadgeCn}>
-                {translateGender(f.gender)}
-              </Badge>
-            </FilterRow>
-          )}
-          {!!f.countries?.length && (
-            <FilterRow label="País(es)">
-              {f.countries.map((country, index) => (
-                <Badge key={index} variant="outline" className={filterBadgeCn}>
-                  {country}
+            {!!f.seniorities?.length && (
+              <FilterRow label="Seniority">
+                {f.seniorities.map((s) => (
+                  <CatalogBadge key={s.id} label={s.name} type="seniority" />
+                ))}
+              </FilterRow>
+            )}
+            {!!f.areas?.length && (
+              <FilterRow label="Áreas">
+                {f.areas.map((a) => (
+                  <CatalogBadge key={a.id} label={a.name} type="area" />
+                ))}
+              </FilterRow>
+            )}
+            {!!f.industries?.length && (
+              <FilterRow label="Industrias">
+                {f.industries.map((i) => (
+                  <CatalogBadge key={i.id} label={i.name} type="industry" />
+                ))}
+              </FilterRow>
+            )}
+            {f.minStars != null && (
+              <FilterRow label="Rating mínimo">
+                <Badge variant="outline" className={filterBadgeCn}>
+                  {"⭐".repeat(f.minStars)}
                 </Badge>
-              ))}
-            </FilterRow>
-          )}
-          {!!f.provinces?.length && (
-            <FilterRow label="Provincia(s)">
-              {f.provinces.map((province, index) => (
-                <Badge key={index} variant="outline" className={filterBadgeCn}>
-                  {province}
+              </FilterRow>
+            )}
+            {(f.minAge != null || f.maxAge != null) && (
+              <FilterRow label="Rango de edad">
+                <Badge variant="outline" className={filterBadgeCn}>
+                  {f.minAge != null ? f.minAge : ""}
+                  {f.minAge != null && f.maxAge != null ? " - " : ""}
+                  {f.maxAge != null ? f.maxAge : ""} años
                 </Badge>
-              ))}
-            </FilterRow>
-          )}
-          {!!f.languages?.length && (
-            <FilterRow label="Idioma(s)">
-              {f.languages.map((language, index) => (
-                <Badge key={index} variant="outline" className={filterBadgeCn}>
-                  {language}
+              </FilterRow>
+            )}
+            {!!f.gender && f.gender !== "none" && (
+              <FilterRow label="Género">
+                <Badge variant="outline" className={filterBadgeCn}>
+                  {translateGender(f.gender)}
                 </Badge>
-              ))}
-            </FilterRow>
-          )}
+              </FilterRow>
+            )}
+            {!!f.countries?.length && (
+              <FilterRow label="País(es)">
+                {f.countries.map((country, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className={filterBadgeCn}
+                  >
+                    {country}
+                  </Badge>
+                ))}
+              </FilterRow>
+            )}
+            {!!f.provinces?.length && (
+              <FilterRow label="Provincia(s)">
+                {f.provinces.map((province, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className={filterBadgeCn}
+                  >
+                    {province}
+                  </Badge>
+                ))}
+              </FilterRow>
+            )}
+            {!!f.languages?.length && (
+              <FilterRow label="Idioma(s)">
+                {f.languages.map((language, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className={filterBadgeCn}
+                  >
+                    {language}
+                  </Badge>
+                ))}
+              </FilterRow>
+            )}
           </div>
         )}
       </div>
@@ -154,14 +172,16 @@ function VacancyBrief({ vacancy }: { vacancy: Vacancy }) {
 }
 
 export function StepCandidateSelection({
-  vacancy,
+  vacancyFilters,
+  existingCandidateIds = [],
+  selectionKey,
   selectedCandidates,
   onChangeSelected,
   onInitialized,
 }: StepCandidateSelectionProps) {
-  const filterParams = vacancy.filters
+  const filterParams = vacancyFilters
     ? {
-        ...candidateVacancyFiltersAdapter(vacancy.filters),
+        ...candidateVacancyFiltersAdapter(vacancyFilters),
         limit: 1e9,
         page: 1,
       }
@@ -177,9 +197,6 @@ export function StepCandidateSelection({
 
   useEffect(() => {
     if (!candidates?.items) return;
-    const existingCandidateIds = vacancy.candidates.map(
-      (cv) => cv.candidate.id,
-    );
     const filteredCandidateIds = candidates.items.map((c) => c.id);
     const existingInFiltered = existingCandidateIds.filter((id) =>
       filteredCandidateIds.includes(id),
@@ -187,7 +204,7 @@ export function StepCandidateSelection({
     onChangeSelected(existingInFiltered);
     onInitialized(existingInFiltered);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidates?.items, vacancy.id]);
+  }, [candidates?.items, selectionKey]);
 
   const toggleCandidateSelection = (candidateId: number) => {
     onChangeSelected(
@@ -200,11 +217,13 @@ export function StepCandidateSelection({
   return (
     <div className="space-y-5">
       <p className="text-sm text-slate-brand">
-        Seleccioná los postulantes que querés sumar a esta vacante. Los que ya
-        están asignados aparecen marcados.
+        Seleccioná los postulantes que querés sumar a esta vacante.
+        {existingCandidateIds.length > 0
+          ? " Los que ya están asignados aparecen marcados."
+          : null}
       </p>
 
-      <VacancyBrief vacancy={vacancy} />
+      <VacancyBrief filters={vacancyFilters} />
 
       {candidatesLoading ? (
         <CandidatePickerSkeleton />

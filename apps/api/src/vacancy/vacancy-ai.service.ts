@@ -426,8 +426,8 @@ function enrichDraftSeniorityFromRoleText(
 }
 
 function combineUsage(...usages: Array<{ [key: string]: any } | undefined>) {
-  const definedUsages = usages.filter((usage): usage is NonNullable<typeof usage> =>
-    usage != null,
+  const definedUsages = usages.filter(
+    (usage): usage is NonNullable<typeof usage> => usage != null,
   );
 
   const sum = (values: Array<number | undefined>) =>
@@ -489,7 +489,7 @@ function buildContextGenerationPrompt(
 Eres un resolutor de contexto para vacantes en un ATS.
 
 Objetivo:
-- Leer ${hasDocuments ? 'los documentos adjuntos y el prompt del usuario' : 'un prompt libre del usuario'}.
+- Leer ${hasDocuments ? 'los documentos adjuntos y el prompt del usuario' : 'el prompt prompt del usuario'}.
 - Resolver ids y listas permitidas usando herramientas.
 - Construir un contexto preliminar para una extracción estructurada posterior.
 
@@ -552,13 +552,17 @@ ${JSON.stringify(resolvedContext, null, 2)}
 `;
 }
 
-function getSubmittedDraftContext(toolCalls: Array<{ toolName: string; input: unknown }>) {
+function getSubmittedDraftContext(
+  toolCalls: Array<{ toolName: string; input: unknown }>,
+) {
   const finalToolCall = [...toolCalls]
     .reverse()
     .find((toolCall) => toolCall.toolName === SUBMIT_DRAFT_CONTEXT_TOOL);
 
   if (!finalToolCall) {
-    throw new Error('Vacancy AI context generation did not submit draft context');
+    throw new Error(
+      'Vacancy AI context generation did not submit draft context',
+    );
   }
 
   return EXTRACTION_RESULT_SCHEMA.parse(finalToolCall.input);

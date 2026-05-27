@@ -11,9 +11,8 @@ export function NewAiVacancyLink() {
   return (
     <PermissionGuard permissions={[VACANCY_MANAGE]}>
       <Button asChild variant="outline" className="rounded-md">
-        <Link href="/vacancies/new-ai">Crear con IA</Link>
+        <Link href="/vacancies/new?source=ai">Crear con IA</Link>
       </Button>
     </PermissionGuard>
   );
 }
-

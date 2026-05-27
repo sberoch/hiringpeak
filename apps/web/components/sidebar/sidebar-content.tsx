@@ -115,7 +115,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
           {
             id: "create-vacancy-ai",
             title: "Crear vacante con IA",
-            url: "/vacancies/new-ai",
+            url: "/vacancies/new?source=ai",
             requiredPermissions: [PermissionCode.VACANCY_MANAGE],
           },
           {
@@ -306,9 +306,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
                               {visibleSubItems.map((subItem) =>
                                 subItem.dialogId ? (
                                   <DropdownMenuItem key={subItem.id} asChild>
-                                    <Link
-                                      href={`?action=${subItem.dialogId}`}
-                                    >
+                                    <Link href={`?action=${subItem.dialogId}`}>
                                       {subItem.title}
                                     </Link>
                                   </DropdownMenuItem>

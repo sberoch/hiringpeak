@@ -1,11 +1,5 @@
-import { Metadata } from "next";
-import { AiVacancyPage } from "@/components/vacancies/ai-vacancy/ai-vacancy-page";
-
-export const metadata: Metadata = {
-  title: "Nueva vacante asistida",
-};
+import { redirect } from "next/navigation";
 
 export default function NewAiVacancyRoute() {
-  return <AiVacancyPage />;
+  redirect("/vacancies/new?source=ai");
 }
-
