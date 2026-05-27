@@ -12,6 +12,7 @@ export * from "./industry.schema";
 export * from "./notification.schema";
 export * from "./organization.schema";
 export * from "./permission.schema";
+export * from "./rejectionreason.schema";
 export * from "./role.schema";
 export * from "./role-permission.schema";
 export * from "./seniority.schema";

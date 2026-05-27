@@ -12,6 +12,8 @@ import {
   CandidateVacancyStatus,
   candidates,
   Candidate,
+  rejectionReasons,
+  RejectionReason,
   Vacancy,
   Company,
 } from '@workspace/shared/schemas';
@@ -34,6 +36,7 @@ type CandidateVacancyQueryResult = CandidateVacancySchema & {
     company: Company;
   };
   candidateVacancyStatus: CandidateVacancyStatus;
+  rejectionReason: RejectionReason | null;
 };
 
 type CandidateVacancyApiResponse = Omit<
@@ -67,6 +70,7 @@ export class CandidateVacancyService {
           },
         },
         candidateVacancyStatus: true,
+        rejectionReason: true,
       },
     });
 
@@ -97,6 +101,7 @@ export class CandidateVacancyService {
           },
         },
         candidateVacancyStatus: true,
+        rejectionReason: true,
       },
     });
     if (!candidateVacancy) throw new NotFoundException('Not found');
@@ -134,10 +139,24 @@ export class CandidateVacancyService {
           .where(eq(candidates.id, dto.candidateId));
       }
 
+      if (status?.isRejection) {
+        if (dto.rejectionReasonId == null) {
+          throw new BadRequestException(
+            'Debe seleccionar un motivo de rechazo.',
+          );
+        }
+        await this.assertRejectionReasonInOrg(
+          tx,
+          dto.rejectionReasonId,
+          dto.organizationId,
+        );
+      }
+
       const candidateVacancyValues = {
         ...dto,
-        rejectionReason: status?.isRejection
-          ? this.normalizeRejectionReason(dto.rejectionReason)
+        rejectionReasonId: status?.isRejection ? dto.rejectionReasonId : null,
+        rejectionNote: status?.isRejection
+          ? this.normalizeRejectionNote(dto.rejectionNote)
           : null,
       } as typeof candidateVacancies.$inferInsert;
 
@@ -204,17 +223,36 @@ export class CandidateVacancyService {
       });
 
       if (nextStatus?.isRejection) {
+        const resultingReasonId =
+          dto.rejectionReasonId !== undefined
+            ? dto.rejectionReasonId
+            : currentCandidateVacancy.rejectionReasonId;
+        if (resultingReasonId == null) {
+          throw new BadRequestException(
+            'Debe seleccionar un motivo de rechazo.',
+          );
+        }
+        if (dto.rejectionReasonId != null) {
+          await this.assertRejectionReasonInOrg(
+            tx,
+            dto.rejectionReasonId,
+            organizationId,
+          );
+        }
+        updateFields.rejectionReasonId = resultingReasonId;
+
         const isStatusChange =
           dto.candidateVacancyStatusId !== undefined &&
           dto.candidateVacancyStatusId !==
             currentCandidateVacancy.candidateVacancyStatusId;
-        if (dto.rejectionReason !== undefined || isStatusChange) {
-          updateFields.rejectionReason = this.normalizeRejectionReason(
-            dto.rejectionReason,
+        if (dto.rejectionNote !== undefined || isStatusChange) {
+          updateFields.rejectionNote = this.normalizeRejectionNote(
+            dto.rejectionNote,
           );
         }
       } else {
-        updateFields.rejectionReason = null;
+        updateFields.rejectionReasonId = null;
+        updateFields.rejectionNote = null;
       }
 
       const [updatedCandidateVacancy] = await tx
@@ -299,9 +337,15 @@ export class CandidateVacancyService {
       filters.push(ilike(candidateVacancies.notes, params.notes));
     }
 
-    if (params.rejectionReason) {
+    if (params.rejectionReasonId) {
       filters.push(
-        ilike(candidateVacancies.rejectionReason, params.rejectionReason),
+        eq(candidateVacancies.rejectionReasonId, params.rejectionReasonId),
+      );
+    }
+
+    if (params.rejectionNote) {
+      filters.push(
+        ilike(candidateVacancies.rejectionNote, params.rejectionNote),
       );
     }
 
@@ -318,8 +362,24 @@ export class CandidateVacancyService {
     };
   }
 
-  private normalizeRejectionReason(rejectionReason?: string | null) {
-    const normalized = rejectionReason?.trim();
+  private normalizeRejectionNote(rejectionNote?: string | null) {
+    const normalized = rejectionNote?.trim();
     return normalized ? normalized : null;
+  }
+
+  private async assertRejectionReasonInOrg(
+    tx: DrizzleDatabase,
+    rejectionReasonId: number,
+    organizationId: number,
+  ) {
+    const reason = await tx.query.rejectionReasons.findFirst({
+      where: and(
+        eq(rejectionReasons.id, rejectionReasonId),
+        eq(rejectionReasons.organizationId, organizationId),
+      ),
+    });
+    if (!reason) {
+      throw new BadRequestException('Motivo de rechazo inválido.');
+    }
   }
 }

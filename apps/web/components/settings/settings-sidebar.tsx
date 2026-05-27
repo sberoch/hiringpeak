@@ -9,6 +9,7 @@ import {
   Radio,
   ClipboardList,
   UserCheck,
+  XCircle,
 } from "lucide-react";
 
 const settingsNav = [
@@ -18,6 +19,7 @@ const settingsNav = [
   { href: "/settings/sources", label: "Fuentes", icon: Radio },
   { href: "/settings/vacancy-statuses", label: "Estados de vacante", icon: ClipboardList },
   { href: "/settings/candidate-statuses", label: "Estados de candidato", icon: UserCheck },
+  { href: "/settings/rejection-reasons", label: "Motivos de rechazo", icon: XCircle },
 ];
 
 export function SettingsSidebar() {

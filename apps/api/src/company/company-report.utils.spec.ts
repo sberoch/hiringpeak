@@ -275,6 +275,8 @@ function createVacancy(params: {
       organizationId: 1,
       candidateVacancyStatusId: index + 1,
       notes: null,
+      rejectionReasonId: null,
+      rejectionNote: null,
       rejectionReason: null,
       createdAt: params.createdAt,
       updatedAt: params.createdAt,

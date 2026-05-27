@@ -241,7 +241,8 @@ export const KanbanBoard = ({
         statusName: targetColumn.name,
         update: {
           ...update,
-          rejectionReason: candidate.rejectionReason ?? null,
+          rejectionReasonId: candidate.rejectionReasonId ?? null,
+          rejectionNote: candidate.rejectionNote ?? null,
         },
       });
       return;
@@ -251,7 +252,8 @@ export const KanbanBoard = ({
       previousColumns,
       update: {
         ...update,
-        rejectionReason: null,
+        rejectionReasonId: null,
+        rejectionNote: null,
       },
     });
   };
@@ -316,7 +318,8 @@ export const KanbanBoard = ({
       {pendingMove ? (
         <RejectionReasonDialog
           candidateName={pendingMove.candidateName}
-          initialValue={pendingMove.update.rejectionReason}
+          initialReasonId={pendingMove.update.rejectionReasonId}
+          initialNote={pendingMove.update.rejectionNote}
           isOpen={Boolean(pendingMove)}
           isPending={isPending}
           statusName={pendingMove.statusName}
@@ -324,12 +327,13 @@ export const KanbanBoard = ({
             setColumns(cloneColumns(pendingMove.previousColumns));
             setPendingMove(null);
           }}
-          onConfirm={(rejectionReason) => {
+          onConfirm={(rejectionReasonId, rejectionNote) => {
             updateCandidateVacancyStatus({
               previousColumns: pendingMove.previousColumns,
               update: {
                 ...pendingMove.update,
-                rejectionReason: normalizeRejectionReason(rejectionReason),
+                rejectionReasonId,
+                rejectionNote,
               },
             });
           }}
@@ -362,7 +366,8 @@ function buildCandidateVacancyUpdatePayload(
     candidateId: candidate.candidate.id,
     candidateVacancyStatusId,
     notes: candidate.notes ?? "",
-    rejectionReason: candidate.rejectionReason ?? null,
+    rejectionReasonId: candidate.rejectionReasonId ?? null,
+    rejectionNote: candidate.rejectionNote ?? null,
     vacancyId:
       "vacancyId" in candidate ? candidate.vacancyId : candidate.vacancy.id,
   };
@@ -373,9 +378,4 @@ function cloneColumns(columns: Column[]): Column[] {
     ...column,
     candidates: [...column.candidates],
   }));
-}
-
-function normalizeRejectionReason(rejectionReason: string) {
-  const normalized = rejectionReason.trim();
-  return normalized ? normalized : null;
 }

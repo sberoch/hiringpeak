@@ -94,6 +94,8 @@ CREATE TABLE "candidate_vacancies" (
 	"candidate_vacancy_status_id" integer NOT NULL,
 	"organization_id" integer NOT NULL,
 	"notes" text,
+	"rejection_reason_id" integer,
+	"rejection_note" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -103,6 +105,7 @@ CREATE TABLE "candidate_vacancy_statuses" (
 	"name" text NOT NULL,
 	"sort" integer NOT NULL,
 	"is_initial" boolean NOT NULL,
+	"is_rejection" boolean DEFAULT false NOT NULL,
 	"organization_id" integer NOT NULL
 );
 --> statement-breakpoint
@@ -133,6 +136,16 @@ CREATE TABLE "industries" (
 	"organization_id" integer NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "notifications" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"recipient_user_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"kind" text NOT NULL,
+	"task_id" integer NOT NULL,
+	"read_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "organizations" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -148,6 +161,13 @@ CREATE TABLE "permissions" (
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now(),
 	CONSTRAINT "permissions_code_unique" UNIQUE("code")
+);
+--> statement-breakpoint
+CREATE TABLE "rejection_reasons" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"sort" integer NOT NULL,
+	"organization_id" integer NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "role_permissions" (
@@ -169,6 +189,23 @@ CREATE TABLE "seniorities" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"organization_id" integer NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "tasks" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"title" text NOT NULL,
+	"due_date" date,
+	"completed" boolean DEFAULT false NOT NULL,
+	"completed_at" timestamp,
+	"completed_by" integer,
+	"created_by" integer NOT NULL,
+	"assigned_to" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"candidate_id" integer,
+	"vacancy_id" integer,
+	"company_id" integer,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -196,6 +233,8 @@ CREATE TABLE "vacancies" (
 	"created_by" integer NOT NULL,
 	"assigned_to" integer NOT NULL,
 	"organization_id" integer NOT NULL,
+	"salary" text,
+	"closed_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -233,6 +272,7 @@ CREATE TABLE "vacancy_filters_seniorities" (
 CREATE TABLE "vacancy_statuses" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
+	"is_final" boolean DEFAULT false NOT NULL,
 	"organization_id" integer NOT NULL
 );
 --> statement-breakpoint
@@ -258,16 +298,28 @@ ALTER TABLE "candidate_vacancies" ADD CONSTRAINT "candidate_vacancies_candidate_
 ALTER TABLE "candidate_vacancies" ADD CONSTRAINT "candidate_vacancies_vacancy_id_vacancies_id_fk" FOREIGN KEY ("vacancy_id") REFERENCES "public"."vacancies"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "candidate_vacancies" ADD CONSTRAINT "candidate_vacancies_candidate_vacancy_status_id_candidate_vacancy_statuses_id_fk" FOREIGN KEY ("candidate_vacancy_status_id") REFERENCES "public"."candidate_vacancy_statuses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "candidate_vacancies" ADD CONSTRAINT "candidate_vacancies_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "candidate_vacancies" ADD CONSTRAINT "candidate_vacancies_rejection_reason_id_rejection_reasons_id_fk" FOREIGN KEY ("rejection_reason_id") REFERENCES "public"."rejection_reasons"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "candidate_vacancy_statuses" ADD CONSTRAINT "candidate_vacancy_statuses_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comments" ADD CONSTRAINT "comments_candidate_id_candidates_id_fk" FOREIGN KEY ("candidate_id") REFERENCES "public"."candidates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comments" ADD CONSTRAINT "comments_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comments" ADD CONSTRAINT "comments_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "companies" ADD CONSTRAINT "companies_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "industries" ADD CONSTRAINT "industries_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_recipient_user_id_users_id_fk" FOREIGN KEY ("recipient_user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_task_id_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "public"."tasks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "rejection_reasons" ADD CONSTRAINT "rejection_reasons_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_permission_id_permissions_id_fk" FOREIGN KEY ("permission_id") REFERENCES "public"."permissions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "roles" ADD CONSTRAINT "roles_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "seniorities" ADD CONSTRAINT "seniorities_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_completed_by_users_id_fk" FOREIGN KEY ("completed_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_assigned_to_users_id_fk" FOREIGN KEY ("assigned_to") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_candidate_id_candidates_id_fk" FOREIGN KEY ("candidate_id") REFERENCES "public"."candidates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_vacancy_id_vacancies_id_fk" FOREIGN KEY ("vacancy_id") REFERENCES "public"."vacancies"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_status_id_vacancy_statuses_id_fk" FOREIGN KEY ("status_id") REFERENCES "public"."vacancy_statuses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

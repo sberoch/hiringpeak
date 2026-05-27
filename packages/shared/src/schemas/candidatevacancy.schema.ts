@@ -3,6 +3,7 @@ import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { candidates } from "./candidate.schema";
 import { vacancies } from "./vacancy.schema";
 import { candidateVacancyStatuses } from "./candidatevacancystatus.schema";
+import { rejectionReasons } from "./rejectionreason.schema";
 import { organizations } from "./organization.schema";
 
 export const candidateVacancies = pgTable("candidate_vacancies", {
@@ -22,7 +23,11 @@ export const candidateVacancies = pgTable("candidate_vacancies", {
       onDelete: "cascade",
     }),
   notes: text("notes"),
-  rejectionReason: text("rejection_reason"),
+  rejectionReasonId: integer("rejection_reason_id").references(
+    () => rejectionReasons.id,
+    { onDelete: "restrict" }
+  ),
+  rejectionNote: text("rejection_note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -41,6 +46,10 @@ export const candidateVacanciesRelations = relations(
     candidateVacancyStatus: one(candidateVacancyStatuses, {
       fields: [candidateVacancies.candidateVacancyStatusId],
       references: [candidateVacancyStatuses.id],
+    }),
+    rejectionReason: one(rejectionReasons, {
+      fields: [candidateVacancies.rejectionReasonId],
+      references: [rejectionReasons.id],
     }),
     organization: one(organizations, {
       fields: [candidateVacancies.organizationId],

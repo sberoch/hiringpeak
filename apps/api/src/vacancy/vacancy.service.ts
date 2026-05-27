@@ -24,6 +24,7 @@ import {
   CandidateSource,
   CandidateVacancy as CandidateVacancySchema,
   CandidateVacancyStatus,
+  RejectionReason,
   Company,
   User,
   vacancies,
@@ -67,6 +68,7 @@ type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
         source: CandidateSource | null;
       };
       candidateVacancyStatus: CandidateVacancyStatus;
+      rejectionReason: RejectionReason | null;
     }
   >;
   createdBy: User;
@@ -89,6 +91,7 @@ export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
         source: CandidateSource | null;
       };
       status: CandidateVacancyStatus;
+      rejectionReason: RejectionReason | null;
     }
   >;
   createdBy: Omit<User, 'password'>;
@@ -141,6 +144,7 @@ export class VacancyService {
               },
             },
             candidateVacancyStatus: true,
+            rejectionReason: true,
           },
         },
         createdBy: true,
@@ -201,6 +205,7 @@ export class VacancyService {
               },
             },
             candidateVacancyStatus: true,
+            rejectionReason: true,
           },
         },
         createdBy: true,
@@ -251,6 +256,7 @@ export class VacancyService {
               },
             },
             candidateVacancyStatus: true,
+            rejectionReason: true,
           },
         },
         createdBy: true,

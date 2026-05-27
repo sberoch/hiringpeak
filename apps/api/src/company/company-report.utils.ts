@@ -8,6 +8,7 @@ import {
 import type {
   CompanyReportDocumentData,
   CompanyReportHire,
+  CompanyReportRejectionCount,
   CompanyReportSummary,
   CompanyReportVacancyRow,
 } from './company-report.types';
@@ -52,6 +53,7 @@ export function buildCompanyReportData(params: {
   );
   const summary = buildCompanyReportSummary(vacancyRows);
   const hires = extractHires(params.vacancies);
+  const rejectionBreakdown = buildRejectionBreakdown(params.vacancies);
 
   return {
     organizationName: params.organizationName,
@@ -65,6 +67,7 @@ export function buildCompanyReportData(params: {
     generatedAt: params.generatedAt,
     summary,
     hires,
+    rejectionBreakdown,
     vacancies: vacancyRows,
   };
 }
@@ -84,6 +87,9 @@ export function buildCompanyReportVacancyRow(
   const hiredCandidates = vacancy.candidates.filter(
     (cv) => cv.status?.name === COMPANY_REPORT_HIRED_STATUS_NAME,
   ).length;
+  const rejectedCandidates = vacancy.candidates.filter(
+    (cv) => cv.status?.isRejection,
+  ).length;
 
   return {
     id: vacancy.id,
@@ -95,6 +101,7 @@ export function buildCompanyReportVacancyRow(
     closedAt,
     totalCandidates,
     hiredCandidates,
+    rejectedCandidates,
     salary: vacancy.salary?.trim() || undefined,
   };
 }
@@ -146,6 +153,32 @@ export function extractHires(
   return hires.sort((a, b) =>
     a.candidateName.localeCompare(b.candidateName, COMPANY_REPORT_LOCALE),
   );
+}
+
+export function buildRejectionBreakdown(
+  vacancies: VacancyApiResponse[],
+): CompanyReportRejectionCount[] {
+  const map = new Map<string, CompanyReportRejectionCount>();
+  for (const vacancy of vacancies) {
+    for (const cv of vacancy.candidates) {
+      if (!cv.status?.isRejection) {
+        continue;
+      }
+      const name = cv.rejectionReason?.name ?? 'Sin motivo';
+      const existing = map.get(name);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        map.set(name, { name, count: 1 });
+      }
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.count !== b.count) {
+      return b.count - a.count;
+    }
+    return a.name.localeCompare(b.name, COMPANY_REPORT_LOCALE);
+  });
 }
 
 export function sortVacancyRows(
