@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   Download,
   Edit,
+  FileSpreadsheet,
   MoreHorizontal,
   Plus,
   Trash,
@@ -32,7 +33,10 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { WorkflowInfoDialog } from "@workspace/ui/components/workflow-info-dialog";
-import { downloadVacancyReportPdf } from "@/lib/api/vacancy";
+import {
+  downloadVacancyReportPdf,
+  downloadVacancyReportXlsx,
+} from "@/lib/api/vacancy";
 import { PermissionGuard } from "../../auth/permission-guard";
 import { DeleteVacancyDialog } from "../delete-vacancy-dialog";
 import { AddCandidatesDialog } from "./add-candidates-dialog";
@@ -61,6 +65,15 @@ export const VacancyDetailHeader = ({
     },
     onError: () => {
       toast.error("No se pudo descargar el reporte PDF.");
+    },
+  });
+  const downloadReportXlsxMutation = useMutation({
+    mutationFn: () => downloadVacancyReportXlsx(vacancy.id.toString()),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte Excel.");
     },
   });
 
@@ -187,7 +200,17 @@ export const VacancyDetailHeader = ({
                 <Download className="h-4 w-4" />
                 {downloadReportMutation.isPending
                   ? "Generando PDF..."
-                  : "Descargar reporte"}
+                  : "Descargar PDF"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-ink"
+                disabled={downloadReportXlsxMutation.isPending}
+                onClick={() => downloadReportXlsxMutation.mutate()}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                {downloadReportXlsxMutation.isPending
+                  ? "Generando Excel..."
+                  : "Descargar Excel"}
               </DropdownMenuItem>
               <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
                 <DropdownMenuSeparator />

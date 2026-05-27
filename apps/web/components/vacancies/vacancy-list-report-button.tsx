@@ -1,16 +1,25 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Download, Loader2 } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@workspace/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
 import type {
   VacancyFiltersType,
   VacancyParams,
 } from "@workspace/shared/types/vacancy";
 
-import { downloadVacancyListReportPdf } from "@/lib/api/vacancy";
+import {
+  downloadVacancyListReportPdf,
+  downloadVacancyListReportXlsx,
+} from "@/lib/api/vacancy";
 import { getAllUsers, USERS_API_KEY } from "@/lib/api/user";
 import { downloadFile } from "@/lib/download";
 import { buildActiveVacancyFilterChips } from "./vacancy-filter-panel";
@@ -34,33 +43,72 @@ export function VacancyListReportButton({
     enabled: !!(filters.createdBy || filters.assignedTo),
   });
 
-  const downloadMutation = useMutation({
-    mutationFn: () => {
-      const appliedFilters = buildActiveVacancyFilterChips(
-        filters,
-        users?.items
-      ).map((chip) => chip.label);
-      return downloadVacancyListReportPdf(params, appliedFilters);
-    },
+  const buildAppliedFilters = () =>
+    buildActiveVacancyFilterChips(filters, users?.items).map(
+      (chip) => chip.label
+    );
+
+  const downloadPdfMutation = useMutation({
+    mutationFn: () =>
+      downloadVacancyListReportPdf(params, buildAppliedFilters()),
     onSuccess: (file) => downloadFile(file),
     onError: () => {
       toast.error("No se pudo descargar el listado de vacantes.");
     },
   });
 
+  const downloadXlsxMutation = useMutation({
+    mutationFn: () =>
+      downloadVacancyListReportXlsx(params, buildAppliedFilters()),
+    onSuccess: (file) => downloadFile(file),
+    onError: () => {
+      toast.error("No se pudo descargar el listado de vacantes.");
+    },
+  });
+
+  const isDownloading =
+    downloadPdfMutation.isPending || downloadXlsxMutation.isPending;
+
   return (
-    <Button
-      variant="outline"
-      onClick={() => downloadMutation.mutate()}
-      disabled={downloadMutation.isPending}
-      className="rounded-md border-brand-border px-5 py-2 font-semibold text-ink shadow-none hover:border-electric hover:bg-electric/5 transition-all cursor-pointer"
-    >
-      {downloadMutation.isPending ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Download className="h-4 w-4" />
-      )}
-      Descargar listado PDF
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          disabled={isDownloading}
+          className="rounded-md border-brand-border px-5 py-2 font-semibold text-ink shadow-none hover:border-electric hover:bg-electric/5 transition-all cursor-pointer"
+        >
+          {isDownloading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          Descargar listado
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          className="cursor-pointer"
+          disabled={downloadPdfMutation.isPending}
+          onSelect={(e) => {
+            e.preventDefault();
+            downloadPdfMutation.mutate();
+          }}
+        >
+          <Download className="h-4 w-4" />
+          Descargar PDF
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          disabled={downloadXlsxMutation.isPending}
+          onSelect={(e) => {
+            e.preventDefault();
+            downloadXlsxMutation.mutate();
+          }}
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Descargar Excel
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

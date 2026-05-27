@@ -42,6 +42,21 @@ export async function downloadVacancyReportPdf(
   };
 }
 
+export async function downloadVacancyReportXlsx(
+  id: string
+): Promise<VacancyReportDownload> {
+  const response = await api.get<Blob>(`/vacancy/${id}/report/xlsx`, {
+    responseType: "blob",
+  });
+
+  return {
+    blob: response.data,
+    fileName:
+      getFileNameFromContentDisposition(response.headers["content-disposition"]) ||
+      `reporte-vacante-${id}.xlsx`,
+  };
+}
+
 /**
  * Downloads the internal Vacancy List Report PDF for the active filters.
  * `params` carries the same filter IDs as the list query (pagination is ignored
@@ -61,6 +76,24 @@ export async function downloadVacancyListReportPdf(
     fileName:
       getFileNameFromContentDisposition(response.headers["content-disposition"]) ||
       "listado-vacantes.pdf",
+  };
+}
+
+/** Excel variant of the Vacancy List Report — same filters/echo as the PDF. */
+export async function downloadVacancyListReportXlsx(
+  params: VacancyParams,
+  appliedFilters: string[]
+): Promise<VacancyReportDownload> {
+  const searchParams = filtersToSearchParams({ ...params, appliedFilters });
+  const response = await api.get<Blob>(`/vacancy/report/xlsx${searchParams}`, {
+    responseType: "blob",
+  });
+
+  return {
+    blob: response.data,
+    fileName:
+      getFileNameFromContentDisposition(response.headers["content-disposition"]) ||
+      "listado-vacantes.xlsx",
   };
 }
 

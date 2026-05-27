@@ -29,10 +29,11 @@ export function formatReportDate(date?: Date | null): string {
 export function buildCompanyReportFileName(
   companyName: string,
   generatedAt: Date,
+  extension: 'pdf' | 'xlsx' = 'pdf',
 ): string {
   const safeCompanyName = slugifyFileNameSegment(companyName || 'empresa');
   const fileDate = formatFileDate(generatedAt);
-  return `reporte-empresa-${safeCompanyName}-${fileDate}.pdf`;
+  return `reporte-empresa-${safeCompanyName}-${fileDate}.${extension}`;
 }
 
 export function daysBetween(from: Date, to: Date): number {

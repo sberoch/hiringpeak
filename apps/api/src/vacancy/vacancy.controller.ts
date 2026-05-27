@@ -33,6 +33,7 @@ import { PermissionCode } from '@workspace/shared/enums';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { VacancyReportService } from './vacancy-report.service';
+import { EXCEL_CONTENT_TYPE } from '../common/excel/excel.utils';
 
 @ApiBearerAuth()
 @UseGuards(OrganizationGuard, PermissionsGuard)
@@ -74,6 +75,27 @@ export class VacancyController {
   }
 
   @ApiOkResponse()
+  @Get('report/xlsx')
+  @Permissions(PermissionCode.VACANCY_READ)
+  @ApiProduces(EXCEL_CONTENT_TYPE)
+  async downloadListReportXlsx(
+    @Query() query: VacancyListReportQueryParams,
+    @OrganizationId() organizationId: number,
+  ): Promise<StreamableFile> {
+    const report =
+      await this.vacancyReportService.generateVacancyListReportXlsx({
+        ...query,
+        organizationId,
+      });
+
+    return new StreamableFile(report.buffer, {
+      type: report.contentType,
+      disposition: `attachment; filename="${report.fileName}"`,
+      length: report.buffer.length,
+    });
+  }
+
+  @ApiOkResponse()
   @Get(':id')
   @Permissions(PermissionCode.VACANCY_READ)
   async findOne(
@@ -92,6 +114,26 @@ export class VacancyController {
     @OrganizationId() organizationId: number,
   ): Promise<StreamableFile> {
     const report = await this.vacancyReportService.generateVacancyReportPdf(
+      +id,
+      organizationId,
+    );
+
+    return new StreamableFile(report.buffer, {
+      type: report.contentType,
+      disposition: `attachment; filename="${report.fileName}"`,
+      length: report.buffer.length,
+    });
+  }
+
+  @ApiOkResponse()
+  @Get(':id/report/xlsx')
+  @Permissions(PermissionCode.VACANCY_READ)
+  @ApiProduces(EXCEL_CONTENT_TYPE)
+  async downloadReportXlsx(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ): Promise<StreamableFile> {
+    const report = await this.vacancyReportService.generateVacancyReportXlsx(
       +id,
       organizationId,
     );

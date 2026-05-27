@@ -20,12 +20,14 @@ import {
   Area,
   Industry,
   Seniority,
+  Blacklist,
   Candidate,
   candidates,
   CandidateSource,
   CandidateVacancy as CandidateVacancySchema,
   candidateVacancies,
   CandidateVacancyStatus,
+  Comment,
   RejectionReason,
   Company,
   User,
@@ -80,6 +82,33 @@ type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   assignedTo: User;
 };
 
+/** Drizzle shape returned by the report finders (full candidate graph). */
+type ReportQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
+  status: VacancyStatus;
+  filters: VacancyFilters & {
+    areaIds: Array<VacancyFiltersArea & { area: Area }>;
+    industryIds: Array<VacancyFiltersIndustry & { industry: Industry }>;
+    seniorityIds: Array<VacancyFiltersSeniority & { seniority: Seniority }>;
+  };
+  company: Company;
+  candidateVacancies: Array<
+    CandidateVacancySchema & {
+      candidate: Candidate & {
+        source: CandidateSource | null;
+        candidateAreas: Array<{ area: Area }>;
+        candidateIndustries: Array<{ industry: Industry }>;
+        candidateSeniorities: Array<{ seniority: Seniority }>;
+        blacklist: Blacklist | null;
+        comments: Array<Comment & { user: User | null }>;
+      };
+      candidateVacancyStatus: CandidateVacancyStatus;
+      rejectionReason: RejectionReason | null;
+    }
+  >;
+  createdBy: User;
+  assignedTo: User;
+};
+
 export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
   filters:
@@ -101,6 +130,34 @@ export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   >;
   createdBy: Omit<User, 'password'>;
   assignedTo: Omit<User, 'password'>;
+};
+
+/**
+ * Per-candidacy row for the Excel **Report Format** — the full dump. Unlike the
+ * client-facing PDF (which omits internal-only fields), this carries everything:
+ * the candidate's taxonomy, plus the internal-only **Blacklist** and **Comments**
+ * the PDF never surfaces. Backed by `findOneForReport` /
+ * `findAllByCompanyIdForReport`, NOT the lean `findOne` used by the detail page.
+ */
+export type ReportCandidacyRow = Omit<
+  VacancyApiResponse['candidates'][number],
+  'candidate'
+> & {
+  candidate: Candidate & {
+    source: CandidateSource | null;
+    areas: Area[];
+    industries: Industry[];
+    seniorities: Seniority[];
+    blacklist: Blacklist | null;
+    comments: Array<Comment & { user: Pick<User, 'name'> | null }>;
+  };
+};
+
+export type VacancyReportFullResponse = Omit<
+  VacancyApiResponse,
+  'candidates'
+> & {
+  candidates: ReportCandidacyRow[];
 };
 
 @Injectable()
@@ -362,6 +419,158 @@ export class VacancyService {
     });
 
     return vacancyItems.map((vacancy) => this.transformQueryResult(vacancy));
+  }
+
+  /**
+   * Full per-Vacancy graph backing the Excel Vacancy Report: everything
+   * `findOne` loads PLUS the internal-only Blacklist + Comments the Excel
+   * rendering dumps (the PDF omits them). Kept separate so the detail-page
+   * `findOne` query stays lean.
+   */
+  async findOneForReport(
+    id: number,
+    organizationId: number,
+  ): Promise<VacancyReportFullResponse> {
+    const vacancy = await this.db.query.vacancies.findFirst({
+      where: and(
+        eq(vacancies.id, id),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      with: {
+        status: true,
+        filters: {
+          with: {
+            areaIds: { with: { area: true } },
+            industryIds: { with: { industry: true } },
+            seniorityIds: { with: { seniority: true } },
+          },
+        },
+        company: true,
+        candidateVacancies: {
+          with: {
+            candidate: {
+              with: {
+                source: true,
+                candidateAreas: { with: { area: true } },
+                candidateIndustries: { with: { industry: true } },
+                candidateSeniorities: { with: { seniority: true } },
+                blacklist: true,
+                comments: { with: { user: true } },
+              },
+            },
+            candidateVacancyStatus: true,
+            rejectionReason: true,
+          },
+        },
+        createdBy: true,
+        assignedTo: true,
+      },
+    });
+    if (!vacancy) throw new NotFoundException('Vacancy not found');
+    return this.transformReportResult(vacancy as unknown as ReportQueryResult);
+  }
+
+  /** Full graph for every Vacancy of a Company, backing the Excel Company Report. */
+  async findAllByCompanyIdForReport(
+    companyId: number,
+    organizationId: number,
+  ): Promise<VacancyReportFullResponse[]> {
+    const vacancyItems = await this.db.query.vacancies.findMany({
+      where: and(
+        eq(vacancies.companyId, companyId),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      orderBy: [desc(vacancies.id)],
+      with: {
+        status: true,
+        filters: {
+          with: {
+            areaIds: { with: { area: true } },
+            industryIds: { with: { industry: true } },
+            seniorityIds: { with: { seniority: true } },
+          },
+        },
+        company: true,
+        candidateVacancies: {
+          with: {
+            candidate: {
+              with: {
+                source: true,
+                candidateAreas: { with: { area: true } },
+                candidateIndustries: { with: { industry: true } },
+                candidateSeniorities: { with: { seniority: true } },
+                blacklist: true,
+                comments: { with: { user: true } },
+              },
+            },
+            candidateVacancyStatus: true,
+            rejectionReason: true,
+          },
+        },
+        createdBy: true,
+        assignedTo: true,
+      },
+    });
+
+    return vacancyItems.map((vacancy) =>
+      this.transformReportResult(vacancy as unknown as ReportQueryResult),
+    );
+  }
+
+  private transformReportResult(
+    result: ReportQueryResult,
+  ): VacancyReportFullResponse {
+    const { status, filters, company, candidateVacancies, ...rest } = result;
+    const { password: _createdByPassword, ...createdBy } = result.createdBy;
+    const { password: _assignedToPassword, ...assignedTo } = result.assignedTo;
+
+    return {
+      ...rest,
+      status,
+      filters: filters
+        ? {
+            ...filters,
+            areas: filters.areaIds?.map((a) => a.area) ?? [],
+            industries: filters.industryIds?.map((i) => i.industry) ?? [],
+            seniorities: filters.seniorityIds?.map((s) => s.seniority) ?? [],
+          }
+        : null,
+      company,
+      candidates: candidateVacancies
+        .map((cv) => {
+          const { candidateVacancyStatus, candidate, ...cvRest } = cv;
+          const {
+            candidateAreas,
+            candidateIndustries,
+            candidateSeniorities,
+            comments,
+            ...candidateRest
+          } = candidate;
+          return {
+            ...cvRest,
+            candidate: {
+              ...candidateRest,
+              areas: candidateAreas?.map((ca) => ca.area) ?? [],
+              industries: candidateIndustries?.map((ci) => ci.industry) ?? [],
+              seniorities:
+                candidateSeniorities?.map((cs) => cs.seniority) ?? [],
+              // Strip the author down to a name — the Excel dumps internal
+              // Comments, but never the User's password/credentials.
+              comments: (comments ?? []).map((comment) => {
+                const { user, ...commentRest } = comment;
+                return {
+                  ...commentRest,
+                  user: user ? { name: user.name } : null,
+                };
+              }),
+            },
+            status: candidateVacancyStatus,
+          };
+        })
+        .filter((c) => c.candidate.deleted === false),
+      createdBy,
+      assignedTo,
+    };
   }
 
   async create(dto: CreateVacancyServiceDto) {

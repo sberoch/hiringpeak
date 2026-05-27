@@ -43,9 +43,12 @@ export function buildStatusTally(
   return order.map((name) => ({ name, count: counts.get(name)! }));
 }
 
-export function buildVacancyListReportFileName(generatedAt: Date): string {
+export function buildVacancyListReportFileName(
+  generatedAt: Date,
+  extension: 'pdf' | 'xlsx' = 'pdf',
+): string {
   const year = generatedAt.getFullYear();
   const month = `${generatedAt.getMonth() + 1}`.padStart(2, '0');
   const day = `${generatedAt.getDate()}`.padStart(2, '0');
-  return `listado-vacantes-${year}-${month}-${day}.pdf`;
+  return `listado-vacantes-${year}-${month}-${day}.${extension}`;
 }

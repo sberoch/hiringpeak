@@ -23,7 +23,10 @@ import {
 } from "@workspace/shared/types/company";
 import { cn } from "@/lib/utils";
 import { downloadFile } from "@/lib/download";
-import { downloadCompanyReportPdf } from "@/lib/api/company";
+import {
+  downloadCompanyReportPdf,
+  downloadCompanyReportXlsx,
+} from "@/lib/api/company";
 import { DeleteCompanyDialog } from "@/components/companies/delete-company-dialog";
 import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
 import { PermissionGuard } from "@/components/auth/permission-guard";
@@ -44,6 +47,15 @@ const CellActions = ({ company }: CellActionsProps) => {
     },
     onError: () => {
       toast.error("No se pudo descargar el reporte PDF.");
+    },
+  });
+  const downloadReportXlsxMutation = useMutation({
+    mutationFn: () => downloadCompanyReportXlsx(String(company.id)),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte Excel.");
     },
   });
 
@@ -74,7 +86,19 @@ const CellActions = ({ company }: CellActionsProps) => {
           >
             {downloadReportMutation.isPending
               ? "Generando PDF..."
-              : "Descargar reporte"}
+              : "Descargar PDF"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer"
+            disabled={downloadReportXlsxMutation.isPending}
+            onSelect={(e) => {
+              e.preventDefault();
+              downloadReportXlsxMutation.mutate();
+            }}
+          >
+            {downloadReportXlsxMutation.isPending
+              ? "Generando Excel..."
+              : "Descargar Excel"}
           </DropdownMenuItem>
           <PermissionGuard permissions={[PermissionCode.COMPANY_MANAGE]}>
             <DropdownMenuItem

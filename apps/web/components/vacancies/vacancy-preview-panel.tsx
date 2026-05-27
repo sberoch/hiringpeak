@@ -13,6 +13,7 @@ import {
   DollarSign,
   Download,
   Edit,
+  FileSpreadsheet,
   FileText,
   Filter,
   Trash,
@@ -24,10 +25,19 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { downloadFile } from "@/lib/download";
-import { downloadVacancyReportPdf } from "@/lib/api/vacancy";
+import {
+  downloadVacancyReportPdf,
+  downloadVacancyReportXlsx,
+} from "@/lib/api/vacancy";
 
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
 import {
   Avatar,
   AvatarFallback,
@@ -63,6 +73,18 @@ export function VacancyPreviewPanel({
       toast.error("No se pudo descargar el reporte PDF.");
     },
   });
+  const downloadReportXlsxMutation = useMutation({
+    mutationFn: () =>
+      downloadVacancyReportXlsx((vacancy?.id ?? "").toString()),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte Excel.");
+    },
+  });
+  const isDownloadingReport =
+    downloadReportMutation.isPending || downloadReportXlsxMutation.isPending;
 
   if (isLoading) {
     return (
@@ -89,7 +111,11 @@ export function VacancyPreviewPanel({
   }
 
   const statusColor = stringToColor(vacancy.status.name);
-  const daysDiff = dayjs().diff(dayjs(vacancy.createdAt), "day");
+  // Closed vacancies freeze the count at their close date, matching the
+  // PDF reports' daysBetween logic (clamped at 0 since closedAt can be
+  // recruiter-backdated to before createdAt).
+  const daysOpenEnd = vacancy.closedAt ? dayjs(vacancy.closedAt) : dayjs();
+  const daysDiff = Math.max(0, daysOpenEnd.diff(dayjs(vacancy.createdAt), "day"));
   const candidateCount = vacancy.candidates.length;
 
   // Group candidates by status
@@ -165,17 +191,42 @@ export function VacancyPreviewPanel({
                 Duplicar
               </Button>
             </PermissionGuard>
-            <Button
-              size="sm"
-              variant="brand-ghost"
-              onClick={() => downloadReportMutation.mutate()}
-              disabled={downloadReportMutation.isPending}
-            >
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              {downloadReportMutation.isPending
-                ? "Generando PDF..."
-                : "Descargar reporte"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="brand-ghost"
+                  disabled={isDownloadingReport}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  {isDownloadingReport ? "Generando..." : "Descargar"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  disabled={downloadReportMutation.isPending}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    downloadReportMutation.mutate();
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Descargar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  disabled={downloadReportXlsxMutation.isPending}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    downloadReportXlsxMutation.mutate();
+                  }}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Descargar Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
               <Button
                 size="sm"

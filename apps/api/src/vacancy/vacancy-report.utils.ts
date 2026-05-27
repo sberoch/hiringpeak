@@ -21,10 +21,11 @@ const dateFormatter = new Intl.DateTimeFormat(VACANCY_REPORT_LOCALE, {
 export function buildVacancyReportFileName(
   vacancyTitle: string,
   generatedAt: Date,
+  extension: 'pdf' | 'xlsx' = 'pdf',
 ): string {
   const safeVacancyTitle = slugifyFileNameSegment(vacancyTitle || 'vacante');
   const fileDate = formatFileDate(generatedAt);
-  return `reporte-vacante-${safeVacancyTitle}-${fileDate}.pdf`;
+  return `reporte-vacante-${safeVacancyTitle}-${fileDate}.${extension}`;
 }
 
 export function buildVacancyReportData(params: {

@@ -16,6 +16,12 @@ import {
 } from './vacancy-list-report.utils';
 import { VacancyService } from './vacancy.service';
 import type { VacancyListReportServiceParams } from './vacancy.dto';
+import { buildVacancyReportWorkbook } from './vacancy-excel.utils';
+import { buildVacancyListReportWorkbook } from './vacancy-list-excel.utils';
+import {
+  EXCEL_CONTENT_TYPE,
+  workbookToBuffer,
+} from '../common/excel/excel.utils';
 
 @Injectable()
 export class VacancyReportService {
@@ -86,6 +92,62 @@ export class VacancyReportService {
       buffer,
       contentType: VACANCY_REPORT_CONTENT_TYPE,
       fileName: buildVacancyListReportFileName(generatedAt),
+    };
+  }
+
+  /**
+   * Excel rendering of the Vacancy Report — the dense, internal "workable"
+   * dump (full candidate roster incl. internal-only fields). Same data source
+   * as the PDF but via `findOneForReport` (loads Blacklist + Comments).
+   */
+  async generateVacancyReportXlsx(
+    vacancyId: number,
+    organizationId: number,
+  ): Promise<VacancyReportFile> {
+    const generatedAt = new Date();
+
+    const [organization, vacancy] = await Promise.all([
+      this.organizationService.findOne(organizationId),
+      this.vacancyService.findOneForReport(vacancyId, organizationId),
+    ]);
+
+    const workbook = buildVacancyReportWorkbook({
+      generatedAt,
+      organizationName: organization.name,
+      vacancy,
+    });
+
+    return {
+      buffer: await workbookToBuffer(workbook),
+      contentType: EXCEL_CONTENT_TYPE,
+      fileName: buildVacancyReportFileName(vacancy.title, generatedAt, 'xlsx'),
+    };
+  }
+
+  /** Excel rendering of the internal Vacancy List Report (filtered, unpaginated). */
+  async generateVacancyListReportXlsx(
+    params: VacancyListReportServiceParams,
+  ): Promise<VacancyReportFile> {
+    const generatedAt = new Date();
+
+    const [organization, rows] = await Promise.all([
+      this.organizationService.findOne(params.organizationId),
+      this.vacancyService.findAllForListReport(params),
+    ]);
+
+    const report = buildVacancyListReportData({
+      generatedAt,
+      organizationName: organization.name,
+      appliedFilters: params.appliedFilters ?? [],
+      rows,
+    });
+
+    const workbook = buildVacancyListReportWorkbook(report);
+
+    return {
+      buffer: await workbookToBuffer(workbook),
+      contentType: EXCEL_CONTENT_TYPE,
+      fileName: buildVacancyListReportFileName(generatedAt, 'xlsx'),
     };
   }
 }
