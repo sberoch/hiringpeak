@@ -25,6 +25,7 @@ const ROLE_BAND_RULES: Array<{ band: SeniorityBand; patterns: RegExp[] }> = [
       /\b(ceo|cfo|cto|cmo|coo|cpo|chro|cso|chief\s+\w+\s+officer)\b/i,
       /\b(presidente|vicepresidente|vp\s+|managing\s+director|socio\s+director)\b/i,
       /\b(fundador|co-?founder|owner\s+operator)\b/i,
+      /\b(directorio|board|comite\s+ejecutivo|comite\s+de\s+direccion)\b/i,
     ],
   },
   {
@@ -32,6 +33,8 @@ const ROLE_BAND_RULES: Array<{ band: SeniorityBand; patterns: RegExp[] }> = [
     patterns: [
       /\b(director[a]?\s+(general|comercial|de\s+\w+|regional)?|head\s+of)\b/i,
       /\b(director[a]?)\b/i,
+      /\b(reporta(?:ra|rá|r[áa])?\s+(?:al|a la)\s+(?:ceo|presidencia|directorio))\b/i,
+      /\b(estrategia\s+(?:regional|corporativa|de\s+negocio))\b/i,
     ],
   },
   {
@@ -40,6 +43,8 @@ const ROLE_BAND_RULES: Array<{ band: SeniorityBand; patterns: RegExp[] }> = [
       /\b(gerente|general\s+manager|country\s+manager|business\s+manager)\b/i,
       /\b(manager|jefe[a]?\s+(de\s+)?(area|equipo|zona|regional)?)\b/i,
       /\b(supervisor[a]?|encargad[oa])\b/i,
+      /\b(liderar\s+equipos?|manejo\s+de\s+equipo|personas\s+a\s+cargo)\b/i,
+      /\b(responsable\s+(?:de|por)\s+(?:la\s+)?(?:operacion|operaci[oó]n|area|unidad|negocio))\b/i,
     ],
   },
   {
@@ -47,7 +52,7 @@ const ROLE_BAND_RULES: Array<{ band: SeniorityBand; patterns: RegExp[] }> = [
     patterns: [
       /\b(team\s*lead|tech\s*lead|l[ií]der\s+(de\s+)?(equipo|proyecto|tecnico))\b/i,
       /\b(coordinador[a]?(\s+senior)?|coordinator)\b/i,
-      /\b(ssr|semi\s*senior)\b/i,
+      /\b(referente|owner\s+de\s+\w+)\b/i,
     ],
   },
   {
@@ -56,6 +61,7 @@ const ROLE_BAND_RULES: Array<{ band: SeniorityBand; patterns: RegExp[] }> = [
       /\b(analista(\s+senior)?|especialista|consultor[a]?|profesional\s+de)\b/i,
       /\b(asistente\s+ejecutiv[oa]|executive\s+assistant)\b/i,
       /\b(\d+\+?\s*a[nñ]os\s+de\s+experiencia)\b/i,
+      /\b(ssr|semi\s*senior|semisenior)\b/i,
     ],
   },
   {
@@ -125,6 +131,21 @@ function bandDistance(left: SeniorityBand, right: SeniorityBand) {
   return Math.abs(BAND_RANK.get(left)! - BAND_RANK.get(right)!);
 }
 
+function extractMaxYearsOfExperience(text: string) {
+  const matches = Array.from(
+    text.matchAll(/(\d{1,2})\s*\+?\s*a[nñ]os?\s+de\s+experiencia/gi),
+  );
+  const years = matches
+    .map((match) => Number.parseInt(match[1] ?? '', 10))
+    .filter((value) => Number.isFinite(value));
+
+  if (years.length === 0) {
+    return null;
+  }
+
+  return Math.max(...years);
+}
+
 /** Infer the seniority band implied by role/title text (highest match wins). */
 export function inferSeniorityBandFromText(text: string): SeniorityBand | null {
   const normalized = normalizeForMatch(text);
@@ -135,6 +156,19 @@ export function inferSeniorityBandFromText(text: string): SeniorityBand | null {
 
   let bestBand: SeniorityBand | null = null;
   let bestRank = Number.POSITIVE_INFINITY;
+  const experienceYears = extractMaxYearsOfExperience(normalized);
+  const hasLeadershipSignals =
+    /\b(liderar|liderazgo|equipo\s+a\s+cargo|personas\s+a\s+cargo|manejo\s+de\s+equipo|coordinar)\b/i.test(
+      normalized,
+    );
+  const hasStrategicSignals =
+    /\b(estrategia|planificacion|planificaci[oó]n|roadmap|presupuesto|p&l|unidad\s+de\s+negocio)\b/i.test(
+      normalized,
+    );
+  const hasBroadExperienceSignals =
+    /\b(vasta|amplia|solida|s[oó]lida|fuerte)\s+(experiencia|trayectoria)\b/i.test(
+      normalized,
+    );
 
   for (const rule of ROLE_BAND_RULES) {
     const matched = rule.patterns.some((pattern) => pattern.test(normalized));
@@ -148,6 +182,50 @@ export function inferSeniorityBandFromText(text: string): SeniorityBand | null {
     if (rank < bestRank) {
       bestRank = rank;
       bestBand = rule.band;
+    }
+  }
+
+  if (
+    bestBand == null &&
+    hasBroadExperienceSignals &&
+    (hasLeadershipSignals || hasStrategicSignals)
+  ) {
+    return 'manager';
+  }
+
+  if (bestBand == null && hasLeadershipSignals && hasStrategicSignals) {
+    return 'manager';
+  }
+
+  if (experienceYears != null) {
+    if (experienceYears >= 12 && (hasLeadershipSignals || hasStrategicSignals)) {
+      if (
+        bestBand == null ||
+        BAND_RANK.get(bestBand)! > BAND_RANK.get('director')!
+      ) {
+        return 'director';
+      }
+
+      return bestBand;
+    }
+
+    if (experienceYears >= 8 && hasLeadershipSignals) {
+      if (
+        bestBand == null ||
+        BAND_RANK.get(bestBand)! > BAND_RANK.get('manager')!
+      ) {
+        return 'manager';
+      }
+
+      return bestBand;
+    }
+
+    if (bestBand == null && experienceYears >= 5) {
+      return 'mid';
+    }
+
+    if (bestBand == null && experienceYears >= 2) {
+      return 'junior';
     }
   }
 
@@ -241,6 +319,7 @@ export function buildSeniorityInferenceGuidelines(
 Seniority (filters.seniorityIds):
 - Es casi siempre inferible del cargo o título aunque el usuario no diga "seniority" explícitamente.
 - SIEMPRE que el prompt describa un rol, llamá primero a inferSeniorityFromRole con el cargo/título detectado y luego findSeniorities con los términos sugeridos si hace falta confirmar ids.
+- Sé agresivo al mapear señales de liderazgo y trayectoria al catálogo disponible. "Vasta/amplia trayectoria", "liderar equipos", "responsable del área", "estrategia", "reporta al CEO/directorio" suelen implicar Gerente, Director o superior.
 - Guía de niveles (elegí ids del catálogo que mejor encajen):
   * Ejecutivo / C-level (CEO, CFO, CTO, CMO, COO, presidente, vicepresidente, socio): banda ejecutiva → opciones más altas del catálogo.
   * Gerente, manager, jefe de área/equipo, supervisor: banda gerencial.

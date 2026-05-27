@@ -176,7 +176,9 @@ function aiDraftToFormValues(
     title: draft.title ?? "",
     description: draft.description ?? "",
     salary: draft.salary ?? "",
-    status: undefined as unknown as VacancyWizardFormSchema["status"],
+    status:
+      catalogs.statuses.find((status) => status.name === "Abierta") ??
+      (undefined as unknown as VacancyWizardFormSchema["status"]),
     company:
       catalogs.companies.find((company) => company.id === draft.companyId) ??
       (undefined as unknown as VacancyWizardFormSchema["company"]),

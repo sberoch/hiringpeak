@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -48,6 +49,7 @@ function hasSelectedCompany(draft: AiVacancyDraft | null) {
 
 export function AiVacancyPage() {
   const router = useRouter();
+  const session = useSession();
   const queryClient = useQueryClient();
   const { setOpen } = useSidebar();
   const [hasStarted, setHasStarted] = useState(false);
@@ -119,6 +121,40 @@ export function AiVacancyPage() {
     queryFn: () => getAllVacancyStatuses({ limit: 1e9, page: 1 }),
     enabled: hasDraft,
   });
+
+  useEffect(() => {
+    if (!hasDraft || statusId.length > 0) {
+      return;
+    }
+
+    const openStatus = statusesData?.items.find(
+      (status) => status.name === "Abierta",
+    );
+
+    if (openStatus) {
+      setStatusId(openStatus.id.toString());
+    }
+  }, [hasDraft, statusId.length, statusesData]);
+
+  useEffect(() => {
+    if (!hasDraft || assignedTo.length > 0) {
+      return;
+    }
+
+    const sessionUserId = session.data?.userId;
+
+    if (!sessionUserId) {
+      return;
+    }
+
+    const currentUser = usersData?.items.find(
+      (user) => user.id.toString() === sessionUserId,
+    );
+
+    if (currentUser) {
+      setAssignedTo(currentUser.id.toString());
+    }
+  }, [assignedTo.length, hasDraft, session.data?.userId, usersData]);
 
   const extractMutation = useMutation({
     mutationFn: () =>

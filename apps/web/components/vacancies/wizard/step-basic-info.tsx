@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -63,6 +64,20 @@ export function StepBasicInfo({
   });
 
   const noCompanies = companies && companies.items.length === 0;
+
+  useEffect(() => {
+    if (form.getValues("status")) {
+      return;
+    }
+
+    const openStatus = vacancyStatuses?.items.find(
+      (status) => status.name === "Abierta",
+    );
+
+    if (openStatus) {
+      form.setValue("status", openStatus, { shouldDirty: false });
+    }
+  }, [form, vacancyStatuses]);
 
   return (
     <div className="space-y-5">

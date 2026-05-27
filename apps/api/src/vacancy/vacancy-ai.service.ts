@@ -15,7 +15,7 @@ import {
 } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
-import { asc, and, eq, inArray } from 'drizzle-orm';
+import { asc, and, desc, eq, inArray } from 'drizzle-orm';
 import type {
   AiVacancyDraft,
   AiVacancyRunDetail,
@@ -72,6 +72,10 @@ import {
 } from './vacancy-ai-seniority';
 
 const VACANCY_AI_DESCRIPTION_MAX_LENGTH = 1500;
+const DEFAULT_MIN_STARS = 3.5;
+const DEFAULT_COUNTRY = 'Argentina';
+const DEFAULT_PROVINCE = 'Buenos Aires';
+const DEFAULT_LANGUAGE_ENGLISH = 'Inglés';
 
 const EXTRACTION_METADATA_SCHEMA = z.object({
   inferredFields: z.array(z.string()).default([]),
@@ -86,7 +90,7 @@ const SUBMIT_DRAFT_CONTEXT_TOOL = 'submitDraftContext';
 
 type CatalogContext = {
   areas: IdCatalogOption[];
-  companies: IdCatalogOption[];
+  companies: Array<IdCatalogOption & { description?: string | null }>;
   industries: IdCatalogOption[];
   seniorities: IdCatalogOption[];
 };
@@ -394,35 +398,158 @@ function sanitizeDraft(draft: AiVacancyDraft, catalogs: CatalogContext) {
   return sanitizedDraft;
 }
 
-function enrichDraftSeniorityFromRoleText(
-  draft: AiVacancyDraft,
+function findCompanyContext(
   catalogs: CatalogContext,
-  roleText: string,
-): AiVacancyDraft {
-  if (draft.filters.seniorityIds?.length) {
-    return draft;
+  companyId: number | undefined,
+) {
+  if (companyId == null) {
+    return undefined;
   }
 
-  const combinedText = [roleText, draft.title, draft.description]
+  return catalogs.companies.find((company) => company.id === companyId);
+}
+
+function buildInferenceText(
+  draft: AiVacancyDraft,
+  promptText: string,
+  companyContext?: { name: string; description?: string | null },
+) {
+  return [
+    promptText,
+    draft.title,
+    draft.description,
+    companyContext?.name,
+    companyContext?.description ?? undefined,
+  ]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ');
+}
 
-  const inferredIds = resolveSeniorityIdsFromInference(
-    combinedText,
-    catalogs.seniorities,
-  );
+function inferSingleCatalogIdFromTexts(
+  texts: Array<string | undefined>,
+  catalog: IdCatalogOption[],
+) {
+  let bestMatch:
+    | {
+        id: number;
+        score: number;
+      }
+    | undefined;
 
-  if (!inferredIds?.length) {
-    return draft;
+  for (const text of texts) {
+    if (!text?.trim()) {
+      continue;
+    }
+
+    const [match] = searchIdCatalog(text, catalog, {
+      autoSelectThreshold: 0.58,
+      minimumScore: 0.22,
+      limit: 1,
+    });
+
+    if (!match?.autoSelectable) {
+      continue;
+    }
+
+    if (!bestMatch || match.score > bestMatch.score) {
+      bestMatch = {
+        id: match.id,
+        score: match.score,
+      };
+    }
   }
 
-  return {
+  return bestMatch ? [bestMatch.id] : undefined;
+}
+
+function isMidSeniorityOrHigher(text: string) {
+  const inferredBand = inferSeniorityBandFromText(text);
+
+  return (
+    inferredBand === 'mid' ||
+    inferredBand === 'lead' ||
+    inferredBand === 'manager' ||
+    inferredBand === 'director' ||
+    inferredBand === 'executive'
+  );
+}
+
+function applyDeterministicVacancyPolicy(
+  draft: AiVacancyDraft,
+  catalogs: CatalogContext,
+  promptText: string,
+): AiVacancyDraft {
+  const companyContext = findCompanyContext(catalogs, draft.companyId);
+  const inferenceText = buildInferenceText(draft, promptText, companyContext);
+  const nextDraft: AiVacancyDraft = {
     ...draft,
     filters: {
       ...draft.filters,
-      seniorityIds: inferredIds,
     },
   };
+
+  if (!nextDraft.filters.seniorityIds?.length) {
+    nextDraft.filters.seniorityIds =
+      resolveSeniorityIdsFromInference(inferenceText, catalogs.seniorities) ??
+      undefined;
+  }
+
+  if (!nextDraft.filters.areaIds?.length) {
+    nextDraft.filters.areaIds = inferSingleCatalogIdFromTexts(
+      [
+        nextDraft.title,
+        promptText,
+        companyContext?.description ?? undefined,
+        nextDraft.description,
+      ],
+      catalogs.areas,
+    );
+  }
+
+  if (!nextDraft.filters.industryIds?.length) {
+    nextDraft.filters.industryIds = inferSingleCatalogIdFromTexts(
+      [
+        companyContext?.description ?? undefined,
+        promptText,
+        nextDraft.title,
+        nextDraft.description,
+      ],
+      catalogs.industries,
+    );
+  }
+
+  if (nextDraft.filters.minStars == null) {
+    nextDraft.filters.minStars = DEFAULT_MIN_STARS;
+  }
+
+  if (!nextDraft.filters.countries?.length) {
+    nextDraft.filters.countries = [DEFAULT_COUNTRY];
+  }
+
+  if (
+    !nextDraft.filters.provinces?.length &&
+    nextDraft.filters.countries?.length === 1 &&
+    nextDraft.filters.countries[0] === DEFAULT_COUNTRY
+  ) {
+    nextDraft.filters.provinces = [DEFAULT_PROVINCE];
+  }
+
+  if (!nextDraft.filters.languages?.length) {
+    const inferredLanguages = inferDefaultLanguagesFromCountries(
+      nextDraft.filters.countries ?? [],
+    );
+
+    const nextLanguages = new Set(inferredLanguages ?? []);
+
+    if (isMidSeniorityOrHigher(inferenceText)) {
+      nextLanguages.add(DEFAULT_LANGUAGE_ENGLISH);
+    }
+
+    nextDraft.filters.languages =
+      nextLanguages.size > 0 ? Array.from(nextLanguages) : undefined;
+  }
+
+  return sanitizeDraft(nextDraft, catalogs);
 }
 
 function combineUsage(...usages: Array<{ [key: string]: any } | undefined>) {
@@ -500,6 +627,8 @@ ${buildDescriptionGuidelines()}
 - Para area, industry y company usa solamente ids devueltos por herramientas.
 ${buildSeniorityInferenceGuidelines(catalogs.seniorities)}
 - companyId es opcional y debe ser conservador: solo completar si el match es realmente consistente.
+- Si resuelves companyId y todavía falta industry, llama a getCompanyInferenceContext antes de decidir industryIds.
+- Para industry, prioriza señales históricas del tenant para esa compañía por encima de conocimiento general de marca. Usa company + area + prompt para desempatar.
 - assignedTo y statusId NO forman parte de esta extracción.
 - Interpreta listas con "y" u "o" como arreglos OR. Nunca conviertas eso en lógica AND estructurada.
 - Si un dato no está, déjalo vacío.
@@ -612,7 +741,7 @@ export class VacancyAiService {
             model: google(modelName),
             system: buildContextGenerationPrompt(catalogs, true),
             messages: [buildStage1UserMessage(files, promptText)],
-            tools: this.buildContextTools(catalogs),
+            tools: this.buildContextTools(catalogs, params.organizationId),
             toolChoice: 'required',
             stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
           })
@@ -620,14 +749,14 @@ export class VacancyAiService {
             model: google(modelName),
             system: buildContextGenerationPrompt(catalogs, false),
             prompt: promptText,
-            tools: this.buildContextTools(catalogs),
+            tools: this.buildContextTools(catalogs, params.organizationId),
             toolChoice: 'required',
             stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
           });
 
       const resolvedContext = getSubmittedDraftContext(contextResult.toolCalls);
       const sanitizedContext: ExtractionResult = {
-        draft: enrichDraftSeniorityFromRoleText(
+        draft: applyDeterministicVacancyPolicy(
           sanitizeDraft(resolvedContext.draft, catalogs),
           catalogs,
           promptText,
@@ -650,7 +779,7 @@ export class VacancyAiService {
         }),
       });
 
-      const sanitizedDraft = enrichDraftSeniorityFromRoleText(
+      const sanitizedDraft = applyDeterministicVacancyPolicy(
         sanitizeDraft(structuredResult.output.draft, catalogs),
         catalogs,
         promptText,
@@ -931,6 +1060,7 @@ export class VacancyAiService {
           columns: {
             id: true,
             name: true,
+            description: true,
           },
           orderBy: [asc(companies.name)],
         }),
@@ -960,9 +1090,9 @@ export class VacancyAiService {
     };
   }
 
-  private buildContextTools(catalogs: CatalogContext) {
+  private buildContextTools(catalogs: CatalogContext, organizationId: number) {
     return {
-      ...this.buildLookupTools(catalogs),
+      ...this.buildLookupTools(catalogs, organizationId),
       [SUBMIT_DRAFT_CONTEXT_TOOL]: tool({
         description:
           'Submit the resolved vacancy draft context after using search tools as needed.',
@@ -973,7 +1103,7 @@ export class VacancyAiService {
     };
   }
 
-  private buildLookupTools(catalogs: CatalogContext) {
+  private buildLookupTools(catalogs: CatalogContext, organizationId: number) {
     const countryOptions = countries.map((country) => ({
       value: country.name,
     }));
@@ -1038,7 +1168,8 @@ export class VacancyAiService {
         }),
       }),
       findIndustries: tool({
-        description: 'Search industry options and return matching ids.',
+        description:
+          'Search industry options and return matching ids. If companyId is already known, use getCompanyInferenceContext first and then query the most likely tenant-specific industries.',
         inputSchema: z.object({
           query: z.string().min(1),
         }),
@@ -1049,6 +1180,15 @@ export class VacancyAiService {
             limit: 5,
           }),
         }),
+      }),
+      getCompanyInferenceContext: tool({
+        description:
+          'Given a resolved companyId, return tenant-specific context for inferring industry and area: company description, top historical industries, top historical areas, and recent vacancy titles. Use this when companyId is known and industry is still unclear.',
+        inputSchema: z.object({
+          companyId: z.number().int().positive(),
+        }),
+        execute: async ({ companyId }) =>
+          this.getCompanyInferenceContext(companyId, organizationId),
       }),
       findCompanies: tool({
         description:
@@ -1119,6 +1259,124 @@ export class VacancyAiService {
           }),
         }),
       }),
+    };
+  }
+
+  private async getCompanyInferenceContext(
+    companyId: number,
+    organizationId: number,
+  ) {
+    const company = await this.db.query.companies.findFirst({
+      where: and(
+        eq(companies.id, companyId),
+        eq(companies.organizationId, organizationId),
+        eq(companies.status, CompanyStatus.ACTIVE),
+      ),
+      columns: {
+        id: true,
+        name: true,
+        description: true,
+      },
+    });
+
+    if (!company) {
+      return {
+        company: null,
+        historicalIndustries: [],
+        historicalAreas: [],
+        recentVacancyTitles: [],
+      };
+    }
+
+    const companyVacancies = await this.db.query.vacancies.findMany({
+      where: and(
+        eq(vacancies.companyId, companyId),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      columns: {
+        id: true,
+        title: true,
+        createdAt: true,
+      },
+      orderBy: [desc(vacancies.createdAt)],
+      limit: 25,
+      with: {
+        filters: {
+          with: {
+            areaIds: {
+              with: {
+                area: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+            industryIds: {
+              with: {
+                industry: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const countByCatalog = <T extends { id: number; name: string }>(
+      items: T[],
+    ) => {
+      const counts = new Map<number, { id: number; name: string; count: number }>();
+
+      for (const item of items) {
+        const current = counts.get(item.id);
+
+        if (current) {
+          current.count += 1;
+          continue;
+        }
+
+        counts.set(item.id, {
+          id: item.id,
+          name: item.name,
+          count: 1,
+        });
+      }
+
+      return [...counts.values()]
+        .sort((left, right) => {
+          if (left.count !== right.count) {
+            return right.count - left.count;
+          }
+
+          return left.name.localeCompare(right.name, 'es');
+        })
+        .slice(0, 5);
+    };
+
+    const historicalIndustries = countByCatalog(
+      companyVacancies.flatMap((vacancy) =>
+        vacancy.filters?.industryIds.map((relation) => relation.industry) ?? [],
+      ),
+    );
+    const historicalAreas = countByCatalog(
+      companyVacancies.flatMap((vacancy) =>
+        vacancy.filters?.areaIds.map((relation) => relation.area) ?? [],
+      ),
+    );
+
+    return {
+      company,
+      historicalIndustries,
+      historicalAreas,
+      recentVacancyTitles: companyVacancies
+        .slice(0, 10)
+        .map((vacancy) => vacancy.title),
     };
   }
 }

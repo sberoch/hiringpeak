@@ -105,7 +105,7 @@ function VacancyBrief({
             {f.minStars != null && (
               <FilterRow label="Rating mínimo">
                 <Badge variant="outline" className={filterBadgeCn}>
-                  {"⭐".repeat(f.minStars)}
+                  {`${f.minStars}/5`}
                 </Badge>
               </FilterRow>
             )}
