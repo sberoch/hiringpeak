@@ -7,6 +7,7 @@ import {
 import { LatestVacancies } from "@/components/vacancies/latest-vacancies";
 import { LatestCandidates } from "@/components/candidates/latest-candidates";
 import { DashboardStatCards } from "@/components/dashboard/dashboard-stat-cards";
+import { DueSoonWidget } from "@/components/dashboard/due-soon-widget";
 import { RecruiterStatsTable } from "@/components/dashboard/recruiter-stats";
 import { getMePermissions } from "@/lib/api/auth";
 import { getDashboardSummary } from "@/lib/api/dashboard";
@@ -94,6 +95,9 @@ export default async function Dashboard() {
 
       {/* Stat cards */}
       <DashboardStatCards data={dashboardData} />
+
+      {/* Due-soon / overdue tasks for the current user */}
+      <DueSoonWidget />
 
       {/* Recruiter performance */}
       <RecruiterStatsTable

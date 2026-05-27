@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { DrizzleModule } from './common/database/drizzle.module';
 import { ClsModule } from 'nestjs-cls';
@@ -31,11 +32,14 @@ import { PermissionModule } from './permission/permission.module';
 import { RoleModule } from './role/role.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { LoggerModule } from './common/logger/logger.module';
+import { TaskModule } from './task/task.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
     AuditLogModule,
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -66,6 +70,8 @@ import { LoggerModule } from './common/logger/logger.module';
     DashboardModule,
     OrganizationModule,
     OnboardModule,
+    TaskModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

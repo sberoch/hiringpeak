@@ -26,15 +26,29 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1775769611497,
-      "tag": "0003_quick_golden_guardian",
+      "when": 1779278216299,
+      "tag": "0003_familiar_famine",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
-      "when": 1775850000000,
-      "tag": "0004_ai_vacancy_run_documents",
+      "when": 1779278271955,
+      "tag": "0004_backfill_task_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779285013314,
+      "tag": "0005_sleepy_roulette",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779285481852,
+      "tag": "0006_quiet_mad_thinker",
       "breakpoints": true
     }
   ]

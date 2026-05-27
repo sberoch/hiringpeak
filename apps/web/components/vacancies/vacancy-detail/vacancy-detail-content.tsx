@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { DollarSign, FileText, Info, Users } from "lucide-react";
 
 import { KanbanBoard } from "@/components/candidates/kanban-board/board";
+import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
 import { VacancyDetailHeader } from "@/components/vacancies/vacancy-detail/vacancy-detail-header";
 import { VacancyDetailHeaderFilters } from "@/components/vacancies/vacancy-detail/vacancy-detail-header-filters";
 import { VacancyAiSourcePanel } from "@/components/vacancies/vacancy-detail/vacancy-ai-source-panel";
@@ -180,6 +181,12 @@ export function VacancyDetailContent({ vacancyId }: { vacancyId: string }) {
         </div>
         <KanbanBoard candidates={data.candidates} vacancyId={vacancyId} />
       </div>
+
+      {/* Tasks in context — secondary surface below the kanban */}
+      <TasksInContextCard
+        variant="compact"
+        context={{ type: "vacancy", id: data.id, label: data.title }}
+      />
     </div>
   );
 }

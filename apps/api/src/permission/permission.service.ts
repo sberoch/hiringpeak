@@ -35,6 +35,9 @@ const PERMISSION_SEED: { code: string; label: string; description: string }[] = 
   { code: PermissionCode.AREA_MANAGE, label: 'Gestionar áreas', description: 'Crear y editar áreas' },
   { code: PermissionCode.SETTINGS_READ, label: 'Ver configuración', description: 'Ver configuración de la organización' },
   { code: PermissionCode.SETTINGS_MANAGE, label: 'Gestionar configuración', description: 'Modificar configuración' },
+  { code: PermissionCode.AUDIT_LOG_READ, label: 'Ver auditoría', description: 'Ver registro de auditoría' },
+  { code: PermissionCode.TASK_READ, label: 'Ver tareas', description: 'Ver listado y detalle de tareas' },
+  { code: PermissionCode.TASK_MANAGE, label: 'Gestionar tareas', description: 'Crear, editar, completar, reasignar y eliminar tareas' },
 ];
 
 @Injectable()

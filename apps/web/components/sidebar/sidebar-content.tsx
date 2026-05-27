@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
   Building2,
@@ -7,6 +8,7 @@ import {
   ChevronRight,
   Landmark,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   Settings,
   Users,
@@ -20,6 +22,7 @@ import { ComponentProps } from "react";
 import { SidebarDialogs } from "@/components/sidebar/dialogs";
 import { usePermissions } from "@/contexts/permission-context";
 import { DialogsIdsEnum, REDIRECT_UNAUTHORIZED } from "@/lib/consts";
+import { getMyOpenTaskCount, TASK_API_KEY } from "@/lib/api/tasks";
 import { PermissionCode } from "@workspace/shared/enums";
 import {
   Collapsible,
@@ -81,6 +84,13 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
         title: "Dashboard",
         url: "/dashboard",
         icon: <LayoutDashboard className="w-4 h-4" />,
+      },
+      {
+        id: "tasks",
+        title: "Tareas",
+        url: "/tasks",
+        icon: <ListChecks className="w-4 h-4" />,
+        requiredPermissions: [PermissionCode.TASK_READ],
       },
       {
         id: "candidates",
@@ -267,6 +277,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
                             <Link href={item.url}>
                               {item.icon}
                               <span>{item.title}</span>
+                              {item.id === "tasks" && <TareasOpenBadge />}
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -429,5 +440,20 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
       <SidebarRail />
       <SidebarDialogs />
     </Sidebar>
+  );
+}
+
+function TareasOpenBadge() {
+  const { data } = useQuery({
+    queryKey: [TASK_API_KEY, "open-count"],
+    queryFn: getMyOpenTaskCount,
+    staleTime: 0,
+  });
+  const count = data?.count ?? 0;
+  if (count <= 0) return null;
+  return (
+    <span className="ml-auto text-[11px] font-semibold tabular-nums text-muted-brand group-data-[collapsible=icon]:hidden">
+      {count}
+    </span>
   );
 }

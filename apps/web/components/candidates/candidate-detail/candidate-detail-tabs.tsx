@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, FileText, MessageCircle } from "lucide-react";
+import { Briefcase, FileText, ListChecks, MessageCircle } from "lucide-react";
 
 import type { Candidate } from "@workspace/shared/types/candidate";
 import { cn } from "@workspace/ui/lib/utils";
+import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
 import { CandidateGeneralTab } from "./candidate-general-tab";
 import { CandidateFilesTab } from "./candidate-files-tab";
 import { CandidateCommentsTab } from "./candidate-comments-tab";
@@ -15,16 +16,17 @@ interface CandidateDetailTabsProps {
 
 const tabs = [
   { id: "general" as const, label: "Vacantes", icon: Briefcase },
+  { id: "tasks" as const, label: "Tareas", icon: ListChecks },
   { id: "files" as const, label: "Archivos", icon: FileText },
   { id: "comments" as const, label: "Comentarios", icon: MessageCircle },
 ];
 
+type TabId = "general" | "tasks" | "files" | "comments";
+
 export const CandidateDetailTabs = ({
   candidate,
 }: CandidateDetailTabsProps) => {
-  const [activeTab, setActiveTab] = useState<"general" | "files" | "comments">(
-    "general",
-  );
+  const [activeTab, setActiveTab] = useState<TabId>("general");
 
   return (
     <div className="flex flex-col flex-1 h-full">
@@ -53,6 +55,17 @@ export const CandidateDetailTabs = ({
         {activeTab === "general" && (
           <div className="h-full">
             <CandidateGeneralTab candidate={candidate} />
+          </div>
+        )}
+        {activeTab === "tasks" && (
+          <div className="h-full">
+            <TasksInContextCard
+              context={{
+                type: "candidate",
+                id: candidate.id,
+                label: candidate.name,
+              }}
+            />
           </div>
         )}
         {activeTab === "files" && (

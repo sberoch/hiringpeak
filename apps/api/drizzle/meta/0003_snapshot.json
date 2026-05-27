@@ -1,208 +1,9 @@
 {
-  "id": "66d11c58-c946-4052-988f-e0b73269bf0c",
+  "id": "c3f27aae-e920-4b3c-ac9a-da0d8795aa40",
   "prevId": "0544a293-c10a-4ff6-924b-9d5f124707f0",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.ai_vacancy_run_events": {
-      "name": "ai_vacancy_run_events",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "ai_vacancy_run_events_run_id_ai_vacancy_runs_id_fk": {
-          "name": "ai_vacancy_run_events_run_id_ai_vacancy_runs_id_fk",
-          "tableFrom": "ai_vacancy_run_events",
-          "tableTo": "ai_vacancy_runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.ai_vacancy_runs": {
-      "name": "ai_vacancy_runs",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "public_token": {
-          "name": "public_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "prompt": {
-          "name": "prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "response_text": {
-          "name": "response_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "draft": {
-          "name": "draft",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "extraction_metadata": {
-          "name": "extraction_metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "total_usage": {
-          "name": "total_usage",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error_message": {
-          "name": "error_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "latency_ms": {
-          "name": "latency_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "ai_vacancy_runs_public_token_unique": {
-          "name": "ai_vacancy_runs_public_token_unique",
-          "columns": [
-            {
-              "expression": "public_token",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "ai_vacancy_runs_organization_id_organizations_id_fk": {
-          "name": "ai_vacancy_runs_organization_id_organizations_id_fk",
-          "tableFrom": "ai_vacancy_runs",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "ai_vacancy_runs_user_id_users_id_fk": {
-          "name": "ai_vacancy_runs_user_id_users_id_fk",
-          "tableFrom": "ai_vacancy_runs",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.areas": {
       "name": "areas",
       "schema": "",
@@ -232,12 +33,8 @@
           "name": "areas_organization_id_organizations_id_fk",
           "tableFrom": "areas",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -308,12 +105,8 @@
           "name": "audit_events_organization_id_organizations_id_fk",
           "tableFrom": "audit_events",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -321,12 +114,8 @@
           "name": "audit_events_actor_user_id_users_id_fk",
           "tableFrom": "audit_events",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -385,12 +174,8 @@
           "name": "blacklists_candidate_id_candidates_id_fk",
           "tableFrom": "blacklists",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -398,12 +183,8 @@
           "name": "blacklists_user_id_users_id_fk",
           "tableFrom": "blacklists",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -411,12 +192,8 @@
           "name": "blacklists_organization_id_organizations_id_fk",
           "tableFrom": "blacklists",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -456,12 +233,8 @@
           "name": "candidate_areas_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_areas",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -469,12 +242,8 @@
           "name": "candidate_areas_area_id_areas_id_fk",
           "tableFrom": "candidate_areas",
           "tableTo": "areas",
-          "columnsFrom": [
-            "area_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["area_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -514,12 +283,8 @@
           "name": "candidate_candidate_files_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_candidate_files",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -527,12 +292,8 @@
           "name": "candidate_candidate_files_file_id_candidate_files_id_fk",
           "tableFrom": "candidate_candidate_files",
           "tableTo": "candidate_files",
-          "columnsFrom": [
-            "file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["file_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -572,12 +333,8 @@
           "name": "candidate_industries_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_industries",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -585,12 +342,8 @@
           "name": "candidate_industries_industry_id_industries_id_fk",
           "tableFrom": "candidate_industries",
           "tableTo": "industries",
-          "columnsFrom": [
-            "industry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["industry_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -630,12 +383,8 @@
           "name": "candidate_seniorities_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_seniorities",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -643,12 +392,8 @@
           "name": "candidate_seniorities_seniority_id_seniorities_id_fk",
           "tableFrom": "candidate_seniorities",
           "tableTo": "seniorities",
-          "columnsFrom": [
-            "seniority_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["seniority_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -796,12 +541,8 @@
           "name": "candidates_source_id_candidate_sources_id_fk",
           "tableFrom": "candidates",
           "tableTo": "candidate_sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -809,12 +550,8 @@
           "name": "candidates_organization_id_organizations_id_fk",
           "tableFrom": "candidates",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -824,10 +561,7 @@
         "candidates_name_organization_id_unique": {
           "name": "candidates_name_organization_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name",
-            "organization_id"
-          ]
+          "columns": ["name", "organization_id"]
         }
       },
       "policies": {},
@@ -869,12 +603,8 @@
           "name": "candidate_files_organization_id_organizations_id_fk",
           "tableFrom": "candidate_files",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -914,12 +644,8 @@
           "name": "candidate_sources_organization_id_organizations_id_fk",
           "tableFrom": "candidate_sources",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -997,12 +723,8 @@
           "name": "candidate_vacancies_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_vacancies",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1010,12 +732,8 @@
           "name": "candidate_vacancies_vacancy_id_vacancies_id_fk",
           "tableFrom": "candidate_vacancies",
           "tableTo": "vacancies",
-          "columnsFrom": [
-            "vacancy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vacancy_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1023,12 +741,8 @@
           "name": "candidate_vacancies_candidate_vacancy_status_id_candidate_vacancy_statuses_id_fk",
           "tableFrom": "candidate_vacancies",
           "tableTo": "candidate_vacancy_statuses",
-          "columnsFrom": [
-            "candidate_vacancy_status_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_vacancy_status_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1036,12 +750,8 @@
           "name": "candidate_vacancies_organization_id_organizations_id_fk",
           "tableFrom": "candidate_vacancies",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1100,12 +810,8 @@
           "name": "candidate_vacancy_statuses_organization_id_organizations_id_fk",
           "tableFrom": "candidate_vacancy_statuses",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1164,12 +870,8 @@
           "name": "comments_candidate_id_candidates_id_fk",
           "tableFrom": "comments",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1177,12 +879,8 @@
           "name": "comments_user_id_users_id_fk",
           "tableFrom": "comments",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1190,12 +888,8 @@
           "name": "comments_organization_id_organizations_id_fk",
           "tableFrom": "comments",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1273,12 +967,8 @@
           "name": "companies_organization_id_organizations_id_fk",
           "tableFrom": "companies",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1318,12 +1008,8 @@
           "name": "industries_organization_id_organizations_id_fk",
           "tableFrom": "industries",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1423,9 +1109,7 @@
         "permissions_code_unique": {
           "name": "permissions_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -1455,12 +1139,8 @@
           "name": "role_permissions_role_id_roles_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1468,12 +1148,8 @@
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "permissions",
-          "columnsFrom": [
-            "permission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["permission_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1481,10 +1157,7 @@
       "compositePrimaryKeys": {
         "role_permissions_role_id_permission_id_pk": {
           "name": "role_permissions_role_id_permission_id_pk",
-          "columns": [
-            "role_id",
-            "permission_id"
-          ]
+          "columns": ["role_id", "permission_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1542,12 +1215,8 @@
           "name": "roles_organization_id_organizations_id_fk",
           "tableFrom": "roles",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1587,12 +1256,187 @@
           "name": "seniorities_organization_id_organizations_id_fk",
           "tableFrom": "seniorities",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tasks": {
+      "name": "tasks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed": {
+          "name": "completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_by": {
+          "name": "completed_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assigned_to": {
+          "name": "assigned_to",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "candidate_id": {
+          "name": "candidate_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vacancy_id": {
+          "name": "vacancy_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "candidate_vacancy_id": {
+          "name": "candidate_vacancy_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tasks_completed_by_users_id_fk": {
+          "name": "tasks_completed_by_users_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "users",
+          "columnsFrom": ["completed_by"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "tasks_created_by_users_id_fk": {
+          "name": "tasks_created_by_users_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "users",
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tasks_assigned_to_users_id_fk": {
+          "name": "tasks_assigned_to_users_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "users",
+          "columnsFrom": ["assigned_to"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tasks_organization_id_organizations_id_fk": {
+          "name": "tasks_organization_id_organizations_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "organizations",
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tasks_candidate_id_candidates_id_fk": {
+          "name": "tasks_candidate_id_candidates_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "candidates",
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tasks_vacancy_id_vacancies_id_fk": {
+          "name": "tasks_vacancy_id_vacancies_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "vacancies",
+          "columnsFrom": ["vacancy_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tasks_candidate_vacancy_id_candidate_vacancies_id_fk": {
+          "name": "tasks_candidate_vacancy_id_candidate_vacancies_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "candidate_vacancies",
+          "columnsFrom": ["candidate_vacancy_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tasks_company_id_companies_id_fk": {
+          "name": "tasks_company_id_companies_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "companies",
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1685,12 +1529,8 @@
           "name": "users_organization_id_organizations_id_fk",
           "tableFrom": "users",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1698,12 +1538,8 @@
           "name": "users_role_id_roles_id_fk",
           "tableFrom": "users",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1713,10 +1549,7 @@
         "users_email_organization_id_unique": {
           "name": "users_email_organization_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email",
-            "organization_id"
-          ]
+          "columns": ["email", "organization_id"]
         }
       },
       "policies": {},
@@ -1781,12 +1614,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "ai_vacancy_run_id": {
-          "name": "ai_vacancy_run_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "salary": {
           "name": "salary",
           "type": "text",
@@ -1820,12 +1647,8 @@
           "name": "vacancies_status_id_vacancy_statuses_id_fk",
           "tableFrom": "vacancies",
           "tableTo": "vacancy_statuses",
-          "columnsFrom": [
-            "status_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["status_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1833,12 +1656,8 @@
           "name": "vacancies_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancies",
           "tableTo": "vacancy_filters",
-          "columnsFrom": [
-            "vacancy_filters_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vacancy_filters_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1846,12 +1665,8 @@
           "name": "vacancies_company_id_companies_id_fk",
           "tableFrom": "vacancies",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1859,12 +1674,8 @@
           "name": "vacancies_created_by_users_id_fk",
           "tableFrom": "vacancies",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1872,12 +1683,8 @@
           "name": "vacancies_assigned_to_users_id_fk",
           "tableFrom": "vacancies",
           "tableTo": "users",
-          "columnsFrom": [
-            "assigned_to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["assigned_to"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1885,26 +1692,9 @@
           "name": "vacancies_organization_id_organizations_id_fk",
           "tableFrom": "vacancies",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "vacancies_ai_vacancy_run_id_ai_vacancy_runs_id_fk": {
-          "name": "vacancies_ai_vacancy_run_id_ai_vacancy_runs_id_fk",
-          "tableFrom": "vacancies",
-          "tableTo": "ai_vacancy_runs",
-          "columnsFrom": [
-            "ai_vacancy_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1979,12 +1769,8 @@
           "name": "vacancy_filters_organization_id_organizations_id_fk",
           "tableFrom": "vacancy_filters",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2024,12 +1810,8 @@
           "name": "vacancy_filters_areas_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancy_filters_areas",
           "tableTo": "vacancy_filters",
-          "columnsFrom": [
-            "vacancy_filters_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vacancy_filters_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2037,12 +1819,8 @@
           "name": "vacancy_filters_areas_area_id_areas_id_fk",
           "tableFrom": "vacancy_filters_areas",
           "tableTo": "areas",
-          "columnsFrom": [
-            "area_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["area_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2082,12 +1860,8 @@
           "name": "vacancy_filters_industries_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancy_filters_industries",
           "tableTo": "vacancy_filters",
-          "columnsFrom": [
-            "vacancy_filters_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vacancy_filters_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2095,12 +1869,8 @@
           "name": "vacancy_filters_industries_industry_id_industries_id_fk",
           "tableFrom": "vacancy_filters_industries",
           "tableTo": "industries",
-          "columnsFrom": [
-            "industry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["industry_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2140,12 +1910,8 @@
           "name": "vacancy_filters_seniorities_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancy_filters_seniorities",
           "tableTo": "vacancy_filters",
-          "columnsFrom": [
-            "vacancy_filters_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vacancy_filters_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2153,12 +1919,8 @@
           "name": "vacancy_filters_seniorities_seniority_id_seniorities_id_fk",
           "tableFrom": "vacancy_filters_seniorities",
           "tableTo": "seniorities",
-          "columnsFrom": [
-            "seniority_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["seniority_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2205,12 +1967,8 @@
           "name": "vacancy_statuses_organization_id_organizations_id_fk",
           "tableFrom": "vacancy_statuses",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2226,18 +1984,12 @@
     "public.companyStatus": {
       "name": "companyStatus",
       "schema": "public",
-      "values": [
-        "Active",
-        "Prospect"
-      ]
+      "values": ["Active", "Prospect"]
     },
     "public.user_type": {
       "name": "user_type",
       "schema": "public",
-      "values": [
-        "END_USER",
-        "INTERNAL_USER"
-      ]
+      "values": ["END_USER", "INTERNAL_USER"]
     }
   },
   "schemas": {},

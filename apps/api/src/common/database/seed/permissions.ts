@@ -80,6 +80,16 @@ const PERMISSION_SEED: { code: string; label: string; description: string }[] =
       label: 'Ver auditoría',
       description: 'Ver registro de auditoría',
     },
+    {
+      code: PermissionCode.TASK_READ,
+      label: 'Ver tareas',
+      description: 'Ver listado y detalle de tareas',
+    },
+    {
+      code: PermissionCode.TASK_MANAGE,
+      label: 'Gestionar tareas',
+      description: 'Crear, editar, completar, reasignar y eliminar tareas',
+    },
   ];
 
 const ALL_PERMISSION_CODES = Object.values(PermissionCode);
@@ -90,6 +100,7 @@ const READ_ONLY_CODES = [
   PermissionCode.COMPANY_READ,
   PermissionCode.AREA_READ,
   PermissionCode.SETTINGS_READ,
+  PermissionCode.TASK_READ,
 ];
 const MANAGER_CODES = ALL_PERMISSION_CODES.filter(
   (c) => c !== PermissionCode.ROLE_MANAGE,
