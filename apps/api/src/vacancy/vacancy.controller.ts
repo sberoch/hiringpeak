@@ -20,7 +20,9 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { VacancyService } from './vacancy.service';
 import {
+  CloseVacancyDto,
   CreateVacancyDto,
+  ReopenVacancyDto,
   UpdateVacancyDto,
   VacancyQueryParams,
 } from './vacancy.dto';
@@ -108,6 +110,50 @@ export class VacancyController {
       ...updateVacancyDto,
       organizationId,
     });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'close_vacancy',
+    entityType: 'vacancy',
+    labelField: 'title',
+    relatedFields: [
+      { type: 'close_date_from', field: 'closeChange.from' },
+      { type: 'close_date_to', field: 'closeChange.to' },
+    ],
+  })
+  @Post(':id/close')
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async close(
+    @Param('id') id: string,
+    @Body() closeVacancyDto: CloseVacancyDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyService.close(+id, {
+      ...closeVacancyDto,
+      organizationId,
+    });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'reopen_vacancy',
+    entityType: 'vacancy',
+    labelField: 'title',
+    relatedFields: [{ type: 'close_date_from', field: 'closeChange.from' }],
+  })
+  @Post(':id/reopen')
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async reopen(
+    @Param('id') id: string,
+    @Body() reopenVacancyDto: ReopenVacancyDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyService.reopen(
+      +id,
+      organizationId,
+      reopenVacancyDto.statusId,
+    );
   }
 
   @ApiOkResponse()

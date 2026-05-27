@@ -49,6 +49,7 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
+  CloseVacancyServiceDto,
   CreateVacancyServiceDto,
   UpdateVacancyServiceDto,
   VacancyFindAllServiceParams,
@@ -447,6 +448,157 @@ export class VacancyService {
       return vacancy;
     });
     return vacancy;
+  }
+
+  /**
+   * Close a Vacancy: move it to a terminal (isFinal) Vacancy Status and stamp the
+   * recruiter-chosen Close Date. Unlike a status flip on the generic `update` path
+   * (which stamps `now()`), this lets the date be backdated to when the search
+   * actually closed. The coupling invariant (final status ⟺ Close Date present) is
+   * preserved: we reject non-final statuses here. The date is not range-validated
+   * by design — see CloseVacancySchema. Returns the updated row plus `closeChange`
+   * (old/new date) for the audit trail.
+   */
+  async close(id: number, dto: CloseVacancyServiceDto) {
+    const { organizationId, statusId, closedAt } = dto;
+    return this.db.transaction(async (tx) => {
+      const existing = await tx.query.vacancies.findFirst({
+        where: and(
+          eq(vacancies.id, id),
+          eq(vacancies.organizationId, organizationId),
+        ),
+      });
+      if (!existing) throw new NotFoundException('Vacancy not found');
+
+      const status = await tx.query.vacancyStatuses.findFirst({
+        where: and(
+          eq(vacancyStatuses.id, statusId),
+          eq(vacancyStatuses.organizationId, organizationId),
+        ),
+      });
+      if (!status) throw new NotFoundException('Vacancy status not found');
+      if (!status.isFinal) {
+        throw new BadRequestException(
+          'Cannot close a vacancy with a non-final status',
+        );
+      }
+
+      const closeDate = this.normalizeCloseDate(closedAt);
+      const [updated] = await tx
+        .update(vacancies)
+        .set({
+          statusId,
+          closedAt: closeDate,
+          updatedAt: new Date(),
+        } as Partial<Vacancy>)
+        .where(
+          and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        )
+        .returning();
+      if (!updated) throw new NotFoundException('Vacancy not found');
+
+      return {
+        ...updated,
+        closeChange: {
+          from: this.toCloseDateLabel(existing.closedAt),
+          to: this.toCloseDateLabel(closeDate),
+        },
+      };
+    });
+  }
+
+  /**
+   * Reopen a Vacancy: clear its Close Date and move it back to a non-final status.
+   * `statusId` is optional — when omitted we fall back to the Organization's first
+   * non-final status (ordered by id). Returns the updated row plus `closeChange`
+   * (old date → null) for the audit trail.
+   */
+  async reopen(id: number, organizationId: number, statusId?: number) {
+    return this.db.transaction(async (tx) => {
+      const existing = await tx.query.vacancies.findFirst({
+        where: and(
+          eq(vacancies.id, id),
+          eq(vacancies.organizationId, organizationId),
+        ),
+      });
+      if (!existing) throw new NotFoundException('Vacancy not found');
+
+      let targetStatus: VacancyStatus | undefined;
+      if (statusId != null) {
+        targetStatus = await tx.query.vacancyStatuses.findFirst({
+          where: and(
+            eq(vacancyStatuses.id, statusId),
+            eq(vacancyStatuses.organizationId, organizationId),
+          ),
+        });
+        if (!targetStatus) {
+          throw new NotFoundException('Vacancy status not found');
+        }
+        if (targetStatus.isFinal) {
+          throw new BadRequestException(
+            'Cannot reopen a vacancy into a final status',
+          );
+        }
+      } else {
+        targetStatus = await tx.query.vacancyStatuses.findFirst({
+          where: and(
+            eq(vacancyStatuses.organizationId, organizationId),
+            eq(vacancyStatuses.isFinal, false),
+          ),
+          orderBy: asc(vacancyStatuses.id),
+        });
+        if (!targetStatus) {
+          throw new BadRequestException(
+            'No open status configured to reopen this vacancy into',
+          );
+        }
+      }
+
+      const [updated] = await tx
+        .update(vacancies)
+        .set({
+          statusId: targetStatus.id,
+          closedAt: null,
+          updatedAt: new Date(),
+        } as Partial<Vacancy>)
+        .where(
+          and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        )
+        .returning();
+      if (!updated) throw new NotFoundException('Vacancy not found');
+
+      return {
+        ...updated,
+        closeChange: {
+          from: this.toCloseDateLabel(existing.closedAt),
+          to: null,
+        },
+      };
+    });
+  }
+
+  /**
+   * Pin a recruiter-supplied date (`YYYY-MM-DD` or full ISO) to 12:00 UTC on that
+   * calendar day. Noon-UTC storage keeps the day stable across display timezones
+   * (it never rolls over to the previous/next day for any zone in ±12h).
+   */
+  private normalizeCloseDate(input: string): Date {
+    const datePart = input.slice(0, 10);
+    const date = new Date(`${datePart}T12:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Invalid close date');
+    }
+    return date;
+  }
+
+  private toCloseDateLabel(date: Date | null): string | null {
+    return date ? date.toISOString().slice(0, 10) : null;
   }
 
   async remove(id: number, organizationId: number) {

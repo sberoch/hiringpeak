@@ -88,6 +88,9 @@ export function getInitials(name: string): string {
 }
 
 export function daysBetween(from: Date, to: Date): number {
+  // Clamp at 0: a recruiter-backdated Close Date earlier than the Vacancy's
+  // createdAt is permitted on input (not range-validated) and must never print
+  // a negative "days open" figure on this client-facing report.
   const ms = to.getTime() - from.getTime();
   return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
 }

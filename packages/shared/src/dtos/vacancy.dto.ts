@@ -27,6 +27,26 @@ export const CreateVacancySchema = z.object({
 
 export const UpdateVacancySchema = CreateVacancySchema.partial();
 
+/**
+ * Closing a Vacancy: move it to a terminal (isFinal) Vacancy Status and record
+ * the Close Date. The date is recruiter-chosen and intentionally NOT range-validated
+ * (backdating to before the Vacancy existed is permitted by design); it is only
+ * guarded where rendered. Day-granular `YYYY-MM-DD` or a full ISO string.
+ */
+export const CloseVacancySchema = z.object({
+  statusId: z.number().int(),
+  closedAt: z.string().min(1),
+});
+
+/**
+ * Reopening a Vacancy: clear its Close Date and move it back to a non-final status.
+ * `statusId` is optional — when omitted the service falls back to the Organization's
+ * first non-final status.
+ */
+export const ReopenVacancySchema = z.object({
+  statusId: z.number().int().optional(),
+});
+
 export const VacancyQueryParamsSchema = PaginationParamsSchema.extend({
   id: z.coerce.number().optional(),
   title: z.string().optional(),
@@ -72,4 +92,6 @@ export const VacancyQueryParamsSchema = PaginationParamsSchema.extend({
 export type VacancyFiltersDto = z.infer<typeof VacancyFiltersSchema>;
 export type CreateVacancyDto = z.infer<typeof CreateVacancySchema>;
 export type UpdateVacancyDto = z.infer<typeof UpdateVacancySchema>;
+export type CloseVacancyDto = z.infer<typeof CloseVacancySchema>;
+export type ReopenVacancyDto = z.infer<typeof ReopenVacancySchema>;
 export type VacancyQueryParamsDto = z.infer<typeof VacancyQueryParamsSchema>;

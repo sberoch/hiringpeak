@@ -52,6 +52,21 @@ export async function updateVacancy(id: string, vacancy: EditVacancySchema) {
   return response.data;
 }
 
+export async function closeVacancy(
+  id: string,
+  payload: { statusId: number; closedAt: string }
+) {
+  const response = await api.post<Vacancy>(`/vacancy/${id}/close`, payload);
+  return response.data;
+}
+
+export async function reopenVacancy(id: string, statusId?: number) {
+  const response = await api.post<Vacancy>(`/vacancy/${id}/reopen`, {
+    statusId,
+  });
+  return response.data;
+}
+
 export async function deleteVacancy(id: string) {
   const response = await api.delete(`/vacancy/${id}`);
   return response.data;
