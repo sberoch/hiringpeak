@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -50,7 +50,11 @@ services:
     ports:
       - "${API_BIND_IP:-127.0.0.1}:${API_PORT:-5003}:5003"
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:5003/api/v1/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://127.0.0.1:5003/api/v1/health || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
