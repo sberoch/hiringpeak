@@ -20,7 +20,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/common/database/seed.ts",
     "db:reset": "tsx src/common/database/seed-reset.ts",
-    "db:seed:prod": "tsx src/common/database/seed-prod-init.ts"
+    "db:seed:prod": "tsx src/common/database/seed-prod-init.ts",
+    "db:seed:demo": "tsx src/common/database/seed-demo.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.61",
@@ -45,6 +46,7 @@
     "drizzle-kit": "^0.30.5",
     "drizzle-orm": "^0.40.0",
     "drizzle-seed": "^0.3.1",
+    "exceljs": "^4.4.0",
     "google-auth-library": "^9.0.0",
     "helmet": "^8.0.0",
     "nestjs-cls": "^5.4.2",

@@ -7,6 +7,7 @@ import {
 import type {
   VacancyReportCandidateRow,
   VacancyReportDocumentData,
+  VacancyReportRejectionCount,
   VacancyReportStatusCount,
   VacancyReportSummary,
 } from './vacancy-report.types';
@@ -20,10 +21,11 @@ const dateFormatter = new Intl.DateTimeFormat(VACANCY_REPORT_LOCALE, {
 export function buildVacancyReportFileName(
   vacancyTitle: string,
   generatedAt: Date,
+  extension: 'pdf' | 'xlsx' = 'pdf',
 ): string {
   const safeVacancyTitle = slugifyFileNameSegment(vacancyTitle || 'vacante');
   const fileDate = formatFileDate(generatedAt);
-  return `reporte-vacante-${safeVacancyTitle}-${fileDate}.pdf`;
+  return `reporte-vacante-${safeVacancyTitle}-${fileDate}.${extension}`;
 }
 
 export function buildVacancyReportData(params: {
@@ -54,6 +56,7 @@ export function buildVacancyReportData(params: {
       vacancyTitle: params.vacancy.title,
     },
     organizationName: params.organizationName,
+    rejectionBreakdown: buildRejectionBreakdown(candidates),
     statusCounts: buildStatusCounts(candidates),
     summary: buildVacancyReportSummary(candidates),
   };
@@ -86,6 +89,9 @@ export function getInitials(name: string): string {
 }
 
 export function daysBetween(from: Date, to: Date): number {
+  // Clamp at 0: a recruiter-backdated Close Date earlier than the Vacancy's
+  // createdAt is permitted on input (not range-validated) and must never print
+  // a negative "days open" figure on this client-facing report.
   const ms = to.getTime() - from.getTime();
   return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
 }
@@ -108,6 +114,8 @@ function buildVacancyReportCandidateRow(
     shortDescription: candidate.shortDescription?.trim() || undefined,
     statusName: candidateVacancy.status.name,
     statusSort: candidateVacancy.status.sort,
+    isRejection: candidateVacancy.status.isRejection,
+    rejectionReasonName: candidateVacancy.rejectionReason?.name,
     starsValue: parseStarsValue(candidate.stars),
     seniorities: (candidate.seniorities ?? []).map((s) => s.name),
     areas: (candidate.areas ?? []).map((a) => a.name),
@@ -132,6 +140,30 @@ function buildStatusCounts(
     }
   }
   return Array.from(map.values()).sort((a, b) => a.sort - b.sort);
+}
+
+function buildRejectionBreakdown(
+  candidates: VacancyReportCandidateRow[],
+): VacancyReportRejectionCount[] {
+  const map = new Map<string, VacancyReportRejectionCount>();
+  for (const candidate of candidates) {
+    if (!candidate.isRejection) {
+      continue;
+    }
+    const name = candidate.rejectionReasonName ?? 'Sin motivo';
+    const existing = map.get(name);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(name, { name, count: 1 });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.count !== b.count) {
+      return b.count - a.count;
+    }
+    return a.name.localeCompare(b.name, VACANCY_REPORT_LOCALE);
+  });
 }
 
 function buildVacancyReportSummary(

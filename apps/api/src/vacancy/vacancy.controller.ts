@@ -26,9 +26,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { VacancyService } from './vacancy.service';
 import {
+  CloseVacancyDto,
   CreateVacancyDto,
+  ReopenVacancyDto,
   UpdateVacancyDto,
   VacancyQueryParams,
+  VacancyListReportQueryParams,
 } from './vacancy.dto';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
@@ -36,6 +39,7 @@ import { PermissionCode } from '@workspace/shared/enums';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { VacancyReportService } from './vacancy-report.service';
+import { EXCEL_CONTENT_TYPE } from '../common/excel/excel.utils';
 import { CurrentUser } from '../auth/auth.decorators';
 import type { CurrentUserStore } from '../auth/auth.currentuser.store';
 import { FeatureFlag } from '../feature-flag/feature-flag.enum';
@@ -71,6 +75,25 @@ export class VacancyController {
     @OrganizationId() organizationId: number,
   ) {
     return this.vacancyService.findAll({ ...query, organizationId });
+  }
+
+  @ApiOkResponse()
+  @Get('report/pdf')
+  @Permissions(PermissionCode.VACANCY_READ)
+  @ApiProduces('application/pdf')
+  async downloadListReport(
+    @Query() query: VacancyListReportQueryParams,
+    @OrganizationId() organizationId: number,
+  ): Promise<StreamableFile> {
+    const report = await this.vacancyReportService.generateVacancyListReportPdf(
+      { ...query, organizationId },
+    );
+
+    return new StreamableFile(report.buffer, {
+      type: report.contentType,
+      disposition: `attachment; filename="${report.fileName}"`,
+      length: report.buffer.length,
+    });
   }
 
   @ApiOkResponse()
@@ -159,6 +182,27 @@ export class VacancyController {
   }
 
   @ApiOkResponse()
+  @Get('report/xlsx')
+  @Permissions(PermissionCode.VACANCY_READ)
+  @ApiProduces(EXCEL_CONTENT_TYPE)
+  async downloadListReportXlsx(
+    @Query() query: VacancyListReportQueryParams,
+    @OrganizationId() organizationId: number,
+  ): Promise<StreamableFile> {
+    const report =
+      await this.vacancyReportService.generateVacancyListReportXlsx({
+        ...query,
+        organizationId,
+      });
+
+    return new StreamableFile(report.buffer, {
+      type: report.contentType,
+      disposition: `attachment; filename="${report.fileName}"`,
+      length: report.buffer.length,
+    });
+  }
+
+  @ApiOkResponse()
   @Get(':id/ai-source')
   @UseGuards(FeatureFlagGuard)
   @RequireFeatureFlags([FeatureFlag.AI_VACANCY_PERSISTENCE])
@@ -200,6 +244,26 @@ export class VacancyController {
     });
   }
 
+  @ApiOkResponse()
+  @Get(':id/report/xlsx')
+  @Permissions(PermissionCode.VACANCY_READ)
+  @ApiProduces(EXCEL_CONTENT_TYPE)
+  async downloadReportXlsx(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ): Promise<StreamableFile> {
+    const report = await this.vacancyReportService.generateVacancyReportXlsx(
+      +id,
+      organizationId,
+    );
+
+    return new StreamableFile(report.buffer, {
+      type: report.contentType,
+      disposition: `attachment; filename="${report.fileName}"`,
+      length: report.buffer.length,
+    });
+  }
+
   @ApiCreatedResponse()
   @AuditAction({ eventType: 'create_vacancy', entityType: 'vacancy', labelField: 'title' })
   @Post()
@@ -227,6 +291,50 @@ export class VacancyController {
       ...updateVacancyDto,
       organizationId,
     });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'close_vacancy',
+    entityType: 'vacancy',
+    labelField: 'title',
+    relatedFields: [
+      { type: 'close_date_from', field: 'closeChange.from' },
+      { type: 'close_date_to', field: 'closeChange.to' },
+    ],
+  })
+  @Post(':id/close')
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async close(
+    @Param('id') id: string,
+    @Body() closeVacancyDto: CloseVacancyDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyService.close(+id, {
+      ...closeVacancyDto,
+      organizationId,
+    });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'reopen_vacancy',
+    entityType: 'vacancy',
+    labelField: 'title',
+    relatedFields: [{ type: 'close_date_from', field: 'closeChange.from' }],
+  })
+  @Post(':id/reopen')
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async reopen(
+    @Param('id') id: string,
+    @Body() reopenVacancyDto: ReopenVacancyDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyService.reopen(
+      +id,
+      organizationId,
+      reopenVacancyDto.statusId,
+    );
   }
 
   @ApiOkResponse()

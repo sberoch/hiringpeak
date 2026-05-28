@@ -20,10 +20,15 @@ import {
   Area,
   Industry,
   Seniority,
+  Blacklist,
   Candidate,
+  candidates,
   CandidateSource,
   CandidateVacancy as CandidateVacancySchema,
+  candidateVacancies,
   CandidateVacancyStatus,
+  Comment,
+  RejectionReason,
   Company,
   User,
   vacancies,
@@ -47,11 +52,14 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import {
+  CloseVacancyServiceDto,
   CreateVacancyServiceDto,
   CreateVacancyRecordDto,
   UpdateVacancyServiceDto,
   VacancyFindAllServiceParams,
+  VacancyListReportServiceParams,
 } from './vacancy.dto';
+import type { VacancyListReportSourceRow } from './vacancy-list-report.types';
 
 type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
@@ -67,6 +75,34 @@ type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
         source: CandidateSource | null;
       };
       candidateVacancyStatus: CandidateVacancyStatus;
+      rejectionReason: RejectionReason | null;
+    }
+  >;
+  createdBy: User;
+  assignedTo: User;
+};
+
+/** Drizzle shape returned by the report finders (full candidate graph). */
+type ReportQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
+  status: VacancyStatus;
+  filters: VacancyFilters & {
+    areaIds: Array<VacancyFiltersArea & { area: Area }>;
+    industryIds: Array<VacancyFiltersIndustry & { industry: Industry }>;
+    seniorityIds: Array<VacancyFiltersSeniority & { seniority: Seniority }>;
+  };
+  company: Company;
+  candidateVacancies: Array<
+    CandidateVacancySchema & {
+      candidate: Candidate & {
+        source: CandidateSource | null;
+        candidateAreas: Array<{ area: Area }>;
+        candidateIndustries: Array<{ industry: Industry }>;
+        candidateSeniorities: Array<{ seniority: Seniority }>;
+        blacklist: Blacklist | null;
+        comments: Array<Comment & { user: User | null }>;
+      };
+      candidateVacancyStatus: CandidateVacancyStatus;
+      rejectionReason: RejectionReason | null;
     }
   >;
   createdBy: User;
@@ -89,10 +125,39 @@ export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
         source: CandidateSource | null;
       };
       status: CandidateVacancyStatus;
+      rejectionReason: RejectionReason | null;
     }
   >;
   createdBy: Omit<User, 'password'>;
   assignedTo: Omit<User, 'password'>;
+};
+
+/**
+ * Per-candidacy row for the Excel **Report Format** — the full dump. Unlike the
+ * client-facing PDF (which omits internal-only fields), this carries everything:
+ * the candidate's taxonomy, plus the internal-only **Blacklist** and **Comments**
+ * the PDF never surfaces. Backed by `findOneForReport` /
+ * `findAllByCompanyIdForReport`, NOT the lean `findOne` used by the detail page.
+ */
+export type ReportCandidacyRow = Omit<
+  VacancyApiResponse['candidates'][number],
+  'candidate'
+> & {
+  candidate: Candidate & {
+    source: CandidateSource | null;
+    areas: Area[];
+    industries: Industry[];
+    seniorities: Seniority[];
+    blacklist: Blacklist | null;
+    comments: Array<Comment & { user: Pick<User, 'name'> | null }>;
+  };
+};
+
+export type VacancyReportFullResponse = Omit<
+  VacancyApiResponse,
+  'candidates'
+> & {
+  candidates: ReportCandidacyRow[];
 };
 
 @Injectable()
@@ -141,6 +206,7 @@ export class VacancyService {
               },
             },
             candidateVacancyStatus: true,
+            rejectionReason: true,
           },
         },
         createdBy: true,
@@ -160,6 +226,98 @@ export class VacancyService {
 
     const parsedItems = items.map(this.transformQueryResult);
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
+  }
+
+  /**
+   * Lean projection backing the Vacancy List Report: the SAME filter/sort
+   * surface as `findAll` (reuses `buildWhereClause`/`buildOrderBy` so the
+   * exported set exactly matches the screen) but UNPAGINATED and WITHOUT
+   * hydrating the candidacy graph — the candidate count comes from a single
+   * grouped aggregate. No row cap (see CONTEXT.md accepted-risk note).
+   */
+  async findAllForListReport(
+    params: VacancyListReportServiceParams,
+  ): Promise<VacancyListReportSourceRow[]> {
+    const whereClause = this.buildWhereClause(params);
+    const orderClause = this.buildOrderBy(params);
+
+    const items = await this.db.query.vacancies.findMany({
+      where: whereClause,
+      orderBy: orderClause,
+      with: {
+        status: true,
+        company: true,
+        assignedTo: true,
+        filters: {
+          with: {
+            areaIds: { with: { area: true } },
+            industryIds: { with: { industry: true } },
+            seniorityIds: { with: { seniority: true } },
+          },
+        },
+      },
+    });
+
+    const candidateCounts = await this.countCandidaciesByVacancy(
+      items.map((vacancy) => vacancy.id),
+    );
+
+    return items.map((vacancy) => ({
+      id: vacancy.id,
+      title: vacancy.title,
+      companyName: vacancy.company?.name ?? '',
+      statusName: vacancy.status?.name ?? '',
+      ownerName: vacancy.assignedTo?.name ?? '',
+      salary: vacancy.salary ?? null,
+      seniorities:
+        vacancy.filters?.seniorityIds
+          ?.map((s) => s.seniority?.name)
+          .filter((name): name is string => Boolean(name)) ?? [],
+      areas:
+        vacancy.filters?.areaIds
+          ?.map((a) => a.area?.name)
+          .filter((name): name is string => Boolean(name)) ?? [],
+      industries:
+        vacancy.filters?.industryIds
+          ?.map((i) => i.industry?.name)
+          .filter((name): name is string => Boolean(name)) ?? [],
+      candidateCount: candidateCounts.get(vacancy.id) ?? 0,
+      createdAt: vacancy.createdAt,
+      closedAt: vacancy.closedAt,
+    }));
+  }
+
+  /**
+   * Candidacy counts per Vacancy, excluding soft-deleted Candidates — matching
+   * the count the list screen shows (`transformQueryResult` drops deleted ones).
+   */
+  private async countCandidaciesByVacancy(
+    vacancyIds: number[],
+  ): Promise<Map<number, number>> {
+    const counts = new Map<number, number>();
+    if (vacancyIds.length === 0) {
+      return counts;
+    }
+
+    const rows = await this.db
+      .select({
+        vacancyId: candidateVacancies.vacancyId,
+        value: count(candidateVacancies.id),
+      })
+      .from(candidateVacancies)
+      .innerJoin(candidates, eq(candidates.id, candidateVacancies.candidateId))
+      .where(
+        and(
+          inArray(candidateVacancies.vacancyId, vacancyIds),
+          eq(candidates.deleted, false),
+        ),
+      )
+      .groupBy(candidateVacancies.vacancyId);
+
+    for (const row of rows) {
+      counts.set(row.vacancyId, Number(row.value));
+    }
+    return counts;
   }
 
   async findOne(id: number, organizationId: number) {
@@ -201,6 +359,7 @@ export class VacancyService {
               },
             },
             candidateVacancyStatus: true,
+            rejectionReason: true,
           },
         },
         createdBy: true,
@@ -251,6 +410,7 @@ export class VacancyService {
               },
             },
             candidateVacancyStatus: true,
+            rejectionReason: true,
           },
         },
         createdBy: true,
@@ -259,6 +419,158 @@ export class VacancyService {
     });
 
     return vacancyItems.map((vacancy) => this.transformQueryResult(vacancy));
+  }
+
+  /**
+   * Full per-Vacancy graph backing the Excel Vacancy Report: everything
+   * `findOne` loads PLUS the internal-only Blacklist + Comments the Excel
+   * rendering dumps (the PDF omits them). Kept separate so the detail-page
+   * `findOne` query stays lean.
+   */
+  async findOneForReport(
+    id: number,
+    organizationId: number,
+  ): Promise<VacancyReportFullResponse> {
+    const vacancy = await this.db.query.vacancies.findFirst({
+      where: and(
+        eq(vacancies.id, id),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      with: {
+        status: true,
+        filters: {
+          with: {
+            areaIds: { with: { area: true } },
+            industryIds: { with: { industry: true } },
+            seniorityIds: { with: { seniority: true } },
+          },
+        },
+        company: true,
+        candidateVacancies: {
+          with: {
+            candidate: {
+              with: {
+                source: true,
+                candidateAreas: { with: { area: true } },
+                candidateIndustries: { with: { industry: true } },
+                candidateSeniorities: { with: { seniority: true } },
+                blacklist: true,
+                comments: { with: { user: true } },
+              },
+            },
+            candidateVacancyStatus: true,
+            rejectionReason: true,
+          },
+        },
+        createdBy: true,
+        assignedTo: true,
+      },
+    });
+    if (!vacancy) throw new NotFoundException('Vacancy not found');
+    return this.transformReportResult(vacancy as unknown as ReportQueryResult);
+  }
+
+  /** Full graph for every Vacancy of a Company, backing the Excel Company Report. */
+  async findAllByCompanyIdForReport(
+    companyId: number,
+    organizationId: number,
+  ): Promise<VacancyReportFullResponse[]> {
+    const vacancyItems = await this.db.query.vacancies.findMany({
+      where: and(
+        eq(vacancies.companyId, companyId),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      orderBy: [desc(vacancies.id)],
+      with: {
+        status: true,
+        filters: {
+          with: {
+            areaIds: { with: { area: true } },
+            industryIds: { with: { industry: true } },
+            seniorityIds: { with: { seniority: true } },
+          },
+        },
+        company: true,
+        candidateVacancies: {
+          with: {
+            candidate: {
+              with: {
+                source: true,
+                candidateAreas: { with: { area: true } },
+                candidateIndustries: { with: { industry: true } },
+                candidateSeniorities: { with: { seniority: true } },
+                blacklist: true,
+                comments: { with: { user: true } },
+              },
+            },
+            candidateVacancyStatus: true,
+            rejectionReason: true,
+          },
+        },
+        createdBy: true,
+        assignedTo: true,
+      },
+    });
+
+    return vacancyItems.map((vacancy) =>
+      this.transformReportResult(vacancy as unknown as ReportQueryResult),
+    );
+  }
+
+  private transformReportResult(
+    result: ReportQueryResult,
+  ): VacancyReportFullResponse {
+    const { status, filters, company, candidateVacancies, ...rest } = result;
+    const { password: _createdByPassword, ...createdBy } = result.createdBy;
+    const { password: _assignedToPassword, ...assignedTo } = result.assignedTo;
+
+    return {
+      ...rest,
+      status,
+      filters: filters
+        ? {
+            ...filters,
+            areas: filters.areaIds?.map((a) => a.area) ?? [],
+            industries: filters.industryIds?.map((i) => i.industry) ?? [],
+            seniorities: filters.seniorityIds?.map((s) => s.seniority) ?? [],
+          }
+        : null,
+      company,
+      candidates: candidateVacancies
+        .map((cv) => {
+          const { candidateVacancyStatus, candidate, ...cvRest } = cv;
+          const {
+            candidateAreas,
+            candidateIndustries,
+            candidateSeniorities,
+            comments,
+            ...candidateRest
+          } = candidate;
+          return {
+            ...cvRest,
+            candidate: {
+              ...candidateRest,
+              areas: candidateAreas?.map((ca) => ca.area) ?? [],
+              industries: candidateIndustries?.map((ci) => ci.industry) ?? [],
+              seniorities:
+                candidateSeniorities?.map((cs) => cs.seniority) ?? [],
+              // Strip the author down to a name — the Excel dumps internal
+              // Comments, but never the User's password/credentials.
+              comments: (comments ?? []).map((comment) => {
+                const { user, ...commentRest } = comment;
+                return {
+                  ...commentRest,
+                  user: user ? { name: user.name } : null,
+                };
+              }),
+            },
+            status: candidateVacancyStatus,
+          };
+        })
+        .filter((c) => c.candidate.deleted === false),
+      createdBy,
+      assignedTo,
+    };
   }
 
   async create(dto: CreateVacancyServiceDto) {
@@ -445,6 +757,157 @@ export class VacancyService {
       return vacancy;
     });
     return vacancy;
+  }
+
+  /**
+   * Close a Vacancy: move it to a terminal (isFinal) Vacancy Status and stamp the
+   * recruiter-chosen Close Date. Unlike a status flip on the generic `update` path
+   * (which stamps `now()`), this lets the date be backdated to when the search
+   * actually closed. The coupling invariant (final status ⟺ Close Date present) is
+   * preserved: we reject non-final statuses here. The date is not range-validated
+   * by design — see CloseVacancySchema. Returns the updated row plus `closeChange`
+   * (old/new date) for the audit trail.
+   */
+  async close(id: number, dto: CloseVacancyServiceDto) {
+    const { organizationId, statusId, closedAt } = dto;
+    return this.db.transaction(async (tx) => {
+      const existing = await tx.query.vacancies.findFirst({
+        where: and(
+          eq(vacancies.id, id),
+          eq(vacancies.organizationId, organizationId),
+        ),
+      });
+      if (!existing) throw new NotFoundException('Vacancy not found');
+
+      const status = await tx.query.vacancyStatuses.findFirst({
+        where: and(
+          eq(vacancyStatuses.id, statusId),
+          eq(vacancyStatuses.organizationId, organizationId),
+        ),
+      });
+      if (!status) throw new NotFoundException('Vacancy status not found');
+      if (!status.isFinal) {
+        throw new BadRequestException(
+          'Cannot close a vacancy with a non-final status',
+        );
+      }
+
+      const closeDate = this.normalizeCloseDate(closedAt);
+      const [updated] = await tx
+        .update(vacancies)
+        .set({
+          statusId,
+          closedAt: closeDate,
+          updatedAt: new Date(),
+        } as Partial<Vacancy>)
+        .where(
+          and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        )
+        .returning();
+      if (!updated) throw new NotFoundException('Vacancy not found');
+
+      return {
+        ...updated,
+        closeChange: {
+          from: this.toCloseDateLabel(existing.closedAt),
+          to: this.toCloseDateLabel(closeDate),
+        },
+      };
+    });
+  }
+
+  /**
+   * Reopen a Vacancy: clear its Close Date and move it back to a non-final status.
+   * `statusId` is optional — when omitted we fall back to the Organization's first
+   * non-final status (ordered by id). Returns the updated row plus `closeChange`
+   * (old date → null) for the audit trail.
+   */
+  async reopen(id: number, organizationId: number, statusId?: number) {
+    return this.db.transaction(async (tx) => {
+      const existing = await tx.query.vacancies.findFirst({
+        where: and(
+          eq(vacancies.id, id),
+          eq(vacancies.organizationId, organizationId),
+        ),
+      });
+      if (!existing) throw new NotFoundException('Vacancy not found');
+
+      let targetStatus: VacancyStatus | undefined;
+      if (statusId != null) {
+        targetStatus = await tx.query.vacancyStatuses.findFirst({
+          where: and(
+            eq(vacancyStatuses.id, statusId),
+            eq(vacancyStatuses.organizationId, organizationId),
+          ),
+        });
+        if (!targetStatus) {
+          throw new NotFoundException('Vacancy status not found');
+        }
+        if (targetStatus.isFinal) {
+          throw new BadRequestException(
+            'Cannot reopen a vacancy into a final status',
+          );
+        }
+      } else {
+        targetStatus = await tx.query.vacancyStatuses.findFirst({
+          where: and(
+            eq(vacancyStatuses.organizationId, organizationId),
+            eq(vacancyStatuses.isFinal, false),
+          ),
+          orderBy: asc(vacancyStatuses.id),
+        });
+        if (!targetStatus) {
+          throw new BadRequestException(
+            'No open status configured to reopen this vacancy into',
+          );
+        }
+      }
+
+      const [updated] = await tx
+        .update(vacancies)
+        .set({
+          statusId: targetStatus.id,
+          closedAt: null,
+          updatedAt: new Date(),
+        } as Partial<Vacancy>)
+        .where(
+          and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        )
+        .returning();
+      if (!updated) throw new NotFoundException('Vacancy not found');
+
+      return {
+        ...updated,
+        closeChange: {
+          from: this.toCloseDateLabel(existing.closedAt),
+          to: null,
+        },
+      };
+    });
+  }
+
+  /**
+   * Pin a recruiter-supplied date (`YYYY-MM-DD` or full ISO) to 12:00 UTC on that
+   * calendar day. Noon-UTC storage keeps the day stable across display timezones
+   * (it never rolls over to the previous/next day for any zone in ±12h).
+   */
+  private normalizeCloseDate(input: string): Date {
+    const datePart = input.slice(0, 10);
+    const date = new Date(`${datePart}T12:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException('Invalid close date');
+    }
+    return date;
+  }
+
+  private toCloseDateLabel(date: Date | null): string | null {
+    return date ? date.toISOString().slice(0, 10) : null;
   }
 
   async remove(id: number, organizationId: number) {

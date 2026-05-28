@@ -10,6 +10,8 @@ export interface VacancyReportCandidateRow {
   shortDescription?: string;
   statusName: string;
   statusSort: number;
+  isRejection: boolean;
+  rejectionReasonName?: string;
   starsValue?: number;
   seniorities: string[];
   areas: string[];
@@ -20,6 +22,11 @@ export interface VacancyReportStatusCount {
   name: string;
   count: number;
   sort: number;
+}
+
+export interface VacancyReportRejectionCount {
+  name: string;
+  count: number;
 }
 
 export interface VacancyReportMetadata {
@@ -39,6 +46,7 @@ export interface VacancyReportDocumentData {
   hiredCandidates: VacancyReportCandidateRow[];
   metadata: VacancyReportMetadata;
   organizationName: string;
+  rejectionBreakdown: VacancyReportRejectionCount[];
   statusCounts: VacancyReportStatusCount[];
   summary: VacancyReportSummary;
 }

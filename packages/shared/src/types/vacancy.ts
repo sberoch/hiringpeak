@@ -7,11 +7,14 @@ import type { Seniority } from "./seniority.js";
 import type { User } from "./user.js";
 import type { VacancyStatus } from "./vacancy-status.js";
 import type { CandidateVacancyStatus } from "./candidate-vacancy-status.js";
+import type { RejectionReason } from "./rejection-reason.js";
 
 export type BaseCandidateVacancy = {
   status: CandidateVacancyStatus;
   notes?: string;
-  rejectionReason?: string | null;
+  rejectionReasonId?: number | null;
+  rejectionReason?: RejectionReason | null;
+  rejectionNote?: string | null;
 };
 
 export type CandidateVacancy = BaseCandidateVacancy & {
@@ -27,7 +30,7 @@ export type CandidateVacancyParams = PaginationFilters & {
   candidateIds?: number[];
   vacancyId?: number;
   candidateVacancyStatusId?: number;
-  rejectionReason?: string;
+  rejectionReasonId?: number;
 };
 
 export type CreateCandidateVacancyDto = BaseCandidateVacancy & {

@@ -3,8 +3,11 @@
 import dayjs from "dayjs";
 import {
   Briefcase,
+  CalendarCheck,
   Download,
   Edit,
+  FileSpreadsheet,
+  MoreHorizontal,
   Plus,
   Trash,
   UserPlus,
@@ -21,11 +24,23 @@ import { PermissionCode } from "@workspace/shared/enums";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu";
 import { WorkflowInfoDialog } from "@workspace/ui/components/workflow-info-dialog";
-import { downloadVacancyReportPdf } from "@/lib/api/vacancy";
+import {
+  downloadVacancyReportPdf,
+  downloadVacancyReportXlsx,
+} from "@/lib/api/vacancy";
 import { PermissionGuard } from "../../auth/permission-guard";
 import { DeleteVacancyDialog } from "../delete-vacancy-dialog";
 import { AddCandidatesDialog } from "./add-candidates-dialog";
+import { CloseVacancyDialog } from "./close-vacancy-dialog";
 
 interface VacancyDetailHeaderProps {
   vacancy: Vacancy;
@@ -40,6 +55,7 @@ export const VacancyDetailHeader = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddCandidatesDialogOpen, setIsAddCandidatesDialogOpen] =
     useState(false);
+  const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [isWorkflowInfoDialogOpen, setIsWorkflowInfoDialogOpen] =
     useState(false);
   const downloadReportMutation = useMutation({
@@ -49,6 +65,15 @@ export const VacancyDetailHeader = ({
     },
     onError: () => {
       toast.error("No se pudo descargar el reporte PDF.");
+    },
+  });
+  const downloadReportXlsxMutation = useMutation({
+    mutationFn: () => downloadVacancyReportXlsx(vacancy.id.toString()),
+    onSuccess: (file) => {
+      downloadFile(file);
+    },
+    onError: () => {
+      toast.error("No se pudo descargar el reporte Excel.");
     },
   });
 
@@ -121,15 +146,17 @@ export const VacancyDetailHeader = ({
             <UserPlus className="h-4 w-4 mr-1.5" />
             Nuevo postulante
           </Button>
-          <Button
-            size="sm"
-            variant="brand-ghost"
-            className="bg-white"
-            onClick={() => setIsAddCandidatesDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Agregar existentes
-          </Button>
+          <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
+            <Button
+              size="sm"
+              variant="brand-ghost"
+              className="bg-white"
+              onClick={() => setIsCloseDialogOpen(true)}
+            >
+              <CalendarCheck className="h-4 w-4 mr-1.5" />
+              {vacancy.closedAt ? "Editar cierre" : "Cerrar vacante"}
+            </Button>
+          </PermissionGuard>
           <Button
             size="sm"
             variant="brand-ghost"
@@ -139,29 +166,64 @@ export const VacancyDetailHeader = ({
             <Edit className="h-4 w-4 mr-1.5" />
             Editar
           </Button>
-          <Button
-            size="sm"
-            variant="brand-ghost"
-            className="bg-white"
-            onClick={() => downloadReportMutation.mutate()}
-            disabled={downloadReportMutation.isPending}
-          >
-            <Download className="h-4 w-4 mr-1.5" />
-            {downloadReportMutation.isPending
-              ? "Generando PDF..."
-              : "Descargar reporte"}
-          </Button>
-          <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
-            <Button
-              variant="brand-ghost"
-              size="sm"
-              className="bg-white text-red-600 hover:bg-red-50 hover:border-red-200"
-              onClick={() => setIsDeleteDialogOpen(true)}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="brand-ghost"
+                className="bg-white px-2.5"
+                aria-label="Más acciones"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="rounded-xl border-brand-border bg-surface"
             >
-              <Trash className="h-4 w-4 mr-1.5" />
-              Eliminar
-            </Button>
-          </PermissionGuard>
+              <DropdownMenuLabel className="text-slate-brand">
+                Acciones
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                className="cursor-pointer text-ink"
+                onClick={() => setIsAddCandidatesDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Agregar existentes
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-ink"
+                disabled={downloadReportMutation.isPending}
+                onClick={() => downloadReportMutation.mutate()}
+              >
+                <Download className="h-4 w-4" />
+                {downloadReportMutation.isPending
+                  ? "Generando PDF..."
+                  : "Descargar PDF"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-ink"
+                disabled={downloadReportXlsxMutation.isPending}
+                onClick={() => downloadReportXlsxMutation.mutate()}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                {downloadReportXlsxMutation.isPending
+                  ? "Generando Excel..."
+                  : "Descargar Excel"}
+              </DropdownMenuItem>
+              <PermissionGuard permissions={[PermissionCode.VACANCY_MANAGE]}>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash className="h-4 w-4" />
+                  Eliminar
+                </DropdownMenuItem>
+              </PermissionGuard>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -175,6 +237,16 @@ export const VacancyDetailHeader = ({
           isOpen={isAddCandidatesDialogOpen}
           onClose={() => {
             setIsAddCandidatesDialogOpen(false);
+            onDialogClose();
+          }}
+          vacancy={vacancy}
+        />
+      )}
+      {isCloseDialogOpen && (
+        <CloseVacancyDialog
+          isOpen={isCloseDialogOpen}
+          onClose={() => {
+            setIsCloseDialogOpen(false);
             onDialogClose();
           }}
           vacancy={vacancy}

@@ -8,6 +8,7 @@ import {
   vacancyStatuses,
   candidateVacancyStatuses,
   candidateSources,
+  rejectionReasons,
   candidateFiles,
 } from '@workspace/shared/schemas';
 import { SeedTx } from './types';
@@ -78,6 +79,20 @@ const candidateVacancyStatusesList: {
   { name: 'Contratado', sort: 6, isInitial: false, isRejection: false },
 ];
 const candidateSourcesList = ['LinkedIn', 'Interna', 'Referencia'];
+const rejectionReasonsList: { name: string; sort: number }[] = [
+  { name: 'Excede salario', sort: 0 },
+  { name: 'No interesado', sort: 1 },
+  { name: 'Aceptó otra oferta', sort: 2 },
+  { name: 'Contraoferta de su empresa', sort: 3 },
+  { name: 'No quiere reubicarse', sort: 4 },
+  { name: 'No respondió / Se cayó del proceso', sort: 5 },
+  { name: 'No tiene el perfil buscado', sort: 6 },
+  { name: 'Sobrecalificado', sort: 7 },
+  { name: 'No cumple idioma', sort: 8 },
+  { name: 'Referencias negativas', sort: 9 },
+  { name: 'Descartado por el cliente', sort: 10 },
+  { name: 'Otro', sort: 11 },
+];
 
 async function findOrCreateByName(
   tx: SeedTx,
@@ -163,6 +178,20 @@ export async function seedCatalogs(
 
   const candidateSourceIds = await seedList(tx, candidateSources, candidateSourcesList, organizationId, 'candidate sources');
 
+  // Rejection reasons with sort field
+  console.log('  Seeding rejection reasons...');
+  const rejectionReasonIds = new Map<string, number>();
+  for (const { name, sort } of rejectionReasonsList) {
+    const id = await findOrCreateByName(
+      tx,
+      rejectionReasons,
+      name,
+      organizationId,
+      { sort },
+    );
+    rejectionReasonIds.set(name, id);
+  }
+
   // candidateFiles: fixture row only in dev seed; skip in prod.
   let candidateFileId: number | null = null;
   if (includeFixtures) {
@@ -204,6 +233,7 @@ export async function seedCatalogs(
     candidateVacancyStatusIds,
     initialCandidateVacancyStatusId,
     candidateSourceIds,
+    rejectionReasonIds,
     candidateFileId,
   };
 }

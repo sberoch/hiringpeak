@@ -32,6 +32,7 @@ import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
+import { EXCEL_CONTENT_TYPE } from '../common/excel/excel.utils';
 
 @ApiBearerAuth()
 @UseGuards(OrganizationGuard, PermissionsGuard)
@@ -77,6 +78,29 @@ export class CompanyController {
       report.buffer,
       'binary',
     );
+  }
+
+  @ApiOkResponse()
+  @Permissions(PermissionCode.COMPANY_READ)
+  @ApiProduces(EXCEL_CONTENT_TYPE)
+  @Get(':id/report/xlsx')
+  async downloadReportXlsx(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+    @Res() response: Response,
+  ) {
+    const report = await this.companyReportService.generateCompanyReportXlsx(
+      +id,
+      organizationId,
+    );
+
+    response.set({
+      'Content-Type': report.contentType,
+      'Content-Disposition': `attachment; filename="${report.fileName}"`,
+      'Content-Length': report.buffer.length.toString(),
+    });
+
+    response.status(200).end(report.buffer, 'binary');
   }
 
   @ApiOkResponse()

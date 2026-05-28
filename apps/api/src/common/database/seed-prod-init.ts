@@ -2,13 +2,17 @@
  * Production bootstrap seed. Run once on first deploy to get a usable database:
  *   - One organization
  *   - Permissions + Administrador / Manager / Basic roles
- *   - One admin user linked to the org + admin role
+ *   - The org's admin users, all linked to the org + Administrador role:
+ *       · the bootstrap admin (ADMIN_EMAIL / ADMIN_PASSWORD)
+ *       · the Pratt team (ec@, sp@, ya@pratt.com.ar) sharing PRATT_PASSWORD
+ *       · admin@gmail.com ("Otro usuario")
  *   - Reference catalogs (areas, industries, seniorities, vacancy statuses, etc.)
  *
  * Idempotent: every insert uses findOrCreate semantics, so running twice is safe.
  * Does NOT insert fixture data (companies, vacancies, candidates, sample resumes).
+ * For demo fixture data, run `pnpm run db:seed:demo` after this.
  *
- * Admin credentials come from env: ADMIN_EMAIL, ADMIN_PASSWORD, ORG_NAME.
+ * Bootstrap admin credentials come from env: ADMIN_EMAIL, ADMIN_PASSWORD, ORG_NAME.
  */
 import { config } from 'dotenv';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -27,6 +31,18 @@ import { seedCatalogs } from './seed/catalogs';
 import { SeedTx } from './seed/types';
 
 config();
+
+// Shared password for the @pratt.com.ar team.
+const PRATT_PASSWORD = 'Pratt123+';
+
+// Admin users beyond the env-driven bootstrap admin. All get the Administrador role.
+const ADDITIONAL_ADMIN_USERS: { name: string; email: string; password: string }[] =
+  [
+    { name: 'Esteban Calvente', email: 'ec@pratt.com.ar', password: PRATT_PASSWORD },
+    { name: 'Sabrina Petrusic', email: 'sp@pratt.com.ar', password: PRATT_PASSWORD },
+    { name: 'Yamila Akil', email: 'ya@pratt.com.ar', password: PRATT_PASSWORD },
+    { name: 'Otro usuario', email: 'admin@gmail.com', password: 'Hiringpeak123+' },
+  ];
 
 async function findOrCreateOrganization(tx: SeedTx, name: string) {
   const existing = await tx.query.organizations.findFirst({
@@ -107,6 +123,18 @@ async function main() {
       roleId: adminRoleId,
       userType: UserType.END_USER,
     } as typeof users.$inferInsert);
+
+    for (const u of ADDITIONAL_ADMIN_USERS) {
+      await findOrCreateUser(tx, {
+        email: u.email,
+        password: await hashPassword(u.password),
+        name: u.name,
+        active: true,
+        organizationId,
+        roleId: adminRoleId,
+        userType: UserType.END_USER,
+      } as typeof users.$inferInsert);
+    }
 
     await seedCatalogs(tx, organizationId, { includeFixtures: false });
   });

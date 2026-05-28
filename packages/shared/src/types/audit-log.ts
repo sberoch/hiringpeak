@@ -48,6 +48,8 @@ export const AUDIT_EVENT_LABELS: Record<string, string> = {
   blacklist_candidate: "Postulante en lista negra",
   create_vacancy: "Vacante creada",
   update_vacancy: "Vacante actualizada",
+  close_vacancy: "Vacante cerrada",
+  reopen_vacancy: "Vacante reabierta",
   delete_vacancy: "Vacante eliminada",
   create_vacancy_status: "Estado de vacante creado",
   update_vacancy_status: "Estado de vacante actualizado",

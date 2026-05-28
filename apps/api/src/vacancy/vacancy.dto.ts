@@ -3,15 +3,23 @@ import {
   VacancyFiltersSchema,
   CreateVacancySchema,
   UpdateVacancySchema,
+  CloseVacancySchema,
+  ReopenVacancySchema,
   VacancyQueryParamsSchema,
+  VacancyListReportQueryParamsSchema,
 } from '@workspace/shared/dtos';
 
 export class VacancyFiltersDto extends createZodDto(VacancyFiltersSchema) {}
 /** Request DTOs (controller): no organizationId — client does not send it */
 export class CreateVacancyDto extends createZodDto(CreateVacancySchema) {}
 export class UpdateVacancyDto extends createZodDto(UpdateVacancySchema) {}
+export class CloseVacancyDto extends createZodDto(CloseVacancySchema) {}
+export class ReopenVacancyDto extends createZodDto(ReopenVacancySchema) {}
 export class VacancyQueryParams extends createZodDto(
   VacancyQueryParamsSchema,
+) {}
+export class VacancyListReportQueryParams extends createZodDto(
+  VacancyListReportQueryParamsSchema,
 ) {}
 
 /** Service DTOs: organizationId is injected by the controller from request context */
@@ -24,6 +32,12 @@ export type CreateVacancyRecordDto = CreateVacancyServiceDto & {
 export type UpdateVacancyServiceDto = UpdateVacancyDto & {
   organizationId: number;
 };
+export type CloseVacancyServiceDto = CloseVacancyDto & {
+  organizationId: number;
+};
 export type VacancyFindAllServiceParams = VacancyQueryParams & {
+  organizationId: number;
+};
+export type VacancyListReportServiceParams = VacancyListReportQueryParams & {
   organizationId: number;
 };

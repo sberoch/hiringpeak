@@ -81,8 +81,10 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
               );
               const statusIndex = statusIndexMap.get(candidateVacancy?.status?.id ?? 0) ?? 0;
               const candidateStatusColors = getCandidateStatusColor(statusIndex);
-              const rejectionReason =
-                candidateVacancy?.rejectionReason?.trim() ?? "";
+              const rejectionReasonName =
+                candidateVacancy?.rejectionReason?.name ?? "";
+              const rejectionNote =
+                candidateVacancy?.rejectionNote?.trim() ?? "";
               const vacancy = candidateVacancy?.vacancy;
               const daysDiff = vacancy?.createdAt
                 ? dayjs().diff(dayjs(vacancy.createdAt), "day")
@@ -156,14 +158,24 @@ export const CandidateGeneralTab = ({ candidate }: CandidateGeneralTabProps) => 
                     </p>
                   )}
 
-                  {rejectionReason ? (
+                  {rejectionReasonName ? (
                     <div className="mt-2 text-xs border-t border-brand-border-light pt-2">
-                      <span className="text-muted-brand font-medium">
-                        Motivo de rechazo:
-                      </span>
-                      <p className="mt-1 italic text-slate-brand">
-                        {rejectionReason}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-brand font-medium">
+                          Motivo de rechazo:
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-semibold rounded-md border-0 px-1.5 py-0 bg-red-50 text-red-600"
+                        >
+                          {rejectionReasonName}
+                        </Badge>
+                      </div>
+                      {rejectionNote ? (
+                        <p className="mt-1 italic text-slate-brand">
+                          {rejectionNote}
+                        </p>
+                      ) : null}
                     </div>
                   ) : null}
                 </Link>

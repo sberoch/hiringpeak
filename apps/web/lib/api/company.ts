@@ -42,6 +42,21 @@ export async function downloadCompanyReportPdf(
   };
 }
 
+export async function downloadCompanyReportXlsx(
+  id: string
+): Promise<CompanyReportDownload> {
+  const response = await api.get<Blob>(`/company/${id}/report/xlsx`, {
+    responseType: "blob",
+  });
+
+  return {
+    blob: response.data,
+    fileName:
+      getFileNameFromContentDisposition(response.headers["content-disposition"]) ||
+      `reporte-empresa-${id}.xlsx`,
+  };
+}
+
 export async function createCompany(company: CompanyFormSchema) {
   const response = await api.post<Company>("/company", company);
   return response.data;

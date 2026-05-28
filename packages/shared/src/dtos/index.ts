@@ -10,6 +10,7 @@ export * from "./seniority.dto.js";
 export * from "./vacancystatus.dto.js";
 export * from "./candidatevacancystatus.dto.js";
 export * from "./candidatesource.dto.js";
+export * from "./rejectionreason.dto.js";
 export * from "./candidatefile.dto.js";
 export * from "./candidate.dto.js";
 export * from "./comment.dto.js";

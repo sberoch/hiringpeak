@@ -14,7 +14,13 @@ export interface CompanyReportVacancyRow {
   closedAt: Date | null;
   totalCandidates: number;
   hiredCandidates: number;
+  rejectedCandidates: number;
   salary?: string;
+}
+
+export interface CompanyReportRejectionCount {
+  name: string;
+  count: number;
 }
 
 export interface CompanyReportHire {
@@ -39,6 +45,7 @@ export interface CompanyReportDocumentData {
   generatedAt: Date;
   summary: CompanyReportSummary;
   hires: CompanyReportHire[];
+  rejectionBreakdown: CompanyReportRejectionCount[];
   vacancies: CompanyReportVacancyRow[];
 }
 

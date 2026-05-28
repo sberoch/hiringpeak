@@ -18,6 +18,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { VacancyStatusModule } from './vacancystatus/vacancystatus.module';
 import { CandidateVacancyStatusModule } from './candidatevacancystatus/candidatevacancystatus.module';
 import { CandidateSourceModule } from './candidatesource/candidatesource.module';
+import { RejectionReasonModule } from './rejectionreason/rejectionreason.module';
 import { CandidateFileModule } from './candidatefile/candidatefile.module';
 import { CandidateModule } from './candidate/candidate.module';
 import { CommentModule } from './comment/comment.module';
@@ -64,6 +65,7 @@ import { NotificationModule } from './notification/notification.module';
     VacancyStatusModule,
     CandidateVacancyStatusModule,
     CandidateSourceModule,
+    RejectionReasonModule,
     CandidateFileModule,
     CommentModule,
     BlacklistModule,

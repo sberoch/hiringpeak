@@ -182,6 +182,8 @@ function createVacancy(params: {
       organizationId: 1,
       candidateVacancyStatusId: candidate.id,
       notes: null,
+      rejectionReasonId: null,
+      rejectionNote: null,
       rejectionReason: null,
       createdAt: new Date('2026-04-01T10:00:00.000Z'),
       updatedAt: new Date('2026-04-01T10:00:00.000Z'),

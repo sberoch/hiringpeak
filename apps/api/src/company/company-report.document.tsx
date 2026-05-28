@@ -305,6 +305,34 @@ const styles = StyleSheet.create({
     fontWeight: 600,
   },
 
+  // ── Rejection breakdown ──────────────────────────────────────
+  breakdownCard: {
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    border: `1 solid ${COLORS.border}`,
+    overflow: 'hidden',
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  breakdownRowBordered: {
+    borderTop: `1 solid ${COLORS.borderLight}`,
+  },
+  breakdownName: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: COLORS.slate,
+  },
+  breakdownCount: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: COLORS.ink,
+  },
+
   // ── Empty state ──────────────────────────────────────────────
   emptyState: {
     paddingVertical: 22,
@@ -446,6 +474,27 @@ export function CompanyReportDocument({
           )}
         </View>
 
+        {/* Motivos de rechazo */}
+        {report.rejectionBreakdown.length > 0 ? (
+          <View style={styles.section} wrap={false}>
+            <SectionHeader title="Motivos de rechazo" />
+            <View style={styles.breakdownCard}>
+              {report.rejectionBreakdown.map((reason, index) => (
+                <View
+                  key={reason.name}
+                  style={[
+                    styles.breakdownRow,
+                    index !== 0 ? styles.breakdownRowBordered : {},
+                  ]}
+                >
+                  <Text style={styles.breakdownName}>{reason.name}</Text>
+                  <Text style={styles.breakdownCount}>{reason.count}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         {/* Footer */}
         <View style={styles.footer} fixed>
           <Text>{report.organizationName}</Text>
@@ -548,6 +597,11 @@ function VacancyCard({ vacancy }: { vacancy: CompanyReportVacancyRow }) {
   if (vacancy.hiredCandidates > 0) {
     metaParts.push(
       `${vacancy.hiredCandidates} ${vacancy.hiredCandidates === 1 ? 'contratado' : 'contratados'}`,
+    );
+  }
+  if (vacancy.rejectedCandidates > 0) {
+    metaParts.push(
+      `${vacancy.rejectedCandidates} ${vacancy.rejectedCandidates === 1 ? 'rechazado' : 'rechazados'}`,
     );
   }
   if (vacancy.salary) {
