@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -32,9 +33,13 @@ import type { VacancyWizardFormSchema } from "./vacancy-wizard.schema";
 
 interface StepBasicInfoProps {
   form: UseFormReturn<VacancyWizardFormSchema>;
+  createdByDisabled?: boolean;
 }
 
-export function StepBasicInfo({ form }: StepBasicInfoProps) {
+export function StepBasicInfo({
+  form,
+  createdByDisabled = false,
+}: StepBasicInfoProps) {
   const { data: vacancyStatuses } = useQuery({
     queryKey: [VACANCY_STATUS_API_KEY, { limit: 1e9, page: 1 }],
     queryFn: () => getAllVacancyStatuses({ limit: 1e9, page: 1 }),
@@ -59,6 +64,20 @@ export function StepBasicInfo({ form }: StepBasicInfoProps) {
   });
 
   const noCompanies = companies && companies.items.length === 0;
+
+  useEffect(() => {
+    if (form.getValues("status")) {
+      return;
+    }
+
+    const openStatus = vacancyStatuses?.items.find(
+      (status) => status.name === "Abierta",
+    );
+
+    if (openStatus) {
+      form.setValue("status", openStatus, { shouldDirty: false });
+    }
+  }, [form, vacancyStatuses]);
 
   return (
     <div className="space-y-5">
@@ -91,10 +110,7 @@ export function StepBasicInfo({ form }: StepBasicInfoProps) {
               </FormControl>
               <SelectContent>
                 {companies?.items.map((company) => (
-                  <SelectItem
-                    key={company.id}
-                    value={company.id.toString()}
-                  >
+                  <SelectItem key={company.id} value={company.id.toString()}>
                     {company.name}
                   </SelectItem>
                 ))}
@@ -201,6 +217,7 @@ export function StepBasicInfo({ form }: StepBasicInfoProps) {
                   if (user) field.onChange(user);
                 }}
                 value={field.value?.id?.toString()}
+                disabled={createdByDisabled}
               >
                 <FormControl>
                   <SelectTrigger>

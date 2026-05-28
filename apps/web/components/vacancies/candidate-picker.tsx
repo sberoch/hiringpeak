@@ -94,9 +94,9 @@ export const CandidatePicker = ({
                 : "border-brand-border",
               candidate.blacklist && !isSelected && "border-red-400/60",
               candidate.isInCompanyViaPratt &&
-                !candidate.blacklist &&
-                !isSelected &&
-                "border-emerald-400/60",
+              !candidate.blacklist &&
+              !isSelected &&
+              "border-emerald-400/60",
             )}
           >
             <Avatar className="h-20 w-20 shrink-0 border border-brand-border">

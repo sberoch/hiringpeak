@@ -13,6 +13,7 @@ import { vacancyFilters } from "./vacancyfilters.schema";
 import { candidateVacancies } from "./candidatevacancy.schema";
 import { users } from "./user.schema";
 import { organizations } from "./organization.schema";
+import { aiVacancyRuns } from "./ai-vacancy-run.schema";
 
 export const vacancies = pgTable("vacancies", {
   id: serial("id").primaryKey(),
@@ -39,6 +40,9 @@ export const vacancies = pgTable("vacancies", {
     .references(() => organizations.id, {
       onDelete: "cascade",
     }),
+  aiVacancyRunId: integer("ai_vacancy_run_id").references(() => aiVacancyRuns.id, {
+    onDelete: "set null",
+  }),
   salary: text("salary"),
   closedAt: timestamp("closed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -61,6 +65,10 @@ export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [vacancies.organizationId],
     references: [organizations.id],
+  }),
+  aiVacancyRun: one(aiVacancyRuns, {
+    fields: [vacancies.aiVacancyRunId],
+    references: [aiVacancyRuns.id],
   }),
   candidateVacancies: many(candidateVacancies),
   createdBy: one(users, {

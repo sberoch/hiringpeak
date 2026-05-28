@@ -10,6 +10,7 @@ import type { VacancyFiltersType } from "@workspace/shared/types/vacancy";
 
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { useVacancyFilters } from "@/hooks/use-vacancy-filters";
+import { NewAiVacancyLink } from "./new-ai-vacancy-link";
 import { VacancyTable } from "./vacancy-table";
 import { VacancyListReportButton } from "./vacancy-list-report-button";
 
@@ -54,6 +55,7 @@ export function VacancyListView({ initialFilters }: VacancyListViewProps) {
               </Link>
             </Button>
           </PermissionGuard>
+          <NewAiVacancyLink />
           <VacancyListReportButton filters={filters} params={params} />
         </div>
       </div>

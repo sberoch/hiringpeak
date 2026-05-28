@@ -32,6 +32,7 @@ import { FeatureFlagModule } from './feature-flag/feature-flag.module';
 import { PermissionModule } from './permission/permission.module';
 import { RoleModule } from './role/role.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { LoggerModule } from './common/logger/logger.module';
 import { TaskModule } from './task/task.module';
 import { NotificationModule } from './notification/notification.module';
 
@@ -47,6 +48,7 @@ import { NotificationModule } from './notification/notification.module';
       global: true,
       middleware: { mount: true },
     }),
+    LoggerModule,
     DrizzleModule,
     FeatureFlagModule,
     UserModule,

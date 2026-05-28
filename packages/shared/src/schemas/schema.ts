@@ -1,4 +1,6 @@
 export * from "./area.schema";
+export * from "./ai-vacancy-run.schema";
+export * from "./ai-vacancy-run-document.schema";
 export * from "./audit-event.schema";
 export * from "./blacklist.schema";
 export * from "./candidate.schema";

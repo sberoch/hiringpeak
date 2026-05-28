@@ -1,5 +1,43 @@
 CREATE TYPE "public"."companyStatus" AS ENUM('Active', 'Prospect');--> statement-breakpoint
 CREATE TYPE "public"."user_type" AS ENUM('END_USER', 'INTERNAL_USER');--> statement-breakpoint
+CREATE TABLE "ai_vacancy_run_documents" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"run_id" integer NOT NULL,
+	"organization_id" integer NOT NULL,
+	"file_name" text NOT NULL,
+	"mime_type" text NOT NULL,
+	"size_bytes" integer NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "ai_vacancy_run_events" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"run_id" integer NOT NULL,
+	"type" text NOT NULL,
+	"payload" jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "ai_vacancy_runs" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"public_token" text NOT NULL,
+	"organization_id" integer NOT NULL,
+	"user_id" integer NOT NULL,
+	"prompt" text NOT NULL,
+	"source_type" text DEFAULT 'prompt' NOT NULL,
+	"user_prompt" text,
+	"model" text NOT NULL,
+	"status" text NOT NULL,
+	"response_text" text,
+	"draft" jsonb,
+	"extraction_metadata" jsonb,
+	"total_usage" jsonb,
+	"error_message" text,
+	"latency_ms" integer NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "areas" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -233,6 +271,7 @@ CREATE TABLE "vacancies" (
 	"created_by" integer NOT NULL,
 	"assigned_to" integer NOT NULL,
 	"organization_id" integer NOT NULL,
+	"ai_vacancy_run_id" integer,
 	"salary" text,
 	"closed_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -276,6 +315,11 @@ CREATE TABLE "vacancy_statuses" (
 	"organization_id" integer NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "ai_vacancy_run_documents" ADD CONSTRAINT "ai_vacancy_run_documents_run_id_ai_vacancy_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."ai_vacancy_runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ai_vacancy_run_documents" ADD CONSTRAINT "ai_vacancy_run_documents_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ai_vacancy_run_events" ADD CONSTRAINT "ai_vacancy_run_events_run_id_ai_vacancy_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."ai_vacancy_runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ai_vacancy_runs" ADD CONSTRAINT "ai_vacancy_runs_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ai_vacancy_runs" ADD CONSTRAINT "ai_vacancy_runs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "areas" ADD CONSTRAINT "areas_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "audit_events" ADD CONSTRAINT "audit_events_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "audit_events" ADD CONSTRAINT "audit_events_actor_user_id_users_id_fk" FOREIGN KEY ("actor_user_id") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -328,6 +372,7 @@ ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_company_id_companies_id_fk" FO
 ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_assigned_to_users_id_fk" FOREIGN KEY ("assigned_to") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_ai_vacancy_run_id_ai_vacancy_runs_id_fk" FOREIGN KEY ("ai_vacancy_run_id") REFERENCES "public"."ai_vacancy_runs"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancy_filters" ADD CONSTRAINT "vacancy_filters_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancy_filters_areas" ADD CONSTRAINT "vacancy_filters_areas_vacancy_filters_id_vacancy_filters_id_fk" FOREIGN KEY ("vacancy_filters_id") REFERENCES "public"."vacancy_filters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancy_filters_areas" ADD CONSTRAINT "vacancy_filters_areas_area_id_areas_id_fk" FOREIGN KEY ("area_id") REFERENCES "public"."areas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -335,4 +380,5 @@ ALTER TABLE "vacancy_filters_industries" ADD CONSTRAINT "vacancy_filters_industr
 ALTER TABLE "vacancy_filters_industries" ADD CONSTRAINT "vacancy_filters_industries_industry_id_industries_id_fk" FOREIGN KEY ("industry_id") REFERENCES "public"."industries"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancy_filters_seniorities" ADD CONSTRAINT "vacancy_filters_seniorities_vacancy_filters_id_vacancy_filters_id_fk" FOREIGN KEY ("vacancy_filters_id") REFERENCES "public"."vacancy_filters"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vacancy_filters_seniorities" ADD CONSTRAINT "vacancy_filters_seniorities_seniority_id_seniorities_id_fk" FOREIGN KEY ("seniority_id") REFERENCES "public"."seniorities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "vacancy_statuses" ADD CONSTRAINT "vacancy_statuses_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "vacancy_statuses" ADD CONSTRAINT "vacancy_statuses_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "ai_vacancy_runs_public_token_unique" ON "ai_vacancy_runs" USING btree ("public_token");

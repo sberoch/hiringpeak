@@ -10,6 +10,7 @@ import { KanbanBoard } from "@/components/candidates/kanban-board/board";
 import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
 import { VacancyDetailHeader } from "@/components/vacancies/vacancy-detail/vacancy-detail-header";
 import { VacancyDetailHeaderFilters } from "@/components/vacancies/vacancy-detail/vacancy-detail-header-filters";
+import { VacancyAiSourcePanel } from "@/components/vacancies/vacancy-detail/vacancy-ai-source-panel";
 import { getVacancyById, VACANCY_API_KEY } from "@/lib/api/vacancy";
 
 function VacancyDetailSkeleton() {
@@ -165,6 +166,8 @@ export function VacancyDetailContent({ vacancyId }: { vacancyId: string }) {
         {/* Filters card */}
         <VacancyDetailHeaderFilters vacancy={data} />
       </div>
+
+      <VacancyAiSourcePanel vacancyId={vacancyId} />
 
       {/* Kanban section — full width */}
       <div className="flex flex-col min-w-0">

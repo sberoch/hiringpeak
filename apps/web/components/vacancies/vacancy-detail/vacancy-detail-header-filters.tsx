@@ -94,7 +94,7 @@ export const VacancyDetailHeaderFilters = ({
         {f.minStars != null && (
           <FilterSection label="Rating mínimo">
             <Badge variant="outline" className={filterBadgeCn}>
-              {"⭐".repeat(f.minStars)}
+              {`${f.minStars}/5`}
             </Badge>
           </FilterSection>
         )}

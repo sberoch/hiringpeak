@@ -9,8 +9,10 @@ import React, {
   forwardRef,
   useCallback,
   useContext,
+  useLayoutEffect,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { Command as CommandPrimitive } from "cmdk";
 import { X as RemoveIcon, Check } from "lucide-react";
 
@@ -41,6 +43,7 @@ interface MultiSelectContextProps {
   activeIndex: number;
   setActiveIndex: React.Dispatch<React.SetStateAction<number>>;
   ref: React.RefObject<HTMLInputElement>;
+  triggerRef: React.RefObject<HTMLDivElement | null>;
   handleSelect: (e: React.SyntheticEvent<HTMLInputElement>) => void;
 }
 
@@ -70,6 +73,7 @@ const MultiSelector = ({
   const [open, setOpen] = useState<boolean>(false);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const triggerRef = React.useRef<HTMLDivElement>(null);
   const [isValueSelected, setIsValueSelected] = React.useState(false);
   const [selectedValue, setSelectedValue] = React.useState("");
 
@@ -195,6 +199,7 @@ const MultiSelector = ({
         activeIndex,
         setActiveIndex,
         ref: inputRef as React.RefObject<HTMLInputElement>,
+        triggerRef,
         handleSelect,
       }}
     >
@@ -217,16 +222,29 @@ const MultiSelectorTrigger = forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => {
-  const { value, onValueChange, activeIndex } = useMultiSelect();
+  const { value, onValueChange, activeIndex, triggerRef } = useMultiSelect();
 
   const mousePreventDefault = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
 
+  const setTriggerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      triggerRef.current = node;
+
+      if (typeof ref === "function") {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    },
+    [ref, triggerRef],
+  );
+
   return (
     <div
-      ref={ref}
+      ref={setTriggerRef}
       className={cn(
         "flex flex-wrap gap-1 p-1 py-2 border border-brand-border rounded-xl bg-canvas transition-all focus-within:border-electric focus-within:shadow-[0_0_0_3px_rgba(0,102,255,0.1)]",
         "disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
@@ -302,13 +320,67 @@ MultiSelectorInput.displayName = "MultiSelectorInput";
 const MultiSelectorContent = forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ children }, ref) => {
-  const { open } = useMultiSelect();
-  return (
-    <div ref={ref} className="relative">
-      {open && children}
+>(({ children, className, ...props }, ref) => {
+  const { open, triggerRef } = useMultiSelect();
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  const updatePosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) {
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    setCoords({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [triggerRef]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null);
+      return;
+    }
+
+    updatePosition();
+
+    window.addEventListener("resize", updatePosition);
+    document.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      document.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
+
+  if (!open || !coords) {
+    return null;
+  }
+
+  const content = (
+    <div
+      ref={ref}
+      className={cn("fixed z-50", className)}
+      style={{
+        top: coords.top,
+        left: coords.left,
+        width: coords.width,
+      }}
+      {...props}
+    >
+      {children}
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(content, document.body)
+    : null;
 });
 
 MultiSelectorContent.displayName = "MultiSelectorContent";
@@ -321,7 +393,7 @@ const MultiSelectorList = forwardRef<
     <CommandList
       ref={ref}
       className={cn(
-        "p-1.5 flex flex-col gap-0.5 rounded-xl scrollbar-thin scrollbar-track-transparent transition-colors scrollbar-thumb-brand-border scrollbar-thumb-rounded-lg w-full absolute bg-surface shadow-lg z-10 border border-brand-border top-1",
+        "p-1.5 flex flex-col gap-0.5 rounded-xl scrollbar-thin scrollbar-track-transparent transition-colors scrollbar-thumb-brand-border scrollbar-thumb-rounded-lg w-full bg-surface shadow-lg border border-brand-border",
         className,
       )}
     >

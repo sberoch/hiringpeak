@@ -92,61 +92,6 @@ export const FileUploader = React.forwardRef<
       [value, onValueChange],
     );
 
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (!value) return;
-
-        const moveNext = () => {
-          const nextIndex = activeIndex + 1;
-          setActiveIndex(nextIndex > value.length - 1 ? 0 : nextIndex);
-        };
-
-        const movePrev = () => {
-          const nextIndex = activeIndex - 1;
-          setActiveIndex(nextIndex < 0 ? value.length - 1 : nextIndex);
-        };
-
-        const prevKey =
-          orientation === "horizontal"
-            ? direction === "ltr"
-              ? "ArrowLeft"
-              : "ArrowRight"
-            : "ArrowUp";
-
-        const nextKey =
-          orientation === "horizontal"
-            ? direction === "ltr"
-              ? "ArrowRight"
-              : "ArrowLeft"
-            : "ArrowDown";
-
-        if (e.key === nextKey) {
-          moveNext();
-        } else if (e.key === prevKey) {
-          movePrev();
-        } else if (e.key === "Enter" || e.key === "Space") {
-          if (activeIndex === -1) {
-            dropzoneState.inputRef.current?.click();
-          }
-        } else if (e.key === "Delete" || e.key === "Backspace") {
-          if (activeIndex !== -1) {
-            removeFileFromSet(activeIndex);
-            if (value.length - 1 === 0) {
-              setActiveIndex(-1);
-              return;
-            }
-            movePrev();
-          }
-        } else if (e.key === "Escape") {
-          setActiveIndex(-1);
-        }
-      },
-      [value, activeIndex, removeFileFromSet, orientation, direction],
-    );
-
     const onDrop = React.useCallback(
       (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
         const files = acceptedFiles;
@@ -210,6 +155,80 @@ export const FileUploader = React.forwardRef<
       onDropAccepted: () => setIsFileTooBig(false),
     });
 
+    const handleKeyDown = React.useCallback(
+      (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const target = e.target;
+        if (
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          (target instanceof HTMLElement && target.isContentEditable)
+        ) {
+          return;
+        }
+
+        if (!value?.length) return;
+
+        const moveNext = () => {
+          const nextIndex = activeIndex + 1;
+          setActiveIndex(nextIndex > value.length - 1 ? 0 : nextIndex);
+        };
+
+        const movePrev = () => {
+          const nextIndex = activeIndex - 1;
+          setActiveIndex(nextIndex < 0 ? value.length - 1 : nextIndex);
+        };
+
+        const prevKey =
+          orientation === "horizontal"
+            ? direction === "ltr"
+              ? "ArrowLeft"
+              : "ArrowRight"
+            : "ArrowUp";
+
+        const nextKey =
+          orientation === "horizontal"
+            ? direction === "ltr"
+              ? "ArrowRight"
+              : "ArrowLeft"
+            : "ArrowDown";
+
+        let handled = false;
+
+        if (e.key === nextKey) {
+          moveNext();
+          handled = true;
+        } else if (e.key === prevKey) {
+          movePrev();
+          handled = true;
+        } else if (e.key === "Enter" || e.key === "Space") {
+          if (activeIndex === -1) {
+            dropzoneState.inputRef.current?.click();
+            handled = true;
+          }
+        } else if (e.key === "Delete" || e.key === "Backspace") {
+          if (activeIndex !== -1) {
+            removeFileFromSet(activeIndex);
+            if (value.length - 1 === 0) {
+              setActiveIndex(-1);
+            } else {
+              movePrev();
+            }
+            handled = true;
+          }
+        } else if (e.key === "Escape") {
+          setActiveIndex(-1);
+          handled = true;
+        }
+
+        if (handled) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      [value, activeIndex, removeFileFromSet, orientation, direction, dropzoneState.inputRef],
+    );
+
     return (
       <FileUploaderContext.Provider
         value={{
@@ -225,7 +244,7 @@ export const FileUploader = React.forwardRef<
       >
         <div
           ref={ref}
-          tabIndex={0}
+          tabIndex={-1}
           onKeyDownCapture={handleKeyDown}
           className={cn(
             "grid w-full focus:outline-none overflow-hidden ",
