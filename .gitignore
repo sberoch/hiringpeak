@@ -37,6 +37,7 @@ npm-debug.log*
 *.pem
 
 data/
+apps/api/logs/*.log
 
 # Local scratch (PRDs, notes — not committed)
 .scratch/

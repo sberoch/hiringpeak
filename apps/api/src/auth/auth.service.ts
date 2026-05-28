@@ -86,7 +86,7 @@ export class AuthService {
 
   async loginWithOrigin(loginDto: LoginDto) {
     const { email, password, origin } = loginDto;
-    this.logger.log(`loginDto: ${JSON.stringify(loginDto)}`);
+    this.logger.log(`Login attempt for ${email} via ${origin ?? 'web'}`);
     const user = await this.validateUserWithOrigin(
       email,
       password,

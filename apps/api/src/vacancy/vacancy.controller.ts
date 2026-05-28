@@ -3,15 +3,21 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
   Query,
   StreamableFile,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiProduces,
@@ -30,15 +36,31 @@ import { PermissionCode } from '@workspace/shared/enums';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { VacancyReportService } from './vacancy-report.service';
+import { CurrentUser } from '../auth/auth.decorators';
+import type { CurrentUserStore } from '../auth/auth.currentuser.store';
+import { FeatureFlag } from '../feature-flag/feature-flag.enum';
+import { FeatureFlagGuard } from '../feature-flag/feature-flag.guard';
+import { RequireFeatureFlags } from '../feature-flag/feature-flag.decorator';
+import { VacancyAiService } from './vacancy-ai.service';
+import { CreateAiVacancyDto } from './vacancy-ai.dto';
+import {
+  assertExtractHasInput,
+  parseVacancyAiUploadFiles,
+  VACANCY_AI_MAX_FILES,
+  type VacancyAiMulterFile,
+} from './vacancy-ai-files';
 
 @ApiBearerAuth()
 @UseGuards(OrganizationGuard, PermissionsGuard)
 @ApiTags('Vacancies')
 @Controller('vacancy')
 export class VacancyController {
+  private readonly logger = new Logger(VacancyController.name);
+
   constructor(
     private readonly vacancyService: VacancyService,
     private readonly vacancyReportService: VacancyReportService,
+    private readonly vacancyAiService: VacancyAiService,
   ) {}
 
   @ApiOkResponse()
@@ -49,6 +71,103 @@ export class VacancyController {
     @OrganizationId() organizationId: number,
   ) {
     return this.vacancyService.findAll({ ...query, organizationId });
+  }
+
+  @ApiOkResponse()
+  @Get('ai/runs')
+  @UseGuards(FeatureFlagGuard)
+  @RequireFeatureFlags([FeatureFlag.AI_VACANCY_PERSISTENCE])
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async listAiVacancyRuns(
+    @CurrentUser() user: CurrentUserStore['user'],
+    @OrganizationId() organizationId: number,
+  ) {
+    const userId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
+    return this.vacancyAiService.listRuns(organizationId, userId);
+  }
+
+  @ApiOkResponse()
+  @Get('ai/runs/:token')
+  @UseGuards(FeatureFlagGuard)
+  @RequireFeatureFlags([FeatureFlag.AI_VACANCY_PERSISTENCE])
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async findAiVacancyRun(
+    @Param('token') token: string,
+    @CurrentUser() user: CurrentUserStore['user'],
+    @OrganizationId() organizationId: number,
+  ) {
+    const userId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
+    return this.vacancyAiService.findRunByToken(token, organizationId, userId);
+  }
+
+  @ApiCreatedResponse()
+  @Post('ai/extract')
+  @UseGuards(FeatureFlagGuard)
+  // @RequireFeatureFlags([FeatureFlag.AI_VACANCY_FLOW])
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FilesInterceptor('files', VACANCY_AI_MAX_FILES, {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async extractWithAi(
+    @Body('prompt') prompt: string | undefined,
+    @UploadedFiles() uploadedFiles: VacancyAiMulterFile[],
+    @CurrentUser() user: CurrentUserStore['user'],
+    @OrganizationId() organizationId: number,
+  ) {
+    this.logger.log('Vacancy AI extraction requested');
+    const userId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    const files = parseVacancyAiUploadFiles(uploadedFiles);
+    const userPrompt = prompt?.trim() || undefined;
+    assertExtractHasInput(userPrompt, files);
+
+    return this.vacancyAiService.extract({
+      userPrompt,
+      files,
+      organizationId,
+      userId,
+    });
+  }
+
+  @ApiCreatedResponse()
+  @AuditAction({ eventType: 'create_vacancy', entityType: 'vacancy' })
+  @Post('ai/create')
+  @UseGuards(FeatureFlagGuard)
+  @RequireFeatureFlags([FeatureFlag.AI_VACANCY_FLOW])
+  @Permissions(PermissionCode.VACANCY_MANAGE)
+  async createWithAi(
+    @Body() createAiVacancyDto: CreateAiVacancyDto,
+    @CurrentUser() user: CurrentUserStore['user'],
+    @OrganizationId() organizationId: number,
+  ) {
+    const createdBy =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+
+    return this.vacancyAiService.create({
+      ...createAiVacancyDto,
+      organizationId,
+      createdBy,
+    });
+  }
+
+  @ApiOkResponse()
+  @Get(':id/ai-source')
+  @UseGuards(FeatureFlagGuard)
+  @RequireFeatureFlags([FeatureFlag.AI_VACANCY_PERSISTENCE])
+  @Permissions(PermissionCode.VACANCY_READ)
+  async findVacancyAiSource(
+    @Param('id') id: string,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.vacancyAiService.findAiSourceForVacancy(+id, organizationId);
   }
 
   @ApiOkResponse()

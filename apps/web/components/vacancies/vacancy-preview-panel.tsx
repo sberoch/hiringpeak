@@ -292,7 +292,7 @@ export function VacancyPreviewPanel({
               ))}
               {f.minStars != null && (
                 <Badge variant="outline" className={filterBadgeCn}>
-                  {"⭐".repeat(f.minStars)}
+                  {`${f.minStars}/5`}
                 </Badge>
               )}
               {(f.minAge != null || f.maxAge != null) && (

@@ -18,6 +18,9 @@ export class VacancyQueryParams extends createZodDto(
 export type CreateVacancyServiceDto = CreateVacancyDto & {
   organizationId: number;
 };
+export type CreateVacancyRecordDto = CreateVacancyServiceDto & {
+  aiVacancyRunId?: number;
+};
 export type UpdateVacancyServiceDto = UpdateVacancyDto & {
   organizationId: number;
 };

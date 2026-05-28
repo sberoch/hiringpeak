@@ -4,6 +4,7 @@ import { Briefcase, Plus } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 
+import { NewAiVacancyLink } from "@/components/vacancies/new-ai-vacancy-link";
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { VacancyTable } from "@/components/vacancies/vacancy-table";
 import { PermissionCode } from "@workspace/shared/enums";
@@ -72,9 +73,12 @@ export default async function Vacancies({ searchParams }: VacanciesProps) {
               Nueva vacante
             </Link>
           </Button>
+
+          <NewAiVacancyLink />
+
         </PermissionGuard>
-      </div>
+      </div >
       <VacancyTable initialFilters={initialFilters} />
-    </div>
+    </div >
   );
 }

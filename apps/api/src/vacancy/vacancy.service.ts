@@ -38,7 +38,6 @@ import {
   VacancyFiltersSeniority,
   vacancyStatuses,
   VacancyStatus,
-  type NewVacancy,
 } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
@@ -49,6 +48,7 @@ import {
 } from '../common/pagination/pagination.utils';
 import {
   CreateVacancyServiceDto,
+  CreateVacancyRecordDto,
   UpdateVacancyServiceDto,
   VacancyFindAllServiceParams,
 } from './vacancy.dto';
@@ -262,71 +262,75 @@ export class VacancyService {
   }
 
   async create(dto: CreateVacancyServiceDto) {
-    const { organizationId, ...createVacancyDto } = dto;
     return this.db.transaction(async (tx) => {
-      const [filters] = await tx
-        .insert(vacancyFilters)
-        .values({
-          ...createVacancyDto.filters,
-          organizationId,
-        })
-        .returning();
-
-      if (!filters) throw new Error('Error creating filters');
-
-      if (createVacancyDto.filters.seniorityIds?.length) {
-        await tx.insert(vacancyFiltersSeniorities).values(
-          createVacancyDto.filters.seniorityIds.map((seniorityId) => ({
-            vacancyFiltersId: filters.id,
-            seniorityId,
-          })),
-        );
-      }
-
-      if (createVacancyDto.filters.areaIds?.length) {
-        await tx.insert(vacancyFiltersAreas).values(
-          createVacancyDto.filters.areaIds.map((areaId) => ({
-            vacancyFiltersId: filters.id,
-            areaId,
-          })),
-        );
-      }
-
-      if (createVacancyDto.filters.industryIds?.length) {
-        await tx.insert(vacancyFiltersIndustries).values(
-          createVacancyDto.filters.industryIds.map((industryId) => ({
-            vacancyFiltersId: filters.id,
-            industryId,
-          })),
-        );
-      }
-
-      // Check if the selected status is final to auto-set closedAt
-      const status = await tx.query.vacancyStatuses.findFirst({
-        where: eq(vacancyStatuses.id, createVacancyDto.statusId),
-      });
-      const closedAt = status?.isFinal ? new Date() : null;
-
-      const [vacancy] = await tx
-        .insert(vacancies)
-        .values({
-          title: createVacancyDto.title,
-          description: createVacancyDto.description ?? '',
-          salary: createVacancyDto.salary ?? null,
-          statusId: createVacancyDto.statusId,
-          vacancyFiltersId: filters.id,
-          companyId: createVacancyDto.companyId,
-          createdBy: createVacancyDto.createdBy,
-          assignedTo: createVacancyDto.assignedTo,
-          organizationId,
-          closedAt,
-        } as NewVacancy)
-        .returning();
-
-      if (!vacancy) throw new Error('Error creating vacancy');
-
-      return vacancy;
+      return this.createRecord(tx, dto);
     });
+  }
+
+  async createRecord(tx: DrizzleDatabase, dto: CreateVacancyRecordDto) {
+    const { organizationId, aiVacancyRunId, ...createVacancyDto } = dto;
+
+    const [filters] = await tx
+      .insert(vacancyFilters)
+      .values({
+        ...createVacancyDto.filters,
+        organizationId,
+      })
+      .returning();
+
+    if (!filters) throw new Error('Error creating filters');
+
+    if (createVacancyDto.filters.seniorityIds?.length) {
+      await tx.insert(vacancyFiltersSeniorities).values(
+        createVacancyDto.filters.seniorityIds.map((seniorityId) => ({
+          vacancyFiltersId: filters.id,
+          seniorityId,
+        })),
+      );
+    }
+
+    if (createVacancyDto.filters.areaIds?.length) {
+      await tx.insert(vacancyFiltersAreas).values(
+        createVacancyDto.filters.areaIds.map((areaId) => ({
+          vacancyFiltersId: filters.id,
+          areaId,
+        })),
+      );
+    }
+
+    if (createVacancyDto.filters.industryIds?.length) {
+      await tx.insert(vacancyFiltersIndustries).values(
+        createVacancyDto.filters.industryIds.map((industryId) => ({
+          vacancyFiltersId: filters.id,
+          industryId,
+        })),
+      );
+    }
+
+    const status = await tx.query.vacancyStatuses.findFirst({
+      where: eq(vacancyStatuses.id, createVacancyDto.statusId),
+    });
+    const closedAt = status?.isFinal ? new Date() : null;
+
+    const vacancyValues = {
+      title: createVacancyDto.title,
+      description: createVacancyDto.description ?? '',
+      salary: createVacancyDto.salary ?? null,
+      statusId: createVacancyDto.statusId,
+      vacancyFiltersId: filters.id,
+      companyId: createVacancyDto.companyId,
+      createdBy: createVacancyDto.createdBy,
+      assignedTo: createVacancyDto.assignedTo,
+      organizationId,
+      closedAt,
+      aiVacancyRunId: aiVacancyRunId ?? null,
+    };
+
+    const [vacancy] = await tx.insert(vacancies).values(vacancyValues).returning();
+
+    if (!vacancy) throw new Error('Error creating vacancy');
+
+    return vacancy;
   }
 
   async update(id: number, dto: UpdateVacancyServiceDto) {
