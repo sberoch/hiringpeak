@@ -3,9 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ListTodo, Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { usePermissions } from "@/contexts/permission-context";
 import {
   completeTask,
   getAllTasks,
@@ -16,6 +17,7 @@ import {
   getUnreadNotificationCount,
   NOTIFICATION_API_KEY,
 } from "@/lib/api/notifications";
+import { PermissionCode } from "@workspace/shared/enums";
 import { Button } from "@workspace/ui/components/button";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import { cn } from "@workspace/ui/lib/utils";
@@ -31,11 +33,21 @@ import {
 } from "./_shared";
 import { TaskSheet } from "./task-sheet";
 
-type Chip = "mine" | "all" | "overdue" | "none" | "notif";
+type ScopeChip = "all" | "mine";
+type FilterChip = "overdue" | "none" | "notif";
+type Chip = ScopeChip | FilterChip;
+
+const SECONDARY_CHIPS: { key: FilterChip; label: string }[] = [
+  { key: "overdue", label: "Vencidas" },
+  { key: "none", label: "Sin fecha" },
+  { key: "notif", label: "Notificaciones" },
+];
 
 export function TasksPage() {
   const queryClient = useQueryClient();
   const session = useSession();
+  const { hasPermission, isLoading: permissionsLoading } = usePermissions();
+  const canReadAll = hasPermission(PermissionCode.TASK_READ_ALL);
   const today = useMemo(() => todayIsoDay(), []);
   const currentUserId = session.data?.userId
     ? parseInt(session.data.userId, 10)
@@ -59,6 +71,11 @@ export function TasksPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<TaskWithRelations | null>(null);
 
+  useEffect(() => {
+    if (permissionsLoading) return;
+    setChip(canReadAll ? "all" : "mine");
+  }, [canReadAll, permissionsLoading]);
+
   const counts = useMemo(() => {
     const open = tasks.filter((t) => !t.completed);
     return {
@@ -71,7 +88,9 @@ export function TasksPage() {
   const filtered = useMemo(() => {
     return tasks
       .filter((t) => {
-        if (chip === "mine") return t.assignedTo === currentUserId;
+        if (canReadAll && chip === "mine") {
+          return t.assignedTo === currentUserId;
+        }
         if (chip === "overdue") return isOverdue(t, today);
         if (chip === "none") return !t.dueDate && !t.completed;
         return true;
@@ -82,7 +101,7 @@ export function TasksPage() {
         const bd = b.dueDate ?? "9999";
         return ad.localeCompare(bd);
       });
-  }, [tasks, chip, currentUserId, today]);
+  }, [tasks, chip, canReadAll, currentUserId, today]);
 
   const completeMutation = useMutation({
     mutationFn: (id: number) => completeTask(id),
@@ -113,13 +132,45 @@ export function TasksPage() {
     setSheetOpen(true);
   };
 
-  const chips: { key: Chip; label: string; badge?: number }[] = [
-    { key: "mine", label: "Mis tareas" },
-    { key: "all", label: "Todas" },
-    { key: "overdue", label: "Vencidas", badge: counts.overdue },
-    { key: "none", label: "Sin fecha" },
-    { key: "notif", label: "Notificaciones", badge: unreadCount },
-  ];
+  const defaultChip: Chip = canReadAll ? "all" : "mine";
+  const handleChipClick = (key: Chip) => {
+    setChip((current) => (current === key ? defaultChip : key));
+  };
+
+  const chips: { key: Chip; label: string; badge?: number }[] = canReadAll
+    ? [
+        { key: "all", label: "Todas" },
+        { key: "mine", label: "Mis tareas" },
+        ...SECONDARY_CHIPS.map((c) => ({
+          ...c,
+          badge:
+            c.key === "overdue"
+              ? counts.overdue
+              : c.key === "notif"
+                ? unreadCount
+                : undefined,
+        })),
+      ]
+    : SECONDARY_CHIPS.map((c) => ({
+        ...c,
+        badge:
+          c.key === "overdue"
+            ? counts.overdue
+            : c.key === "notif"
+              ? unreadCount
+              : undefined,
+      }));
+
+  const emptyMessage =
+    chip === "overdue"
+      ? "No hay tareas vencidas."
+      : chip === "none"
+        ? "No hay tareas sin fecha."
+        : canReadAll && chip === "mine"
+          ? "No tenés tareas asignadas."
+          : canReadAll
+            ? "Todavía no hay tareas en esta organización."
+            : "No tenés tareas asignadas.";
 
   return (
     <div className="mx-auto flex max-w-[1000px] w-full flex-col gap-6">
@@ -127,7 +178,11 @@ export function TasksPage() {
         <PageHeading
           icon={ListTodo}
           title="Tareas"
-          description="Tu bandeja de pendientes y avisos, todo en un solo lugar."
+          description={
+            canReadAll
+              ? "Tu bandeja de pendientes y avisos, todo en un solo lugar."
+              : "Tu backlog de pendientes y avisos."
+          }
         />
         <Button
           type="button"
@@ -147,15 +202,15 @@ export function TasksPage() {
 
       <div className="flex flex-wrap items-center gap-2">
         {chips.map((c) => {
-          const active = chip === c.key;
+          const isActive = chip === c.key;
           return (
             <button
               key={c.key}
               type="button"
-              onClick={() => setChip(c.key)}
+              onClick={() => handleChipClick(c.key)}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all",
-                active
+                isActive
                   ? "bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]"
                   : "bg-surface text-ink ring-1 ring-brand-border hover:ring-electric/30",
               )}
@@ -165,7 +220,7 @@ export function TasksPage() {
                 <span
                   className={cn(
                     "rounded-full px-1.5 text-[11px] font-bold",
-                    active
+                    isActive
                       ? "bg-white/20 text-white"
                       : c.key === "overdue"
                         ? "bg-red-100 text-red-700"
@@ -190,13 +245,7 @@ export function TasksPage() {
             </p>
           ) : filtered.length === 0 ? (
             <p className="px-6 py-16 text-center text-sm text-muted-brand">
-              {chip === "mine"
-                ? "No tenés tareas asignadas."
-                : chip === "overdue"
-                  ? "No hay tareas vencidas."
-                  : chip === "none"
-                    ? "No hay tareas sin fecha."
-                    : "Todavía no hay tareas en esta organización."}
+              {emptyMessage}
             </p>
           ) : (
             filtered.map((task, i) => (

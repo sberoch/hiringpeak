@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { usePermissions } from "@/contexts/permission-context";
 import {
   createTask,
   deleteTask,
@@ -15,6 +16,7 @@ import {
   updateTask,
 } from "@/lib/api/tasks";
 import { getAllUsers, USERS_API_KEY } from "@/lib/api/user";
+import { PermissionCode } from "@workspace/shared/enums";
 import { Button } from "@workspace/ui/components/button";
 import {
   Form,
@@ -70,6 +72,12 @@ export function TaskSheet({
   const isEdit = !!task;
   const queryClient = useQueryClient();
   const session = useSession();
+  const { hasPermission } = usePermissions();
+  const canManageAll = hasPermission(PermissionCode.TASK_MANAGE_ALL);
+  const currentUserId =
+    session.status === "authenticated" && session.data?.userId
+      ? parseInt(session.data.userId, 10)
+      : null;
 
   const { data: usersData } = useQuery({
     queryKey: [USERS_API_KEY, { limit: 1000, page: 1 }],
@@ -137,14 +145,18 @@ export function TaskSheet({
         return updateTask(task.id, {
           title: values.title,
           dueDate: values.dueDate ? values.dueDate : null,
-          assignedTo: values.assignedTo,
+          assignedTo: canManageAll
+            ? values.assignedTo
+            : (currentUserId ?? values.assignedTo),
           ...attachPayload,
         });
       }
       return createTask({
         title: values.title,
         dueDate: values.dueDate ? values.dueDate : null,
-        assignedTo: values.assignedTo,
+        assignedTo: canManageAll
+          ? values.assignedTo
+          : (currentUserId ?? values.assignedTo),
         ...attachPayload,
       });
     },
@@ -218,23 +230,33 @@ export function TaskSheet({
                     <FormItem>
                       <FormLabel>Responsable</FormLabel>
                       <FormControl>
-                        <Select
-                          value={field.value ? String(field.value) : ""}
-                          onValueChange={(v) =>
-                            field.onChange(v ? Number(v) : undefined)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un responsable" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {users.map((u) => (
-                              <SelectItem key={u.id} value={String(u.id)}>
-                                {u.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {canManageAll ? (
+                          <Select
+                            value={field.value ? String(field.value) : ""}
+                            onValueChange={(v) =>
+                              field.onChange(v ? Number(v) : undefined)
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona un responsable" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {users.map((u) => (
+                                <SelectItem key={u.id} value={String(u.id)}>
+                                  {u.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            readOnly
+                            value={
+                              users.find((u) => u.id === field.value)?.name ??
+                              "Yo"
+                            }
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>

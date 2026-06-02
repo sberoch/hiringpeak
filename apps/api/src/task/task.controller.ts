@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -18,11 +19,17 @@ import {
 import { PermissionCode } from '@workspace/shared/enums';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CurrentUser } from '../auth/auth.decorators';
+import { AuthzService } from '../auth/authz/authz.service';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { CreateTaskDto, TaskQueryParams, UpdateTaskDto } from './task.dto';
+import {
+  canAssignTaskTo,
+  canManageTask,
+  hasTaskReadAll,
+} from './task-access';
 import { TaskService } from './task.service';
 
 @ApiBearerAuth()
@@ -30,7 +37,14 @@ import { TaskService } from './task.service';
 @ApiTags('Tasks')
 @Controller('task')
 export class TaskController {
-  constructor(private readonly taskService: TaskService) {}
+  constructor(
+    private readonly taskService: TaskService,
+    private readonly authzService: AuthzService,
+  ) {}
+
+  private parseUserId(user: { id: string | number }): number {
+    return typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+  }
 
   @ApiOkResponse()
   @Get()
@@ -38,8 +52,25 @@ export class TaskController {
   async findAll(
     @Query() query: TaskQueryParams,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
-    return this.taskService.findAll({ ...query, organizationId });
+    const actorUserId = this.parseUserId(user);
+    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
+    const readAll = hasTaskReadAll(codes);
+
+    if (
+      !readAll &&
+      query.assignedTo != null &&
+      query.assignedTo !== actorUserId
+    ) {
+      throw new ForbiddenException('Cannot view tasks assigned to other users');
+    }
+
+    return this.taskService.findAll({
+      ...query,
+      organizationId,
+      assignedTo: readAll ? query.assignedTo : actorUserId,
+    });
   }
 
   @ApiOkResponse()
@@ -49,8 +80,7 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const ownerUserId =
-      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    const ownerUserId = this.parseUserId(user);
     return this.taskService.openCountFor(organizationId, ownerUserId);
   }
 
@@ -61,8 +91,7 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const ownerUserId =
-      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    const ownerUserId = this.parseUserId(user);
     return this.taskService.dueSoonForUser(organizationId, ownerUserId);
   }
 
@@ -79,12 +108,20 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const createdBy =
-      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    const actorUserId = this.parseUserId(user);
+    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
+    if (
+      !canAssignTaskTo(createTaskDto.assignedTo, actorUserId, codes)
+    ) {
+      throw new ForbiddenException(
+        'Cannot create tasks assigned to other users',
+      );
+    }
+
     return this.taskService.create({
       ...createTaskDto,
       organizationId,
-      createdBy,
+      createdBy: actorUserId,
     });
   }
 
@@ -102,8 +139,23 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const actorUserId =
-      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    const actorUserId = this.parseUserId(user);
+    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
+    const existing = await this.taskService.findOne(+id, organizationId);
+
+    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
+      throw new ForbiddenException('Cannot manage tasks assigned to other users');
+    }
+
+    if (
+      updateTaskDto.assignedTo !== undefined &&
+      !canAssignTaskTo(updateTaskDto.assignedTo, actorUserId, codes)
+    ) {
+      throw new ForbiddenException(
+        'Cannot reassign tasks to other users',
+      );
+    }
+
     return this.taskService.update(+id, {
       ...updateTaskDto,
       organizationId,
@@ -124,9 +176,15 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const completedBy =
-      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    return this.taskService.complete(+id, organizationId, completedBy);
+    const actorUserId = this.parseUserId(user);
+    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
+    const existing = await this.taskService.findOne(+id, organizationId);
+
+    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
+      throw new ForbiddenException('Cannot manage tasks assigned to other users');
+    }
+
+    return this.taskService.complete(+id, organizationId, actorUserId);
   }
 
   @ApiOkResponse()
@@ -140,7 +198,16 @@ export class TaskController {
   async reopen(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
+    const actorUserId = this.parseUserId(user);
+    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
+    const existing = await this.taskService.findOne(+id, organizationId);
+
+    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
+      throw new ForbiddenException('Cannot manage tasks assigned to other users');
+    }
+
     return this.taskService.reopen(+id, organizationId);
   }
 
@@ -155,7 +222,16 @@ export class TaskController {
   async remove(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
+    const actorUserId = this.parseUserId(user);
+    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
+    const existing = await this.taskService.findOne(+id, organizationId);
+
+    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
+      throw new ForbiddenException('Cannot manage tasks assigned to other users');
+    }
+
     return this.taskService.remove(+id, organizationId);
   }
 }

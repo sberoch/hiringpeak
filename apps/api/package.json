@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx src/common/database/baseline-migrations.ts && drizzle-kit migrate",
     "db:seed": "tsx src/common/database/seed.ts",
     "db:reset": "tsx src/common/database/seed-reset.ts",
     "db:seed:prod": "tsx src/common/database/seed-prod-init.ts",

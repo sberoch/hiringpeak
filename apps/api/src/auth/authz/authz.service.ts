@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { PermissionCode } from '@workspace/shared/enums';
+import { organizations } from '@workspace/shared/schemas';
+import { eq } from 'drizzle-orm';
+import { DrizzleProvider } from '../../common/database/drizzle.module';
+import type { DrizzleDatabase } from '../../common/database/types/drizzle';
 import { PermissionService } from '../../permission/permission.service';
 import { RoleService } from '../../role/role.service';
 import { UserService } from '../../user/user.service';
@@ -10,6 +14,7 @@ export class AuthzService {
     private readonly userService: UserService,
     private readonly roleService: RoleService,
     private readonly permissionService: PermissionService,
+    @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
   ) {}
 
   /**
@@ -28,11 +33,33 @@ export class AuthzService {
   async getMePermissions(userId: number): Promise<{
     roleId: number | null;
     roleName: string | null;
+    organizationName: string | null;
     permissionCodes: string[];
   }> {
     const user = await this.userService.findById(userId);
-    if (!user?.roleId || user.organizationId == null) {
-      return { roleId: null, roleName: null, permissionCodes: [] };
+    if (!user?.organizationId) {
+      return {
+        roleId: null,
+        roleName: null,
+        organizationName: null,
+        permissionCodes: [],
+      };
+    }
+
+    let organizationName: string | null = null;
+    const org = await this.db.query.organizations.findFirst({
+      where: eq(organizations.id, user.organizationId),
+      columns: { name: true },
+    });
+    organizationName = org?.name ?? null;
+
+    if (!user.roleId) {
+      return {
+        roleId: null,
+        roleName: null,
+        organizationName,
+        permissionCodes: [],
+      };
     }
 
     try {
@@ -43,11 +70,17 @@ export class AuthzService {
       return {
         roleId: user.roleId,
         roleName: role.name,
+        organizationName,
         permissionCodes,
       };
     } catch (err) {
       if (err instanceof NotFoundException) {
-        return { roleId: null, roleName: null, permissionCodes: [] };
+        return {
+          roleId: null,
+          roleName: null,
+          organizationName,
+          permissionCodes: [],
+        };
       }
       throw err;
     }

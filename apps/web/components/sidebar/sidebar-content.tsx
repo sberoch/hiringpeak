@@ -16,14 +16,19 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { ComponentProps } from "react";
 
 import { SidebarDialogs } from "@/components/sidebar/dialogs";
 import { usePermissions } from "@/contexts/permission-context";
 import { DialogsIdsEnum, REDIRECT_UNAUTHORIZED } from "@/lib/consts";
 import { getMyOpenTaskCount, TASK_API_KEY } from "@/lib/api/tasks";
+import { getInitials } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
+import {
+  Avatar,
+  AvatarFallback,
+} from "@workspace/ui/components/avatar";
 import {
   Collapsible,
   CollapsibleContent,
@@ -387,6 +392,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
       </SidebarContent>
 
       <SidebarFooter className="shrink-0 gap-0 border-t border-sidebar-border p-0">
+        <SidebarUserIdentity />
         <SidebarMenu className="px-2 py-3 group-data-[collapsible=icon]:px-1">
           <SidebarMenuItem>
             {sidebarUiExpanded ? (
@@ -438,6 +444,51 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
       <SidebarRail />
       <SidebarDialogs />
     </Sidebar>
+  );
+}
+
+function SidebarUserIdentity() {
+  const { data: session } = useSession();
+  const { organizationName } = usePermissions();
+  const { state, isMobile, openMobile } = useSidebar();
+  const sidebarUiExpanded = isMobile ? openMobile : state === "expanded";
+
+  const email = session?.user?.email ?? "";
+  const name = session?.user?.name ?? email;
+  const initials = name ? getInitials(name) : "?";
+  const tooltip = [email, organizationName].filter(Boolean).join(" · ");
+
+  if (!email) return null;
+
+  return (
+    <div className="border-b border-sidebar-border px-3 py-3 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
+      <div
+        className="flex min-w-0 items-center gap-3"
+        title={!sidebarUiExpanded ? tooltip : undefined}
+      >
+        <Avatar className="size-9 shrink-0">
+          <AvatarFallback className="bg-electric/10 text-[11px] font-semibold text-electric">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+          <p
+            className="truncate text-[13px] font-medium text-ink"
+            title={email}
+          >
+            {email}
+          </p>
+          {organizationName ? (
+            <p
+              className="truncate text-[12px] text-muted-brand"
+              title={organizationName}
+            >
+              {organizationName}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -8,6 +8,27 @@
       "when": 1779969420300,
       "tag": "0000_quiet_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779970000000,
+      "tag": "0001_task_all_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779970100000,
+      "tag": "0002_task_base_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779970200000,
+      "tag": "0003_tasks_notifications",
+      "breakpoints": true
     }
   ]
 }

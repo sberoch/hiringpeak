@@ -36,8 +36,10 @@ const PERMISSION_SEED: { code: string; label: string; description: string }[] = 
   { code: PermissionCode.SETTINGS_READ, label: 'Ver configuración', description: 'Ver configuración de la organización' },
   { code: PermissionCode.SETTINGS_MANAGE, label: 'Gestionar configuración', description: 'Modificar configuración' },
   { code: PermissionCode.AUDIT_LOG_READ, label: 'Ver auditoría', description: 'Ver registro de auditoría' },
-  { code: PermissionCode.TASK_READ, label: 'Ver tareas', description: 'Ver listado y detalle de tareas' },
-  { code: PermissionCode.TASK_MANAGE, label: 'Gestionar tareas', description: 'Crear, editar, completar, reasignar y eliminar tareas' },
+  { code: PermissionCode.TASK_READ, label: 'Ver tareas propias', description: 'Ver tareas asignadas al usuario' },
+  { code: PermissionCode.TASK_READ_ALL, label: 'Ver todas las tareas', description: 'Ver tareas de todos los usuarios de la organización' },
+  { code: PermissionCode.TASK_MANAGE, label: 'Gestionar tareas propias', description: 'Crear, editar, completar y eliminar tareas propias' },
+  { code: PermissionCode.TASK_MANAGE_ALL, label: 'Gestionar todas las tareas', description: 'Crear, editar, completar, reasignar y eliminar tareas de cualquier usuario' },
 ];
 
 @Injectable()

@@ -82,13 +82,23 @@ const PERMISSION_SEED: { code: string; label: string; description: string }[] =
     },
     {
       code: PermissionCode.TASK_READ,
-      label: 'Ver tareas',
-      description: 'Ver listado y detalle de tareas',
+      label: 'Ver tareas propias',
+      description: 'Ver tareas asignadas al usuario',
+    },
+    {
+      code: PermissionCode.TASK_READ_ALL,
+      label: 'Ver todas las tareas',
+      description: 'Ver tareas de todos los usuarios de la organización',
     },
     {
       code: PermissionCode.TASK_MANAGE,
-      label: 'Gestionar tareas',
-      description: 'Crear, editar, completar, reasignar y eliminar tareas',
+      label: 'Gestionar tareas propias',
+      description: 'Crear, editar, completar y eliminar tareas propias',
+    },
+    {
+      code: PermissionCode.TASK_MANAGE_ALL,
+      label: 'Gestionar todas las tareas',
+      description: 'Crear, editar, completar, reasignar y eliminar tareas de cualquier usuario',
     },
   ];
 
@@ -101,6 +111,7 @@ const READ_ONLY_CODES = [
   PermissionCode.AREA_READ,
   PermissionCode.SETTINGS_READ,
   PermissionCode.TASK_READ,
+  PermissionCode.TASK_MANAGE,
 ];
 const MANAGER_CODES = ALL_PERMISSION_CODES.filter(
   (c) => c !== PermissionCode.ROLE_MANAGE,

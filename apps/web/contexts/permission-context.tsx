@@ -18,6 +18,7 @@ const STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
 type PermissionContextValue = {
   permissionCodes: PermissionCode[];
   roleName: string | null;
+  organizationName: string | null;
   isLoading: boolean;
   hasPermission: (code: PermissionCode) => boolean;
   hasAnyPermission: (codes: PermissionCode[]) => boolean;
@@ -44,6 +45,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
 
   const permissionCodes: PermissionCode[] = data?.permissionCodes ?? [];
   const roleName = data?.roleName ?? null;
+  const organizationName = data?.organizationName ?? null;
   const isLoading = status === "loading" || (Boolean(accessToken) && queryLoading);
 
   const hasPermission = useCallback(
@@ -60,6 +62,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     () => ({
       permissionCodes,
       roleName,
+      organizationName,
       isLoading,
       hasPermission,
       hasAnyPermission,
@@ -68,6 +71,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     [
       permissionCodes,
       roleName,
+      organizationName,
       isLoading,
       hasPermission,
       hasAnyPermission,

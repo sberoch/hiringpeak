@@ -3,6 +3,7 @@ import { PermissionCode } from "@workspace/shared/enums";
 export type MePermissionsResponse = {
   roleId: number | null;
   roleName: string | null;
+  organizationName: string | null;
   permissionCodes: PermissionCode[];
 };
 
