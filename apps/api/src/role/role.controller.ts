@@ -33,7 +33,11 @@ export class RoleController {
 
   @ApiOkResponse()
   @Get()
-  @Permissions(PermissionCode.ROLE_MANAGE)
+  @Permissions(
+    PermissionCode.ROLE_MANAGE,
+    PermissionCode.USER_MANAGE,
+    PermissionCode.USER_READ,
+  )
   async findAll(
     @Query() query: RoleQueryParams,
     @OrganizationId() organizationId: number,

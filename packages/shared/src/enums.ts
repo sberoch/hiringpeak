@@ -22,7 +22,9 @@ export const PermissionCode = {
   SETTINGS_MANAGE: "SETTINGS_MANAGE",
   AUDIT_LOG_READ: "AUDIT_LOG_READ",
   TASK_READ: "TASK_READ",
+  TASK_READ_ALL: "TASK_READ_ALL",
   TASK_MANAGE: "TASK_MANAGE",
+  TASK_MANAGE_ALL: "TASK_MANAGE_ALL",
 } as const;
 export type PermissionCode =
   (typeof PermissionCode)[keyof typeof PermissionCode];

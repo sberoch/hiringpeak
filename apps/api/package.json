@@ -17,11 +17,12 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx src/common/database/baseline-migrations.ts && drizzle-kit migrate",
     "db:seed": "tsx src/common/database/seed.ts",
     "db:reset": "tsx src/common/database/seed-reset.ts",
     "db:seed:prod": "tsx src/common/database/seed-prod-init.ts",
-    "db:seed:demo": "tsx src/common/database/seed-demo.ts"
+    "db:seed:demo": "tsx src/common/database/seed-demo.ts",
+    "db:reset-user-passwords": "tsx src/common/database/reset-user-passwords.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.61",
