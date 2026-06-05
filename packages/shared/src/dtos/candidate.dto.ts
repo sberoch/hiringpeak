@@ -7,7 +7,7 @@ export const CreateCandidateSchema = z.object({
   dateOfBirth: z.string().optional().or(z.literal("")),
   gender: z.string().min(1),
   shortDescription: z.string().optional().or(z.literal("")),
-  email: z.email(),
+  email: z.email().optional().or(z.literal("")),
   linkedin: z.string().optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),

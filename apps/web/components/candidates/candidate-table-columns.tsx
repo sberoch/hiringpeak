@@ -24,6 +24,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover";
 
 import { CandidateStars } from "./candidate-stars";
 import { DeleteCandidateDialog } from "./delete-candidate-dialog";
@@ -168,32 +173,14 @@ export const columns: ColumnDef<Candidate>[] = [
               )}
             </div>
             {shortDescription && (
-              <p className="text-xs text-slate-brand truncate 2xl:hidden mt-0.5">
-                {shortDescription.length > 80
-                  ? shortDescription.substring(0, 80) + "..."
+              <p className="text-xs text-slate-brand truncate mt-0.5">
+                {shortDescription.length > 65
+                  ? shortDescription.substring(0, 65) + "..."
                   : shortDescription}
               </p>
             )}
           </div>
         </div>
-      );
-    },
-  },
-  {
-    accessorKey: "shortDescription",
-    header: () => (
-      <span className="pl-4 font-semibold text-slate-brand">Descripción</span>
-    ),
-    meta: { className: "hidden 2xl:table-cell" },
-    cell: ({ row }) => {
-      const shortDescription = row.original.shortDescription;
-      if (!shortDescription) return <span className="text-muted-brand">Sin descripción</span>;
-      return (
-        <span className="text-slate-brand">
-          {shortDescription.length > 100
-            ? shortDescription.substring(0, 100) + "..."
-            : shortDescription}
-        </span>
       );
     },
   },
@@ -206,12 +193,39 @@ export const columns: ColumnDef<Candidate>[] = [
       const vacancies = row.original.vacancies;
       if (!vacancies?.length)
         return <span className="text-muted-brand">Base general</span>;
-      if (vacancies?.length === 1)
-        return <span className="text-ink">{vacancies[0]?.title}</span>;
+      if (vacancies.length === 1)
+        return (
+          <Link
+            href={`/vacancies/${vacancies[0]?.id}`}
+            className="text-ink hover:text-electric transition-colors"
+          >
+            {vacancies[0]?.title}
+          </Link>
+        );
       return (
-        <span className="inline-flex items-center rounded-lg bg-electric/5 px-2.5 py-0.5 text-xs font-semibold text-electric">
-          {vacancies.length} vacantes
-        </span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center rounded-lg bg-electric/5 px-2.5 py-0.5 text-xs font-semibold text-electric cursor-pointer transition-colors hover:bg-electric/10"
+            >
+              {vacancies.length} vacantes
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-64 p-1">
+            <div className="flex flex-col">
+              {vacancies.map((vacancy) => (
+                <Link
+                  key={vacancy.id}
+                  href={`/vacancies/${vacancy.id}`}
+                  className="rounded-md px-2 py-1.5 text-sm text-ink hover:text-electric hover:bg-brand-border-light/40 transition-colors truncate"
+                >
+                  {vacancy.title}
+                </Link>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       );
     },
   },

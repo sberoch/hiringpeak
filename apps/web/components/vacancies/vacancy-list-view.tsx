@@ -28,7 +28,7 @@ interface VacancyListViewProps {
 export function VacancyListView({ initialFilters }: VacancyListViewProps) {
   const { filters, params, resetFilters, setFilters } = useVacancyFilters({
     initialValues: {
-      limit: 15,
+      limit: 50,
       page: 1,
       order: "id:desc",
       ...initialFilters,

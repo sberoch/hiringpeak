@@ -849,7 +849,7 @@ export default function NewCandidateForm({ parsedPdfData }: NewCandidateFormProp
                           </MultiSelectorContent>
                         </MultiSelector>
                       </FormControl>
-                      <FormMessage className="-translate-y-14" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -888,7 +888,7 @@ export default function NewCandidateForm({ parsedPdfData }: NewCandidateFormProp
                           </MultiSelectorContent>
                         </MultiSelector>
                       </FormControl>
-                      <FormMessage className="-translate-y-14" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -927,7 +927,7 @@ export default function NewCandidateForm({ parsedPdfData }: NewCandidateFormProp
                           </MultiSelectorContent>
                         </MultiSelector>
                       </FormControl>
-                      <FormMessage className="-translate-y-14" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

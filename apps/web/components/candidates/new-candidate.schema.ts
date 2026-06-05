@@ -15,10 +15,13 @@ const industrySchema = z.object({
   name: z.string(),
 });
 
-const sourceSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-});
+const sourceSchema = z.object(
+  {
+    id: z.number(),
+    name: z.string(),
+  },
+  { error: "Seleccione una fuente." }
+);
 
 export const candidateFormSchema = z.object({
   name: z.string().min(2, {

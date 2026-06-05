@@ -169,7 +169,7 @@ export class CandidateService {
     return this.db.transaction(async (tx) => {
       const [candidate] = await tx
         .insert(candidates)
-        .values({ ...candidateRow, organizationId })
+        .values({ ...candidateRow, email: candidateRow.email ?? '', organizationId })
         .returning();
 
       if (!candidate) throw new Error('Error creating candidate');
