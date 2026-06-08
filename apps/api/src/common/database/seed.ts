@@ -21,6 +21,7 @@ import { seedCompanies } from './seed/companies';
 import { seedVacancies } from './seed/vacancies';
 import { seedCandidates } from './seed/candidates';
 import { seedCandidateVacancies } from './seed/candidate-vacancies';
+import { seedTasks } from './seed/tasks';
 
 config();
 
@@ -95,6 +96,14 @@ async function main() {
       organizationId,
       vacancyIds,
       candidateVacancyStatusIds: catalogs.candidateVacancyStatusIds,
+    });
+
+    // --- Tasks ---
+    await seedTasks(tx, {
+      organizationId,
+      userId,
+      vacancyIds,
+      companyIds,
     });
   });
 

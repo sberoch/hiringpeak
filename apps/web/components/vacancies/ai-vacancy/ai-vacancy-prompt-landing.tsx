@@ -1,6 +1,6 @@
 "use client";
 
-import { BriefcaseBusiness } from "lucide-react";
+import { BriefcaseBusiness, Loader2, Sparkles } from "lucide-react";
 
 import { AiVacancyComposerInput } from "./ai-vacancy-composer-input";
 
@@ -49,13 +49,32 @@ export function AiVacancyPromptLanding({
       <div className="w-full max-w-3xl">
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-electric text-white shadow-[0_2px_8px_-2px_rgba(0,102,255,0.4)]">
-            <BriefcaseBusiness className="h-6 w-6" />
+            {isGenerating ? (
+              <Sparkles className="h-6 w-6 animate-pulse" />
+            ) : (
+              <BriefcaseBusiness className="h-6 w-6" />
+            )}
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-ink">Describí la vacante</h2>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-brand">
-            Describí el rol en texto, adjuntá documentos (PDF, DOCX, TXT) o ambos. Generamos un
-            borrador para que revises datos, filtros y candidatos antes de publicar.
-          </p>
+          {isGenerating ? (
+            <>
+              <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-ink">
+                <Loader2 className="h-5 w-5 animate-spin text-electric" />
+                Generando borrador…
+              </h2>
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-brand">
+                Estamos interpretando tu descripción para proponer título, compensación, filtros y
+                una primera lista de candidatos. Esto puede tardar unos segundos.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold tracking-tight text-ink">Describí la vacante</h2>
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-brand">
+                Describí el rol en texto, adjuntá documentos (PDF, DOCX, TXT) o ambos. Generamos un
+                borrador para que revises datos, filtros y candidatos antes de publicar.
+              </p>
+            </>
+          )}
         </div>
 
         <AiVacancyComposerInput

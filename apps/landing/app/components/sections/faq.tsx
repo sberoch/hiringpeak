@@ -41,7 +41,7 @@ const faqItems = [
 
 export function FAQ() {
   return (
-    <section className="relative overflow-x-hidden py-32 bg-canvas">
+    <section className="relative overflow-clip py-32 bg-canvas">
       <div className="relative z-10 mx-auto max-w-4xl px-6 lg:px-8">
         <div className="mb-16 text-center">
           <Reveal>

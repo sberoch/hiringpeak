@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, Loader2 } from "lucide-react";
 
 import { Button } from "@workspace/ui/components/button";
 import { Label } from "@workspace/ui/components/label";
@@ -120,9 +120,14 @@ export function AiVacancyManualConfirmSection({
           disabled={!isReadyToCreate || isCreating}
           onClick={onCreate}
         >
-          {isCreating
-            ? "Creando vacante..."
-            : `Crear vacante con ${selectedCount} candidato${selectedCount === 1 ? "" : "s"}`}
+          {isCreating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creando vacante...
+            </>
+          ) : (
+            `Crear vacante con ${selectedCount} candidato${selectedCount === 1 ? "" : "s"}`
+          )}
         </Button>
       </div>
     </AiVacancySection>
