@@ -2,13 +2,14 @@ import { CheckIcon } from "@/app/components/check-icon";
 import { Button } from "@/app/components/button";
 import { Input } from "@/app/components/input";
 import { Label } from "@workspace/ui/components/label";
+import { Eyebrow } from "@/app/components/eyebrow";
 import { Reveal } from "@/app/components/reveal";
 import { submitContact } from "@/app/actions/contact";
 
 const benefits = [
   "Migración de datos incluida",
   "Capacitación para tu equipo",
-  "Soporte dedicado 24/7",
+  "Soporte dedicado",
 ];
 
 export function CTASection() {
@@ -24,10 +25,7 @@ export function CTASection() {
         <div className="grid items-center gap-16 lg:grid-cols-2 lg:gap-24">
           <Reveal>
             <div>
-              <div className="mb-6 inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-wide text-accent">
-                <span className="h-px w-10 bg-gradient-to-r from-accent to-transparent" />
-                Empezá hoy
-              </div>
+              <Eyebrow className="mb-6">Empezá hoy</Eyebrow>
               <h2 className="font-display mb-6 text-4xl font-bold leading-tight tracking-tight text-white md:text-5xl">
                 ¿Listo para transformar tu firma?
               </h2>
@@ -103,7 +101,7 @@ export function CTASection() {
                 />
               </div>
             </div>
-            <Button type="submit" variant="primary" size="full">
+            <Button type="submit" variant="primary" size="full" className="cursor-pointer">
               Solicitar Demo
             </Button>
             <p className="mt-4 text-center text-sm text-muted">

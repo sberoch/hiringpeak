@@ -202,6 +202,29 @@ body {
 .fade-up-1 { animation-delay: 0.1s; }
 .fade-up-2 { animation-delay: 0.2s; }
 .fade-up-3 { animation-delay: 0.3s; }
+
+/* Lightbox (image zoom dialog) */
+@keyframes lightbox-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lightbox-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes lightbox-content-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes lightbox-content-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+.lightbox-overlay[data-state="open"] { animation: lightbox-overlay-in 0.2s ease-out; }
+.lightbox-overlay[data-state="closed"] { animation: lightbox-overlay-out 0.15s ease-in; }
+.lightbox-content[data-state="open"] { animation: lightbox-content-in 0.2s cubic-bezier(0.22, 1, 0.36, 1); }
+.lightbox-content[data-state="closed"] { animation: lightbox-content-out 0.15s ease-in; }
 .fade-up-4 { animation-delay: 0.4s; }
 .fade-up-5 { animation-delay: 0.5s; }
 
@@ -289,6 +312,21 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Stats panel — connected cells with hairline dividers */
+.stat-panel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-cell {
+  background: rgba(10, 15, 28, 0.6);
+  transition: background 0.3s ease;
+}
+
+.stat-cell:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 /* Product frame */

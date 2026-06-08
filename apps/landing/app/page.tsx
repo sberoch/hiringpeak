@@ -2,6 +2,7 @@ import { NavBar } from "@/app/components/nav-bar";
 import { Hero } from "@/app/components/sections/hero";
 import { ProductPipeline } from "@/app/components/sections/product-pipeline";
 import { ProductProfiles } from "@/app/components/sections/product-profiles";
+import { ProductVacancies } from "@/app/components/sections/product-vacancies";
 import { Stats } from "@/app/components/sections/stats";
 import { LinkedInSection } from "@/app/components/sections/linkedin-section";
 import { FeaturesGrid } from "@/app/components/sections/features-grid";
@@ -18,6 +19,7 @@ export default function Home() {
         <Hero />
         <ProductPipeline />
         <ProductProfiles />
+        <ProductVacancies />
         <Stats />
         <LinkedInSection />
         <FeaturesGrid />

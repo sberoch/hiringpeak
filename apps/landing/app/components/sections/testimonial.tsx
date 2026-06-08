@@ -6,7 +6,7 @@ export function Testimonial() {
   return (
     <section className="relative overflow-hidden py-32 gradient-mesh-soft">
       <div className="orb orb-blue top-1/2 left-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 opacity-20" />
-      <div className="relative mx-auto max-w-5xl px-6 lg:px-8">
+      <div className="relative mx-auto max-w-6xl px-6 lg:px-8">
         <Reveal>
           <Card
             variant="testimonial"
@@ -22,20 +22,20 @@ export function Testimonial() {
                 >
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
-                <blockquote className="font-display mb-8 text-2xl font-bold leading-snug text-ink md:text-3xl lg:text-4xl">
-                  &quot;Por fin una herramienta que entiende cómo trabajamos.
-                  HiringPeak nos permitió{" "}
+                <blockquote className="font-display mb-8 text-xl font-bold leading-snug text-ink md:text-2xl lg:text-3xl">
+                  &quot;Probamos varios ATS y ninguno entendía cómo trabaja una
+                  firma de búsqueda. Con HiringPeak el equipo{" "}
                   <span className="bg-gradient-to-r from-accent to-accent-deeper bg-clip-text text-transparent">
-                    duplicar nuestras colocaciones
+                    lleva el doble de búsquedas en paralelo
                   </span>{" "}
-                  en 6 meses.&quot;
+                  y dejamos de perder candidatos entre mails y planillas.&quot;
                 </blockquote>
                 <div>
                   <p className="text-lg font-semibold text-ink">
                     María González
                   </p>
                   <p className="text-slate">
-                    Socia Directora, Executive Search Boutique
+                    Socia Directora, Vértice Executive Search
                   </p>
                 </div>
               </div>

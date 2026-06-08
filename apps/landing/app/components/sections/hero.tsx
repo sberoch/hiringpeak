@@ -64,11 +64,17 @@ export function Hero() {
             </span>
           </h1>
           <p className="fade-up fade-up-3 mb-10 max-w-2xl text-lg leading-relaxed text-slate md:text-xl">
-            Pipeline visual, perfiles ejecutivos detallados, integración con
-            LinkedIn. Todo lo que necesitás para cerrar más colocaciones C-level.
+            Capturá ejecutivos desde LinkedIn, evaluá cada perfil a fondo y
+            seguí tus búsquedas en un pipeline visual. Cerrá más colocaciones
+            sin que se te escape ningún candidato.
           </p>
-          <div className="fade-up fade-up-4 flex flex-col items-center gap-4 sm:flex-row">
-            <Button asChild variant="primary" size="lg" className="group gap-3">
+          <div className="fade-up fade-up-4 flex w-full flex-col items-stretch gap-4 sm:w-auto sm:flex-row sm:items-center">
+            <Button
+              asChild
+              variant="primary"
+              size="lg"
+              className="group w-full cursor-pointer gap-3 sm:w-auto"
+            >
               <Link href="#contacto">
                 Solicitar Demo
                 <ArrowRightIcon className="size-5 transition-transform group-hover:translate-x-1" />
@@ -78,7 +84,7 @@ export function Hero() {
               type="button"
               variant="secondary"
               size="lg"
-              className="gap-2"
+              className="w-full cursor-pointer gap-2 sm:w-auto"
               onClick={open}
             >
               <PlayIcon className="size-5 text-accent" />
@@ -116,7 +122,7 @@ export function Hero() {
                 type="button"
                 onClick={open}
                 aria-label="Reproducir video demo"
-                className="group relative block aspect-video w-full overflow-hidden bg-ink"
+                className="group relative block aspect-video w-full cursor-pointer overflow-hidden bg-ink"
               >
                 <Image
                   src={DEMO_POSTER_SRC}

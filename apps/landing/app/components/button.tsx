@@ -14,9 +14,9 @@ const landingButtonVariants = cva(
           "bg-surface border border-border text-ink hover:bg-canvas hover:border-accent",
       },
       size: {
-        default: "h-11 px-6 py-3 text-sm has-[>svg]:px-4",
-        lg: "px-8 py-4 text-base has-[>svg]:px-5 [&_svg]:size-5",
-        full: "w-full py-4 text-lg",
+        default: "h-11 px-6 text-sm has-[>svg]:px-4",
+        lg: "h-14 px-8 text-base has-[>svg]:px-5 [&_svg]:size-5",
+        full: "h-14 w-full text-lg",
       },
     },
     defaultVariants: {

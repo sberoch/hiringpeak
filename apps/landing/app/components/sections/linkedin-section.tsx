@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Badge } from "@/app/components/badge";
+import { Eyebrow } from "@/app/components/eyebrow";
 import { Card } from "@/app/components/card";
 import { Reveal } from "@/app/components/reveal";
 
@@ -26,11 +26,7 @@ export function LinkedInSection() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-20 text-center">
           <Reveal>
-            <Badge className="mb-6">
-              <span className="bg-gradient-to-r from-accent to-accent-dark bg-clip-text text-transparent">
-                Sourcing Inteligente
-              </span>
-            </Badge>
+            <Eyebrow className="mb-6">Sourcing Inteligente</Eyebrow>
             <h2 className="font-display mx-auto max-w-3xl text-4xl font-bold leading-tight tracking-tight text-ink md:text-5xl lg:text-6xl">
               De LinkedIn a tu base de datos
               <span className="bg-gradient-to-r from-accent to-accent-deeper bg-clip-text text-transparent">

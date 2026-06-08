@@ -36,7 +36,7 @@ export function Footer() {
             ))}
           </nav>
           <p className="text-sm text-white/40">
-            &copy; 2024 HiringPeak. Hecho para Executive Search.
+            &copy; 2026 HiringPeak. Hecho para Executive Search.
           </p>
         </div>
       </div>

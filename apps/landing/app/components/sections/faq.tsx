@@ -7,35 +7,35 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@workspace/ui/components/accordion";
-import { Badge } from "@/app/components/badge";
+import { Eyebrow } from "@/app/components/eyebrow";
 import { Reveal } from "@/app/components/reveal";
 import { cn } from "@workspace/ui/lib/utils";
 
 const faqItems = [
   {
-    question: "¿Qué es HiringPeak y para quién está diseñado?",
+    question: "¿Qué es HiringPeak y para quién es?",
     answer:
-      "HiringPeak es un ATS (Applicant Tracking System) diseñado específicamente para firmas de Executive Search. A diferencia de otros ATS genéricos, está construido para manejar búsquedas de alto nivel, con funcionalidades como perfiles ejecutivos detallados, integración con LinkedIn, y un pipeline visual optimizado para colocaciones C-level.",
+      "Es un ATS pensado exclusivamente para firmas de executive search. A diferencia de los ATS genéricos, está hecho para cómo trabajás vos: cazás talento pasivo, evaluás perfiles ejecutivos a fondo y le entregás un shortlist a tu cliente. Captura desde LinkedIn, perfiles detallados, pipeline visual e informes listos para enviar.",
   },
   {
     question: "¿Cómo funciona la integración con LinkedIn?",
     answer:
-      "Nuestra extensión de Chrome te permite capturar perfiles de ejecutivos directamente desde LinkedIn con un solo click. Se importan automáticamente el nombre, posición actual, foto, email y teléfono cuando están disponibles. Esto elimina la carga manual de datos y acelera tu proceso de sourcing.",
+      "Con nuestra extensión de Chrome capturás el perfil de un ejecutivo directamente desde LinkedIn, con un click. Se importan automáticamente nombre, posición actual y foto, además de email y teléfono cuando están disponibles. Te ahorrás la carga manual y sumás candidatos a tu base en segundos.",
   },
   {
     question: "¿Puedo migrar mis datos desde otro sistema?",
     answer:
-      "Sí, ofrecemos migración de datos completa como parte de nuestro proceso de onboarding. Nuestro equipo se encarga de importar tus candidatos, clientes, búsquedas y documentos desde tu sistema anterior, ya sea una planilla de Excel, otro ATS, o cualquier otra herramienta que estés usando.",
+      "Sí, y va incluida en el onboarding. Nuestro equipo importa tus candidatos, clientes, búsquedas y documentos desde donde los tengas hoy: una planilla de Excel, otro ATS o la herramienta que uses. Arrancás con todo tu historial cargado, sin empezar de cero.",
   },
   {
-    question: "¿Cuántos usuarios pueden acceder a la plataforma?",
+    question: "¿Para equipos de qué tamaño sirve?",
     answer:
-      "HiringPeak está diseñado para equipos de cualquier tamaño. Ofrecemos planes flexibles que se adaptan a firmas boutique de 2-3 personas hasta operaciones más grandes. Cada plan incluye roles y permisos configurables (Admin, Manager, Recruiter) para que cada miembro tenga el acceso adecuado.",
+      "Funciona igual para una boutique de 2 o 3 personas que para un equipo más grande. Incluye roles y permisos configurables (Administrador, Manager, Recruiter) para que cada uno vea y haga exactamente lo que le corresponde.",
   },
   {
     question: "¿Qué tipo de soporte ofrecen?",
     answer:
-      "Brindamos soporte dedicado 24/7 a todos nuestros clientes. Además del soporte técnico, incluimos capacitación inicial para tu equipo, sesiones de onboarding personalizadas, y acceso a nuestra base de conocimientos con tutoriales y mejores prácticas para Executive Search.",
+      "Soporte dedicado para todos los clientes. Sumamos capacitación inicial para tu equipo, sesiones de onboarding personalizadas y acceso a tutoriales y buenas prácticas de executive search, para que le saques provecho desde el primer día.",
   },
 ];
 
@@ -45,11 +45,7 @@ export function FAQ() {
       <div className="relative z-10 mx-auto max-w-4xl px-6 lg:px-8">
         <div className="mb-16 text-center">
           <Reveal>
-            <Badge className="mb-6">
-              <span className="bg-gradient-to-r from-accent to-accent-dark bg-clip-text text-transparent">
-                FAQ
-              </span>
-            </Badge>
+            <Eyebrow className="mb-6">FAQ</Eyebrow>
             <h2 className="font-display text-4xl font-bold leading-tight tracking-tight text-ink md:text-5xl">
               Preguntas frecuentes
             </h2>
@@ -66,10 +62,10 @@ export function FAQ() {
                   value={`item-${i}`}
                   className={cn(
                     "glass-card-strong rounded-2xl overflow-hidden border-0",
-                    "data-[state=open]:border-accent/20"
+                    "data-[state=open]:border-accent/20",
                   )}
                 >
-                  <AccordionTrigger className="px-8 py-6 text-left font-display text-lg font-semibold text-ink hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                  <AccordionTrigger className="cursor-pointer px-8 py-6 text-left font-display text-lg font-semibold text-ink hover:no-underline [&[data-state=open]>svg]:rotate-180">
                     {item.question}
                   </AccordionTrigger>
                   <AccordionContent className="px-8 pb-6">
