@@ -80,6 +80,7 @@ Reglas:
 - companyId es opcional y conservador: complétalo solo si el prompt o los documentos nombran una empresa que coincide claramente con una del catálogo. Si la empresa tiene descripción en el catálogo, úsala como señal para industryIds.
 - Interpreta listas con "y" u "o" como arreglos OR. Nunca conviertas eso en lógica AND estructurada.
 - Si un dato no está respaldado por el prompt o los documentos, déjalo vacío.
+- Campos numéricos opcionales (minStars, minAge, maxAge): complétalos solo si el usuario los menciona explícitamente; nunca uses 0 como relleno.
 - assignedTo y statusId NO forman parte de esta extracción.
 ${buildSeniorityGuidelines()}
 ${buildDescriptionGuidelines()}

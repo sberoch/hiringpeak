@@ -411,7 +411,7 @@ function applyDeterministicVacancyPolicy(
     );
   }
 
-  if (nextDraft.filters.minStars == null) {
+  if (!nextDraft.filters.minStars) {
     nextDraft.filters.minStars = DEFAULT_MIN_STARS;
   }
 
@@ -492,6 +492,9 @@ export class VacancyAiService {
             content: [...fileParts, { type: 'text', text: promptText }],
           },
         ],
+        // OpenAI strict mode rejects schemas with optional properties; the
+        // output is still zod-validated by the SDK and sanitized afterwards.
+        providerOptions: { openai: { strictJsonSchema: false } },
         output: Output.object({
           schema: EXTRACTION_RESULT_SCHEMA,
           name: 'vacancy_draft_extraction',
