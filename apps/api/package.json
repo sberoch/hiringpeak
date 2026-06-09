@@ -90,7 +90,9 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.5",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "unplugin-swc": "^1.5.1",
+    "vitest": "^3.0.0"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -111,9 +113,6 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "typescript-eslint": "^8.20.0",
-    "unplugin-swc": "^1.5.1",
-    "vitest": "^3.0.0"
+    "testEnvironment": "node"
   }
 }
