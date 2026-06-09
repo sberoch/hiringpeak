@@ -6,16 +6,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { generateText, Output } from 'ai';
+import { generateText, NoObjectGeneratedError, Output } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
-import { z } from 'zod';
 import { asc, and, eq, inArray } from 'drizzle-orm';
 import type {
   AiVacancyDraft,
   AiVacancyRunDetail,
   ExtractVacancyAiResponse,
 } from '@workspace/shared/types/vacancy-ai';
-import { AiVacancyDraftSchema } from '@workspace/shared/dtos';
 import {
   areas,
   candidateVacancies,
@@ -47,6 +45,11 @@ import type {
 } from './vacancy-ai.dto';
 import { searchIdCatalog, type IdCatalogOption } from './vacancy-ai.matcher';
 import {
+  LLM_EXTRACTION_RESULT_SCHEMA,
+  toAiVacancyDraft,
+  toExtractionMetadata,
+} from './vacancy-ai-extraction-schema';
+import {
   buildExtractionSystemPrompt,
   VACANCY_AI_DESCRIPTION_MAX_LENGTH,
   type CatalogContext,
@@ -68,15 +71,6 @@ const DEFAULT_COUNTRY = 'Argentina';
 const DEFAULT_PROVINCE = 'Buenos Aires';
 const DEFAULT_LANGUAGE_ENGLISH = 'Inglés';
 
-const EXTRACTION_METADATA_SCHEMA = z.object({
-  inferredFields: z.array(z.string()).default([]),
-  unresolvedSignals: z.array(z.string()).default([]),
-});
-
-const EXTRACTION_RESULT_SCHEMA = z.object({
-  draft: AiVacancyDraftSchema,
-  metadata: EXTRACTION_METADATA_SCHEMA,
-});
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
@@ -496,14 +490,15 @@ export class VacancyAiService {
         // output is still zod-validated by the SDK and sanitized afterwards.
         providerOptions: { openai: { strictJsonSchema: false } },
         output: Output.object({
-          schema: EXTRACTION_RESULT_SCHEMA,
+          schema: LLM_EXTRACTION_RESULT_SCHEMA,
           name: 'vacancy_draft_extraction',
           description: 'Structured vacancy draft extraction result',
         }),
       });
 
+      const extractionMetadata = toExtractionMetadata(result.output.metadata);
       const sanitizedDraft = applyDeterministicVacancyPolicy(
-        sanitizeDraft(result.output.draft, catalogs),
+        sanitizeDraft(toAiVacancyDraft(result.output.draft), catalogs),
         catalogs,
         promptText,
       );
@@ -528,7 +523,7 @@ export class VacancyAiService {
         draft: sanitizedDraft,
         documents: documentInputs,
         extractionMetadata: toJsonValue({
-          finalMetadata: result.output.metadata,
+          finalMetadata: extractionMetadata,
           documentCount: files.length,
         }),
         totalUsage: toJsonValue({ extraction: result.usage }),
@@ -544,6 +539,11 @@ export class VacancyAiService {
         `Vacancy AI extraction failed for token ${publicToken}`,
         error instanceof Error ? error.stack : undefined,
       );
+      if (NoObjectGeneratedError.isInstance(error)) {
+        this.logger.error(
+          `Raw model output for token ${publicToken}: ${error.text ?? '(empty)'}`,
+        );
+      }
       const latencyMs = Date.now() - startedAt;
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown extraction error';
