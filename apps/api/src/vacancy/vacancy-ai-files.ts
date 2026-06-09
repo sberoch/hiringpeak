@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import mammoth from 'mammoth';
 
 export const VACANCY_AI_MAX_FILES = 5;
 export const VACANCY_AI_MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -126,4 +127,46 @@ export function buildExtractionPromptText(
   }
 
   return 'Generá la vacante a partir de los documentos adjuntos.';
+}
+
+export type VacancyAiModelContentPart =
+  | { type: 'file'; data: Buffer; mediaType: 'application/pdf' }
+  | { type: 'text'; text: string };
+
+export async function normalizeFilesForModel(
+  files: VacancyAiUploadFile[],
+): Promise<VacancyAiModelContentPart[]> {
+  return Promise.all(
+    files.map(async (file): Promise<VacancyAiModelContentPart> => {
+      if (file.mimeType === 'application/pdf') {
+        return {
+          type: 'file',
+          data: file.buffer,
+          mediaType: 'application/pdf',
+        };
+      }
+
+      if (file.mimeType === 'text/plain') {
+        return {
+          type: 'text',
+          text: `Documento adjunto "${file.fileName}":\n${file.buffer.toString('utf-8')}`,
+        };
+      }
+
+      try {
+        const { value } = await mammoth.extractRawText({
+          buffer: file.buffer,
+        });
+
+        return {
+          type: 'text',
+          text: `Documento adjunto "${file.fileName}":\n${value}`,
+        };
+      } catch {
+        throw new BadRequestException(
+          `No se pudo leer el archivo DOCX: ${file.fileName}`,
+        );
+      }
+    }),
+  );
 }
