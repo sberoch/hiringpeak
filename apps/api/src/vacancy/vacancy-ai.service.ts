@@ -1,19 +1,13 @@
 import {
+  BadGatewayException,
   BadRequestException,
   Inject,
   Injectable,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  generateText,
-  hasToolCall,
-  Output,
-  stepCountIs,
-  tool,
-  type UserModelMessage,
-} from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { generateText, Output } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { asc, and, desc, eq, inArray } from 'drizzle-orm';
 import type {
@@ -51,27 +45,24 @@ import type {
   CreateAiVacancyServiceDto,
   ExtractVacancyAiServiceParams,
 } from './vacancy-ai.dto';
+import { searchIdCatalog, type IdCatalogOption } from './vacancy-ai.matcher';
 import {
-  normalizeForMatch,
-  searchIdCatalog,
-  searchStringCatalog,
-  type IdCatalogOption,
-} from './vacancy-ai.matcher';
+  buildExtractionSystemPrompt,
+  VACANCY_AI_DESCRIPTION_MAX_LENGTH,
+  type CatalogContext,
+} from './vacancy-ai-prompt';
 import { VacancyService } from './vacancy.service';
 import {
   assertExtractHasInput,
   buildExtractionPromptText,
+  normalizeFilesForModel,
   resolveSourceType,
-  type VacancyAiUploadFile,
 } from './vacancy-ai-files';
 import {
-  buildSeniorityInferenceGuidelines,
   inferSeniorityBandFromText,
   resolveSeniorityIdsFromInference,
-  senioritySearchQueriesForBand,
 } from './vacancy-ai-seniority';
 
-const VACANCY_AI_DESCRIPTION_MAX_LENGTH = 1500;
 const DEFAULT_MIN_STARS = 3.5;
 const DEFAULT_COUNTRY = 'Argentina';
 const DEFAULT_PROVINCE = 'Buenos Aires';
@@ -86,15 +77,6 @@ const EXTRACTION_RESULT_SCHEMA = z.object({
   draft: AiVacancyDraftSchema,
   metadata: EXTRACTION_METADATA_SCHEMA,
 });
-const SUBMIT_DRAFT_CONTEXT_TOOL = 'submitDraftContext';
-
-type CatalogContext = {
-  areas: IdCatalogOption[];
-  companies: Array<IdCatalogOption & { description?: string | null }>;
-  industries: IdCatalogOption[];
-  seniorities: IdCatalogOption[];
-};
-
 type ExtractionResult = z.infer<typeof EXTRACTION_RESULT_SCHEMA>;
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
@@ -724,54 +706,26 @@ export class VacancyAiService {
       sortOrder: index,
     }));
 
+    const fileParts = await normalizeFilesForModel(files);
+
     const publicToken = crypto.randomUUID();
     const startedAt = Date.now();
-    const apiKey =
-      this.configService.get<string>('GEMINI_API_KEY') ??
-      this.configService.get<string>('GOOGLE_GENERATIVE_AI_API_KEY');
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     const modelName =
-      this.configService.get<string>('VACANCY_AI_MODEL') ?? 'gemini-2.5-flash';
-    const google = createGoogleGenerativeAI(apiKey ? { apiKey } : {});
+      this.configService.get<string>('VACANCY_AI_MODEL') ?? 'gpt-5.4-mini';
+    const openai = createOpenAI(apiKey ? { apiKey } : {});
     const catalogs = await this.loadCatalogContext(params.organizationId);
-    const hasDocuments = files.length > 0;
 
     try {
-      const contextResult = hasDocuments
-        ? await generateText({
-            model: google(modelName),
-            system: buildContextGenerationPrompt(catalogs, true),
-            messages: [buildStage1UserMessage(files, promptText)],
-            tools: this.buildContextTools(catalogs, params.organizationId),
-            toolChoice: 'required',
-            stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
-          })
-        : await generateText({
-            model: google(modelName),
-            system: buildContextGenerationPrompt(catalogs, false),
-            prompt: promptText,
-            tools: this.buildContextTools(catalogs, params.organizationId),
-            toolChoice: 'required',
-            stopWhen: [hasToolCall(SUBMIT_DRAFT_CONTEXT_TOOL), stepCountIs(12)],
-          });
-
-      const resolvedContext = getSubmittedDraftContext(contextResult.toolCalls);
-      const sanitizedContext: ExtractionResult = {
-        draft: applyDeterministicVacancyPolicy(
-          sanitizeDraft(resolvedContext.draft, catalogs),
-          catalogs,
-          promptText,
-        ),
-        metadata: resolvedContext.metadata,
-      };
-
-      const structuredResult = await generateText({
-        model: google(modelName),
-        system: 'Eres un extractor final de vacantes para un ATS.',
-        prompt: buildStructuredExtractionPrompt(
-          promptText,
-          sanitizedContext,
-          catalogs,
-        ),
+      const result = await generateText({
+        model: openai(modelName),
+        system: buildExtractionSystemPrompt(catalogs),
+        messages: [
+          {
+            role: 'user',
+            content: [...fileParts, { type: 'text', text: promptText }],
+          },
+        ],
         output: Output.object({
           schema: EXTRACTION_RESULT_SCHEMA,
           name: 'vacancy_draft_extraction',
@@ -780,14 +734,14 @@ export class VacancyAiService {
       });
 
       const sanitizedDraft = applyDeterministicVacancyPolicy(
-        sanitizeDraft(structuredResult.output.draft, catalogs),
+        sanitizeDraft(result.output.draft, catalogs),
         catalogs,
         promptText,
       );
       this.logger.debug({
         model: modelName,
         publicToken,
-        usage: combineUsage(contextResult.usage, structuredResult.usage),
+        usage: result.usage,
       });
 
       const latencyMs = Date.now() - startedAt;
@@ -801,21 +755,14 @@ export class VacancyAiService {
         userPrompt: userPrompt ?? null,
         model: modelName,
         status: 'succeeded',
-        responseText: structuredResult.text,
+        responseText: result.text,
         draft: sanitizedDraft,
         documents: documentInputs,
         extractionMetadata: toJsonValue({
-          contextMetadata: sanitizedContext.metadata,
-          contextSteps: contextResult.steps,
-          finalMetadata: structuredResult.output.metadata,
-          structuredSteps: structuredResult.steps,
+          finalMetadata: result.output.metadata,
           documentCount: files.length,
         }),
-        totalUsage: toJsonValue({
-          contextGeneration: contextResult.usage,
-          structuredExtraction: structuredResult.usage,
-          combined: combineUsage(contextResult.usage, structuredResult.usage),
-        }),
+        totalUsage: toJsonValue({ extraction: result.usage }),
         latencyMs,
       });
 
@@ -829,7 +776,6 @@ export class VacancyAiService {
         error instanceof Error ? error.stack : undefined,
       );
       const latencyMs = Date.now() - startedAt;
-      const fallbackDraft = createEmptyDraft();
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown extraction error';
 
@@ -842,16 +788,15 @@ export class VacancyAiService {
         userPrompt: userPrompt ?? null,
         model: modelName,
         status: 'failed',
-        draft: fallbackDraft,
+        draft: createEmptyDraft(),
         documents: documentInputs,
         errorMessage,
         latencyMs,
       });
 
-      return {
-        token: publicToken,
-        draft: fallbackDraft,
-      };
+      throw new BadGatewayException(
+        'No se pudo generar el borrador con IA. Intenta nuevamente.',
+      );
     }
   }
 
