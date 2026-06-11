@@ -96,6 +96,29 @@ export type Vacancy = Omit<
   assignedTo: User;
 };
 
+/** Slim candidacy carried by the list endpoint: enough for avatars + status chips. */
+export type VacancyListCandidacy = {
+  id: number;
+  candidate: Pick<Candidate, "id" | "name" | "image">;
+  status: Pick<CandidateVacancyStatus, "id" | "name">;
+};
+
+export type VacancyStatusCount = {
+  name: string;
+  count: number;
+};
+
+/**
+ * Shape served by GET /vacancy (the list). Instead of the full `candidates`
+ * graph it carries aggregates plus the newest few candidacies; screens that
+ * need every candidacy fetch the vacancy by id.
+ */
+export type VacancyListItem = Omit<Vacancy, "candidates"> & {
+  candidateCount: number;
+  candidateStatusCounts: VacancyStatusCount[];
+  recentCandidates: VacancyListCandidacy[];
+};
+
 export type VacancyParams = PaginationFilters & {
   title?: string;
   statusId?: number;

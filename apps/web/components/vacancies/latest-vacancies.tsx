@@ -10,7 +10,7 @@ import { ArrowRight, Briefcase, Building2, Clock, Users } from "lucide-react";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import type { PaginatedResponse } from "@workspace/shared/types/api";
-import type { Vacancy } from "@workspace/shared/types/vacancy";
+import type { VacancyListItem } from "@workspace/shared/types/vacancy";
 import { VACANCY_API_KEY, getAllVacancies } from "@/lib/api/vacancy";
 import { CATALOG_TYPE_COLORS, getVacancyFilterTags, stringToColor, vacancyDisplayLabel } from "@/lib/utils";
 import { CandidateAvatarStack } from "@/components/ui/candidate-avatar-stack";
@@ -27,7 +27,7 @@ export function LatestVacancies({
   openStatusId,
   closedStatusId,
 }: LatestVacanciesProps) {
-  const { data, isLoading } = useQuery<PaginatedResponse<Vacancy>>({
+  const { data, isLoading } = useQuery<PaginatedResponse<VacancyListItem>>({
     queryKey: [VACANCY_API_KEY, { page: 1, limit: 5, order: "createdAt:desc" }],
     queryFn: () =>
       getAllVacancies({ page: 1, limit: 5, order: "createdAt:desc" }),
@@ -97,7 +97,7 @@ export function LatestVacancies({
         <div className="divide-y divide-brand-border-light">
           {vacancies.map((vacancy) => {
             const statusColor = stringToColor(vacancy.status.name);
-            const candidateCount = vacancy.candidates.length;
+            const candidateCount = vacancy.candidateCount;
             const tags = getVacancyFilterTags(vacancy.filters);
 
             return (
@@ -145,7 +145,7 @@ export function LatestVacancies({
                 <div className="flex items-center gap-2.5 shrink-0">
                   {candidateCount > 0 && (
                     <div className="hidden sm:block">
-                      <CandidateAvatarStack candidates={vacancy.candidates} />
+                      <CandidateAvatarStack candidates={vacancy.recentCandidates} total={candidateCount} />
                     </div>
                   )}
 

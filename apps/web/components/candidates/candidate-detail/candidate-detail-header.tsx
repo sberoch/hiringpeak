@@ -140,16 +140,7 @@ export const CandidateProfileCard = ({
     { previousCandidate: Candidate | undefined }
   >({
     mutationFn: async (newStars: number) => {
-      return updateCandidate(candidate.id, {
-        name: candidate.name,
-        dateOfBirth: candidate.dateOfBirth,
-        gender: candidate.gender,
-        sourceId: candidate.source?.id,
-        seniorityIds: candidate.seniorities.map((seniority) => seniority.id),
-        areaIds: candidate.areas.map((area) => area.id),
-        industryIds: candidate.industries.map((industry) => industry.id),
-        stars: newStars,
-      });
+      return updateCandidate(candidate.id, { stars: newStars });
     },
     onMutate: async (newStars) => {
       await queryClient.cancelQueries({

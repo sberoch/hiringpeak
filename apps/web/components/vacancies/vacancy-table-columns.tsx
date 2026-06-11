@@ -34,12 +34,12 @@ import {
   stringToColor,
   vacancyDisplayLabel,
 } from "@/lib/utils";
-import type { Vacancy } from "@workspace/shared/types/vacancy";
+import type { VacancyListItem } from "@workspace/shared/types/vacancy";
 import { PermissionGuard } from "../auth/permission-guard";
 import { PermissionCode } from "@workspace/shared/enums";
 
 interface CellActionsProps {
-  vacancy: Vacancy;
+  vacancy: VacancyListItem;
 }
 
 const CellActions = ({ vacancy }: CellActionsProps) => {
@@ -94,16 +94,8 @@ const CellActions = ({ vacancy }: CellActionsProps) => {
   );
 };
 
-const CandidatesCell = ({ vacancy }: { vacancy: Vacancy }) => {
-  const candidatesByStatus: Record<string, number> = {};
-
-  vacancy.candidates.forEach((candidate) => {
-    const statusName = candidate.status?.name ?? "-";
-    candidatesByStatus[statusName] =
-      (candidatesByStatus[statusName] || 0) + 1;
-  });
-
-  const totalCandidates = vacancy.candidates.length;
+const CandidatesCell = ({ vacancy }: { vacancy: VacancyListItem }) => {
+  const totalCandidates = vacancy.candidateCount;
 
   if (totalCandidates === 0) {
     return <div className="text-muted-brand text-sm">Sin candidatos</div>;
@@ -124,7 +116,7 @@ const CandidatesCell = ({ vacancy }: { vacancy: Vacancy }) => {
         </Tooltip>
       </TooltipProvider>
 
-      {Object.entries(candidatesByStatus).map(([status, count]) => {
+      {vacancy.candidateStatusCounts.map(({ name: status, count }) => {
         const color = stringToColor(status);
         return (
           <TooltipProvider key={status}>
@@ -154,7 +146,7 @@ const CandidatesCell = ({ vacancy }: { vacancy: Vacancy }) => {
   );
 };
 
-const StatusCell = ({ vacancy }: { vacancy: Vacancy }) => {
+const StatusCell = ({ vacancy }: { vacancy: VacancyListItem }) => {
   const color = stringToColor(vacancy.status.name);
   return (
     <Badge variant="secondary" className="rounded-lg text-xs font-semibold" style={{ backgroundColor: color }}>
@@ -172,7 +164,7 @@ const DaysCell = ({ createdAt }: { createdAt: string }) => {
   );
 };
 
-export const columns: ColumnDef<Vacancy>[] = [
+export const columns: ColumnDef<VacancyListItem>[] = [
   {
     accessorKey: "id",
     header: ({ column }) => {
@@ -188,7 +180,7 @@ export const columns: ColumnDef<Vacancy>[] = [
       );
     },
     cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
+      const vacancy: VacancyListItem = row.original;
       return (
         <Link href={`/vacancies/${vacancy.id}`} className="font-medium text-ink hover:text-electric transition-colors">
           {vacancyDisplayLabel(vacancy)}
@@ -202,7 +194,7 @@ export const columns: ColumnDef<Vacancy>[] = [
       <span className="pl-4 font-semibold text-slate-brand">Empresa</span>
     ),
     cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
+      const vacancy: VacancyListItem = row.original;
       return <div className="text-ink">{vacancy.company.name}</div>;
     },
   },
@@ -263,13 +255,13 @@ export const columns: ColumnDef<Vacancy>[] = [
   },
 ];
 
-const CandidateAvatarsCell = ({ vacancy }: { vacancy: Vacancy }) => {
-  const total = vacancy.candidates.length;
+const CandidateAvatarsCell = ({ vacancy }: { vacancy: VacancyListItem }) => {
+  const total = vacancy.candidateCount;
   if (total === 0) {
     return <div className="text-muted-brand text-sm">Sin candidatos</div>;
   }
 
-  const visible = vacancy.candidates.slice(0, 5);
+  const visible = vacancy.recentCandidates;
   const remaining = total - visible.length;
 
   return (
@@ -312,7 +304,7 @@ const CandidateAvatarsCell = ({ vacancy }: { vacancy: Vacancy }) => {
   );
 };
 
-const CatalogBadgesCell = ({ vacancy }: { vacancy: Vacancy }) => {
+const CatalogBadgesCell = ({ vacancy }: { vacancy: VacancyListItem }) => {
   const f = vacancy.filters;
   const seniorities = f?.seniorities ?? [];
   const areas = f?.areas ?? [];
@@ -341,7 +333,7 @@ const CatalogBadgesCell = ({ vacancy }: { vacancy: Vacancy }) => {
   );
 };
 
-export const companyDetailColumns: ColumnDef<Vacancy>[] = [
+export const companyDetailColumns: ColumnDef<VacancyListItem>[] = [
   {
     accessorKey: "id",
     header: ({ column }) => {
@@ -357,7 +349,7 @@ export const companyDetailColumns: ColumnDef<Vacancy>[] = [
       );
     },
     cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
+      const vacancy: VacancyListItem = row.original;
       return (
         <Link
           href={`/vacancies/${vacancy.id}`}
@@ -430,14 +422,14 @@ export const companyDetailColumns: ColumnDef<Vacancy>[] = [
   },
 ];
 
-export const dashboardColumns: ColumnDef<Vacancy>[] = [
+export const dashboardColumns: ColumnDef<VacancyListItem>[] = [
   {
     accessorKey: "title",
     header: () => (
       <span className="font-semibold text-slate-brand">Título</span>
     ),
     cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
+      const vacancy: VacancyListItem = row.original;
       return (
         <Link href={`/vacancies/${vacancy.id}`} className="font-medium text-ink hover:text-electric transition-colors">
           {vacancyDisplayLabel(vacancy)}
@@ -451,7 +443,7 @@ export const dashboardColumns: ColumnDef<Vacancy>[] = [
       <span className="pl-4 font-semibold text-slate-brand">Empresa</span>
     ),
     cell: ({ row }) => {
-      const vacancy: Vacancy = row.original;
+      const vacancy: VacancyListItem = row.original;
       return <div className="text-ink">{vacancy.company.name}</div>;
     },
   },

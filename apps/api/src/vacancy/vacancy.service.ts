@@ -12,6 +12,7 @@ import {
   eq,
   ilike,
   inArray,
+  lte,
   or,
   SQL,
   sql,
@@ -27,6 +28,7 @@ import {
   CandidateVacancy as CandidateVacancySchema,
   candidateVacancies,
   CandidateVacancyStatus,
+  candidateVacancyStatuses,
   Comment,
   RejectionReason,
   Company,
@@ -133,6 +135,31 @@ export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
 };
 
 /**
+ * Lean shape served by the list endpoint (`findAll`). The list screens only
+ * render counts, a status breakdown, and a handful of avatars — so instead of
+ * hydrating every candidacy with its full candidate graph, the list carries
+ * aggregates plus the most recent candidacies (capped). Consumers needing the
+ * full candidacy array (kanban, simulate, wizard) use `findOne`.
+ */
+export type VacancyListItemApiResponse = Omit<
+  VacancyApiResponse,
+  'candidates'
+> & {
+  candidateCount: number;
+  candidateStatusCounts: Array<{ name: string; count: number }>;
+  recentCandidates: Array<{
+    id: number;
+    candidate: Pick<Candidate, 'id' | 'name' | 'image'>;
+    status: Pick<CandidateVacancyStatus, 'id' | 'name'>;
+  }>;
+};
+
+type VacancyListQueryResult = Omit<VacancyQueryResult, 'candidateVacancies'>;
+
+/** How many candidacies the list ships per Vacancy (avatar stack + recent list). */
+const RECENT_CANDIDACIES_LIMIT = 5;
+
+/**
  * Per-candidacy row for the Excel **Report Format** — the full dump. Unlike the
  * client-facing PDF (which omits internal-only fields), this carries everything:
  * the candidate's taxonomy, plus the internal-only **Blacklist** and **Comments**
@@ -166,7 +193,7 @@ export class VacancyService {
 
   async findAll(
     params: VacancyFindAllServiceParams,
-  ): Promise<PaginatedResponse<Partial<VacancyApiResponse>>> {
+  ): Promise<PaginatedResponse<VacancyListItemApiResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
     const orderClause = this.buildOrderBy(params);
@@ -198,17 +225,6 @@ export class VacancyService {
           },
         },
         company: true,
-        candidateVacancies: {
-          with: {
-            candidate: {
-              with: {
-                source: true,
-              },
-            },
-            candidateVacancyStatus: true,
-            rejectionReason: true,
-          },
-        },
         createdBy: true,
         assignedTo: true,
       },
@@ -224,8 +240,149 @@ export class VacancyService {
       countQuery,
     ]);
 
-    const parsedItems = items.map(this.transformQueryResult);
+    const vacancyIds = items.map((vacancy) => vacancy.id);
+    const [statusCounts, recentCandidacies] = await Promise.all([
+      this.countCandidaciesByVacancyAndStatus(vacancyIds),
+      this.findRecentCandidaciesByVacancy(vacancyIds),
+    ]);
+
+    const parsedItems = items.map((item) =>
+      this.transformListQueryResult(
+        item,
+        statusCounts.get(item.id) ?? [],
+        recentCandidacies.get(item.id) ?? [],
+      ),
+    );
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
+  }
+
+  /**
+   * Candidacy counts per Vacancy broken down by candidacy status, excluding
+   * soft-deleted Candidates. Ordered by the statuses' pipeline `sort` so the
+   * list's status badges render in pipeline order.
+   */
+  private async countCandidaciesByVacancyAndStatus(
+    vacancyIds: number[],
+  ): Promise<Map<number, Array<{ name: string; count: number }>>> {
+    const countsByVacancy = new Map<
+      number,
+      Array<{ name: string; count: number }>
+    >();
+    if (vacancyIds.length === 0) {
+      return countsByVacancy;
+    }
+
+    const rows = await this.db
+      .select({
+        vacancyId: candidateVacancies.vacancyId,
+        statusName: candidateVacancyStatuses.name,
+        statusSort: candidateVacancyStatuses.sort,
+        value: count(candidateVacancies.id),
+      })
+      .from(candidateVacancies)
+      .innerJoin(candidates, eq(candidates.id, candidateVacancies.candidateId))
+      .innerJoin(
+        candidateVacancyStatuses,
+        eq(
+          candidateVacancyStatuses.id,
+          candidateVacancies.candidateVacancyStatusId,
+        ),
+      )
+      .where(
+        and(
+          inArray(candidateVacancies.vacancyId, vacancyIds),
+          eq(candidates.deleted, false),
+        ),
+      )
+      .groupBy(
+        candidateVacancies.vacancyId,
+        candidateVacancyStatuses.name,
+        candidateVacancyStatuses.sort,
+      )
+      .orderBy(asc(candidateVacancyStatuses.sort));
+
+    for (const row of rows) {
+      const counts = countsByVacancy.get(row.vacancyId) ?? [];
+      counts.push({ name: row.statusName, count: Number(row.value) });
+      countsByVacancy.set(row.vacancyId, counts);
+    }
+    return countsByVacancy;
+  }
+
+  /**
+   * The newest non-deleted candidacies per Vacancy, capped at
+   * RECENT_CANDIDACIES_LIMIT each via a window function — feeds the list's
+   * avatar stacks and "recent candidates" preview without hydrating the full
+   * candidacy graph.
+   */
+  private async findRecentCandidaciesByVacancy(
+    vacancyIds: number[],
+  ): Promise<Map<number, VacancyListItemApiResponse['recentCandidates']>> {
+    const recentByVacancy = new Map<
+      number,
+      VacancyListItemApiResponse['recentCandidates']
+    >();
+    if (vacancyIds.length === 0) {
+      return recentByVacancy;
+    }
+
+    // Columns from joined tables need explicit aliases: inside a subquery the
+    // three `id` columns (and the two `name`s) would otherwise collide.
+    const ranked = this.db
+      .select({
+        id: candidateVacancies.id,
+        vacancyId: candidateVacancies.vacancyId,
+        candidateId: sql<number>`${candidates.id}`.as('candidate_id'),
+        candidateName: sql<string>`${candidates.name}`.as('candidate_name'),
+        candidateImage: sql<
+          string | null
+        >`${candidates.image}`.as('candidate_image'),
+        statusId: sql<number>`${candidateVacancyStatuses.id}`.as('status_id'),
+        statusName: sql<string>`${candidateVacancyStatuses.name}`.as(
+          'status_name',
+        ),
+        rowNumber:
+          sql<number>`row_number() over (partition by ${candidateVacancies.vacancyId} order by ${candidateVacancies.id} desc)`.as(
+            'row_number',
+          ),
+      })
+      .from(candidateVacancies)
+      .innerJoin(candidates, eq(candidates.id, candidateVacancies.candidateId))
+      .innerJoin(
+        candidateVacancyStatuses,
+        eq(
+          candidateVacancyStatuses.id,
+          candidateVacancies.candidateVacancyStatusId,
+        ),
+      )
+      .where(
+        and(
+          inArray(candidateVacancies.vacancyId, vacancyIds),
+          eq(candidates.deleted, false),
+        ),
+      )
+      .as('ranked');
+
+    const rows = await this.db
+      .select()
+      .from(ranked)
+      .where(lte(ranked.rowNumber, RECENT_CANDIDACIES_LIMIT))
+      .orderBy(asc(ranked.vacancyId), asc(ranked.rowNumber));
+
+    for (const row of rows) {
+      const recent = recentByVacancy.get(row.vacancyId) ?? [];
+      recent.push({
+        id: row.id,
+        candidate: {
+          id: row.candidateId,
+          name: row.candidateName,
+          image: row.candidateImage,
+        },
+        status: { id: row.statusId, name: row.statusName },
+      });
+      recentByVacancy.set(row.vacancyId, recent);
+    }
+    return recentByVacancy;
   }
 
   /**
@@ -934,6 +1091,39 @@ export class VacancyService {
    * Helper methods for query building
    * These methods handle filtering, ordering, and pagination of post queries
    */
+
+  /** `transformQueryResult` minus the candidacy graph — list aggregates instead. */
+  private transformListQueryResult(
+    result: VacancyListQueryResult,
+    candidateStatusCounts: VacancyListItemApiResponse['candidateStatusCounts'],
+    recentCandidates: VacancyListItemApiResponse['recentCandidates'],
+  ): VacancyListItemApiResponse {
+    const { status, filters, company, ...rest } = result;
+    const { password: _createdByPassword, ...createdBy } = result.createdBy;
+    const { password: _assignedToPassword, ...assignedTo } = result.assignedTo;
+
+    return {
+      ...rest,
+      status,
+      filters: filters
+        ? {
+            ...filters,
+            areas: filters.areaIds?.map((a) => a.area) || [],
+            industries: filters.industryIds?.map((i) => i.industry) || [],
+            seniorities: filters.seniorityIds?.map((s) => s.seniority) || [],
+          }
+        : null,
+      company,
+      candidateCount: candidateStatusCounts.reduce(
+        (total, status) => total + status.count,
+        0,
+      ),
+      candidateStatusCounts,
+      recentCandidates,
+      createdBy,
+      assignedTo,
+    };
+  }
 
   private transformQueryResult(result: VacancyQueryResult): VacancyApiResponse {
     const { status, filters, company, candidateVacancies, ...rest } = result;

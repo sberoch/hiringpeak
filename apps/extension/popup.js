@@ -1,4 +1,4 @@
-const HIRINGPEAK_NEW_CANDIDATE_URL = "https://app.hiringpeak.com/candidates/new";
+const HIRINGPEAK_NEW_CANDIDATE_URL = "http://localhost:3000/candidates/new";
 
 document.addEventListener("DOMContentLoaded", async function () {
   const ackButton = document.getElementById("ackButton");

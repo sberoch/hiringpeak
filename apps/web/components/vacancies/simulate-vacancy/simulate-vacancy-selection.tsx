@@ -13,7 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
+import {
+  getAllVacancies,
+  getVacancyById,
+  VACANCY_API_KEY,
+} from "@/lib/api/vacancy";
 import { cn, vacancyDisplayLabel } from "@/lib/utils";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 
@@ -88,13 +92,20 @@ export const SimulateVacancySelection = ({
     null
   );
   const [selectedVacancyId, setSelectedVacancyId] = useState<string>("");
+  const [isLoadingVacancy, setIsLoadingVacancy] = useState(false);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedOption === "fromScratch") {
       onContinue();
     } else if (selectedOption === "fromVacancy" && selectedVacancyId) {
-      if (!data) return;
-      onContinue(data?.items.find((v) => v.id.toString() === selectedVacancyId));
+      // The list response carries lean items without the full candidacy
+      // array, so fetch the chosen vacancy in full before continuing.
+      setIsLoadingVacancy(true);
+      try {
+        onContinue(await getVacancyById(selectedVacancyId));
+      } finally {
+        setIsLoadingVacancy(false);
+      }
     }
   };
 
@@ -151,11 +162,12 @@ export const SimulateVacancySelection = ({
           variant="brand"
           disabled={
             !selectedOption ||
-            (selectedOption === "fromVacancy" && !selectedVacancyId)
+            (selectedOption === "fromVacancy" && !selectedVacancyId) ||
+            isLoadingVacancy
           }
           onClick={handleContinue}
         >
-          Continuar
+          {isLoadingVacancy ? "Cargando..." : "Continuar"}
         </Button>
       </DialogFooter>
     </>

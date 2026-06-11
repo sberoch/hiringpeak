@@ -6,7 +6,7 @@ import { Search, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-rea
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import type { Vacancy, VacancyFiltersType } from "@workspace/shared/types/vacancy";
+import type { VacancyListItem, VacancyFiltersType } from "@workspace/shared/types/vacancy";
 import type { PaginatedResponse } from "@workspace/shared/types/api";
 import {
   ActiveVacancyFilterChips,
@@ -16,7 +16,7 @@ import {
 import { VacancyCard } from "./vacancy-card";
 
 interface VacancyListPanelProps {
-  data: PaginatedResponse<Vacancy> | undefined;
+  data: PaginatedResponse<VacancyListItem> | undefined;
   isLoading: boolean;
   filters: VacancyFiltersType;
   setFilters: (filters: VacancyFiltersType) => void;
@@ -24,7 +24,7 @@ interface VacancyListPanelProps {
   filtersOpen: boolean;
   setFiltersOpen: (open: boolean) => void;
   selectedVacancyId: number | null;
-  onSelectVacancy: (vacancy: Vacancy) => void;
+  onSelectVacancy: (vacancy: VacancyListItem) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
   mobileMode?: boolean;

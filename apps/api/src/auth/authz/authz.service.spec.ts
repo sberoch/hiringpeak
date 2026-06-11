@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthzService } from './authz.service';
+import { DrizzleProvider } from '../../common/database/drizzle.module';
 import { UserService } from '../../user/user.service';
 import { RoleService } from '../../role/role.service';
 import { PermissionService } from '../../permission/permission.service';
@@ -17,6 +18,13 @@ describe('AuthzService', () => {
   const mockPermissionService = {
     getCodesByIds: vi.fn(),
   };
+  const mockDb = {
+    query: {
+      organizations: {
+        findFirst: vi.fn(),
+      },
+    },
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -26,6 +34,7 @@ describe('AuthzService', () => {
         { provide: UserService, useValue: mockUserService },
         { provide: RoleService, useValue: mockRoleService },
         { provide: PermissionService, useValue: mockPermissionService },
+        { provide: DrizzleProvider, useValue: mockDb },
       ],
     }).compile();
 

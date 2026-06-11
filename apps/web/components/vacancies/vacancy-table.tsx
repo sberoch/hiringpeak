@@ -6,8 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
 import type { PaginatedResponse } from "@workspace/shared/types/api";
 import type {
-  Vacancy,
   VacancyFiltersType,
+  VacancyListItem,
   VacancyParams,
 } from "@workspace/shared/types/vacancy";
 import { VacancyListPanel } from "./vacancy-list-panel";
@@ -31,7 +31,7 @@ export const VacancyTable = ({
     null,
   );
 
-  const { data, isLoading } = useQuery<PaginatedResponse<Vacancy>>({
+  const { data, isLoading } = useQuery<PaginatedResponse<VacancyListItem>>({
     queryKey: [VACANCY_API_KEY, params],
     queryFn: () => getAllVacancies(params),
     staleTime: 0,

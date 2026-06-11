@@ -1,4 +1,4 @@
-import { integer, numeric, pgTable, serial, text } from "drizzle-orm/pg-core";
+import { index, integer, numeric, pgTable, serial, text } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { seniorities } from "./seniority.schema";
 import { areas } from "./area.schema";
@@ -44,7 +44,13 @@ export const vacancyFiltersSeniorities = pgTable(
     seniorityId: integer("seniority_id")
       .references(() => seniorities.id, { onDelete: "cascade" })
       .notNull(),
-  }
+  },
+  (table) => [
+    index("vacancy_filters_seniorities_filters_id_idx").on(
+      table.vacancyFiltersId
+    ),
+    index("vacancy_filters_seniorities_seniority_id_idx").on(table.seniorityId),
+  ]
 );
 
 export const vacancyFiltersSenioritiesRelations = relations(
@@ -69,7 +75,10 @@ export const vacancyFiltersAreas = pgTable("vacancy_filters_areas", {
   areaId: integer("area_id")
     .references(() => areas.id, { onDelete: "cascade" })
     .notNull(),
-});
+}, (table) => [
+  index("vacancy_filters_areas_filters_id_idx").on(table.vacancyFiltersId),
+  index("vacancy_filters_areas_area_id_idx").on(table.areaId),
+]);
 
 export const vacancyFiltersAreasRelations = relations(
   vacancyFiltersAreas,
@@ -93,7 +102,10 @@ export const vacancyFiltersIndustries = pgTable("vacancy_filters_industries", {
   industryId: integer("industry_id")
     .references(() => industries.id, { onDelete: "cascade" })
     .notNull(),
-});
+}, (table) => [
+  index("vacancy_filters_industries_filters_id_idx").on(table.vacancyFiltersId),
+  index("vacancy_filters_industries_industry_id_idx").on(table.industryId),
+]);
 
 export const vacancyFiltersIndustriesRelations = relations(
   vacancyFiltersIndustries,

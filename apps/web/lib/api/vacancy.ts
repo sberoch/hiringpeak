@@ -1,7 +1,11 @@
 import { EditVacancySchema } from "@/components/vacancies/edit-vacancy.schema";
 import { CreateVacancySchema } from "@/components/vacancies/new-vacancy.schema";
 import { PaginatedResponse } from "@workspace/shared/types/api";
-import { Vacancy, VacancyParams } from "@workspace/shared/types/vacancy";
+import {
+  Vacancy,
+  VacancyListItem,
+  VacancyParams,
+} from "@workspace/shared/types/vacancy";
 
 import api from ".";
 import {
@@ -16,7 +20,7 @@ export interface VacancyReportDownload extends DownloadableFile {}
 
 export async function getAllVacancies(params: VacancyParams) {
   const searchParams = filtersToSearchParams(params);
-  const response = await api.get<PaginatedResponse<Vacancy>>(
+  const response = await api.get<PaginatedResponse<VacancyListItem>>(
     `/vacancy${searchParams}`
   );
   return response.data;

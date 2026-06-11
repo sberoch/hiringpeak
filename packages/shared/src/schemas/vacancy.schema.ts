@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   pgTable,
   serial,
@@ -47,7 +48,13 @@ export const vacancies = pgTable("vacancies", {
   closedAt: timestamp("closed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("vacancies_organization_id_idx").on(table.organizationId),
+  index("vacancies_status_id_idx").on(table.statusId),
+  index("vacancies_company_id_idx").on(table.companyId),
+  index("vacancies_vacancy_filters_id_idx").on(table.vacancyFiltersId),
+  index("vacancies_created_at_idx").on(table.createdAt),
+]);
 
 export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
   status: one(vacancyStatuses, {

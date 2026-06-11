@@ -8,14 +8,17 @@ import { getInitials } from "@/lib/utils";
 interface CandidateAvatarStackProps {
   candidates: { id: number; candidate: { name: string; image?: string } }[];
   max?: number;
+  /** Real total when `candidates` is a capped sample (list endpoints send ≤5). */
+  total?: number;
 }
 
 export function CandidateAvatarStack({
   candidates,
   max = 3,
+  total,
 }: CandidateAvatarStackProps) {
   const visible = candidates.slice(0, max);
-  const overflow = candidates.length - visible.length;
+  const overflow = (total ?? candidates.length) - visible.length;
 
   return (
     <div className="flex -space-x-1.5">

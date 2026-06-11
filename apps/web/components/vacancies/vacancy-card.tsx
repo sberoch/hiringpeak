@@ -6,17 +6,17 @@ import { Building2, Users } from "lucide-react";
 import { Badge } from "@workspace/ui/components/badge";
 import { cn, getVacancyFilterTags, CATALOG_TYPE_COLORS, stringToColor } from "@/lib/utils";
 import { CandidateAvatarStack } from "@/components/ui/candidate-avatar-stack";
-import type { Vacancy } from "@workspace/shared/types/vacancy";
+import type { VacancyListItem } from "@workspace/shared/types/vacancy";
 
 interface VacancyCardProps {
-  vacancy: Vacancy;
+  vacancy: VacancyListItem;
   isSelected: boolean;
   onClick: () => void;
 }
 
 export function VacancyCard({ vacancy, isSelected, onClick }: VacancyCardProps) {
   const statusColor = stringToColor(vacancy.status.name);
-  const candidateCount = vacancy.candidates.length;
+  const candidateCount = vacancy.candidateCount;
   const daysDiff = dayjs().diff(dayjs(vacancy.createdAt), "day");
   const allTags = getVacancyFilterTags(vacancy.filters);
 
@@ -46,7 +46,10 @@ export function VacancyCard({ vacancy, isSelected, onClick }: VacancyCardProps) 
         {candidateCount > 0 && (
           <div className="flex items-center gap-1.5 shrink-0">
             <div className="hidden 2xl:block">
-              <CandidateAvatarStack candidates={vacancy.candidates} />
+              <CandidateAvatarStack
+                candidates={vacancy.recentCandidates}
+                total={candidateCount}
+              />
             </div>
             <span className="flex h-6 items-center gap-1 rounded-full bg-electric/10 text-[11px] font-bold text-electric px-2">
               <Users className="h-3 w-3" />
@@ -84,7 +87,10 @@ export function VacancyCard({ vacancy, isSelected, onClick }: VacancyCardProps) 
 
       {candidateCount > 0 && (
         <div className="flex items-center gap-1.5 mt-2.5 2xl:hidden">
-          <CandidateAvatarStack candidates={vacancy.candidates} />
+          <CandidateAvatarStack
+            candidates={vacancy.recentCandidates}
+            total={candidateCount}
+          />
         </div>
       )}
     </button>

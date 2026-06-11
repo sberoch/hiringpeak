@@ -4,12 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { DataTable } from "@workspace/ui/components/data-table";
 import type { PaginatedResponse } from "@workspace/shared/types/api";
-import type { Vacancy } from "@workspace/shared/types/vacancy";
+import type { VacancyListItem } from "@workspace/shared/types/vacancy";
 import { VACANCY_API_KEY, getAllVacancies } from "@/lib/api/vacancy";
 import { dashboardColumns } from "./vacancy-table-columns";
 
 export const VacancyTableHeadless = () => {
-  const { data, isLoading } = useQuery<PaginatedResponse<Vacancy>>({
+  const { data, isLoading } = useQuery<PaginatedResponse<VacancyListItem>>({
     queryKey: [VACANCY_API_KEY, { page: 1, limit: 5, order: "createdAt:desc" }],
     queryFn: () =>
       getAllVacancies({ page: 1, limit: 5, order: "createdAt:desc" }),

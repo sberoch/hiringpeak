@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { candidates } from "./candidate.schema";
 import { vacancies } from "./vacancy.schema";
 import { candidateVacancyStatuses } from "./candidatevacancystatus.schema";
@@ -30,7 +30,10 @@ export const candidateVacancies = pgTable("candidate_vacancies", {
   rejectionNote: text("rejection_note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("candidate_vacancies_vacancy_id_idx").on(table.vacancyId),
+  index("candidate_vacancies_candidate_id_idx").on(table.candidateId),
+]);
 
 export const candidateVacanciesRelations = relations(
   candidateVacancies,

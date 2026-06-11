@@ -19,7 +19,7 @@ import type { Vacancy } from "@workspace/shared/types/vacancy";
 interface DeleteVacancyDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  vacancy: Vacancy | null;
+  vacancy: Pick<Vacancy, "id" | "title"> | null;
 }
 
 export function DeleteVacancyDialog({

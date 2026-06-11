@@ -47,12 +47,12 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { CatalogBadge } from "@/components/ui/catalog-badge";
 import { getInitials, stringToColor, translateGender } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
-import type { Vacancy } from "@workspace/shared/types/vacancy";
+import type { VacancyListItem } from "@workspace/shared/types/vacancy";
 import { PermissionGuard } from "../auth/permission-guard";
 import { DeleteVacancyDialog } from "./delete-vacancy-dialog";
 
 interface VacancyPreviewPanelProps {
-  vacancy: Vacancy | null;
+  vacancy: VacancyListItem | null;
   isLoading?: boolean;
 }
 
@@ -116,17 +116,7 @@ export function VacancyPreviewPanel({
   // recruiter-backdated to before createdAt).
   const daysOpenEnd = vacancy.closedAt ? dayjs(vacancy.closedAt) : dayjs();
   const daysDiff = Math.max(0, daysOpenEnd.diff(dayjs(vacancy.createdAt), "day"));
-  const candidateCount = vacancy.candidates.length;
-
-  // Group candidates by status
-  const candidatesByStatus: Record<string, typeof vacancy.candidates> = {};
-  vacancy.candidates.forEach((cv) => {
-    const statusName = cv.status?.name ?? "Sin estado";
-    if (!candidatesByStatus[statusName]) {
-      candidatesByStatus[statusName] = [];
-    }
-    candidatesByStatus[statusName].push(cv);
-  });
+  const candidateCount = vacancy.candidateCount;
 
   const descriptionTruncated =
     vacancy.description &&
@@ -403,29 +393,27 @@ export function VacancyPreviewPanel({
             <div className="space-y-3">
               {/* Status breakdown */}
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(candidatesByStatus).map(
-                  ([status, candidates]) => {
-                    const color = stringToColor(status);
-                    return (
-                      <Badge
-                        key={status}
-                        variant="secondary"
-                        className="text-xs rounded-lg font-semibold"
-                        style={{ backgroundColor: color }}
-                      >
-                        {candidates.length}{" "}
-                        {status.startsWith("Entrevista")
-                          ? `E. ${status.split(" ")[1]}`
-                          : status}
-                      </Badge>
-                    );
-                  },
-                )}
+                {vacancy.candidateStatusCounts.map(({ name, count }) => {
+                  const color = stringToColor(name);
+                  return (
+                    <Badge
+                      key={name}
+                      variant="secondary"
+                      className="text-xs rounded-lg font-semibold"
+                      style={{ backgroundColor: color }}
+                    >
+                      {count}{" "}
+                      {name.startsWith("Entrevista")
+                        ? `E. ${name.split(" ")[1]}`
+                        : name}
+                    </Badge>
+                  );
+                })}
               </div>
 
               {/* Recent candidates list */}
               <div className="space-y-1">
-                {vacancy.candidates.slice(0, 5).map((cv) => (
+                {vacancy.recentCandidates.map((cv) => (
                   <div
                     key={cv.id}
                     className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-canvas/80 transition-colors"

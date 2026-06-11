@@ -76,7 +76,7 @@ export function candidateVacancyFiltersAdapter(
   };
 }
 
-export function vacancyDisplayLabel(vacancy: Vacancy): string {
+export function vacancyDisplayLabel(vacancy: Pick<Vacancy, "title">): string {
   return vacancy.title;
 }
 
