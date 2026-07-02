@@ -35,6 +35,8 @@ import {
   generateCandidateFilePath,
   generateCandidateImagePath,
   getPublicUrl,
+  isLinkedinCdnUrl,
+  mirrorRemoteImageToFirebase,
   uploadFile,
 } from "@/lib/firebase/utils";
 import type {
@@ -214,8 +216,21 @@ export default function EditCandidateForm({ candidate }: EditCandidateFormProps)
 
   useEffect(() => {
     if (linkedinData?.profilePicture && !hasManuallyChangedImage) {
-      setImageSrc(linkedinData.profilePicture);
-      setImageUrl(linkedinData.profilePicture);
+      const linkedinPicture = linkedinData.profilePicture;
+      setImageSrc(linkedinPicture);
+      setImageUrl(linkedinPicture);
+      // The licdn URL is signed and expires after a few months, so mirror it
+      // into Firebase and swap in the permanent URL. If the user changes the
+      // image while the upload is in flight, their choice wins.
+      mirrorRemoteImageToFirebase(linkedinPicture)
+        .then((permanentUrl) => {
+          setImageUrl((current) =>
+            current === linkedinPicture ? permanentUrl : current
+          );
+        })
+        .catch((error) => {
+          console.error("Error mirroring LinkedIn image to Firebase:", error);
+        });
     }
   }, [linkedinData, hasManuallyChangedImage]);
 
@@ -245,9 +260,21 @@ export default function EditCandidateForm({ candidate }: EditCandidateFormProps)
 
       const allFileIds = [...existingFiles.map((f) => f.id), ...newFileIds];
 
+      // Safety net: if the background mirror hasn't finished (or failed),
+      // never persist an expiring licdn URL — retry the mirror here.
+      let finalImageUrl = imageUrl;
+      if (isLinkedinCdnUrl(finalImageUrl)) {
+        try {
+          finalImageUrl = await mirrorRemoteImageToFirebase(finalImageUrl!);
+          setImageUrl(finalImageUrl);
+        } catch (error) {
+          console.error("Error mirroring LinkedIn image to Firebase:", error);
+        }
+      }
+
       const candidateData: UpdateCandidateDto = {
         ...values,
-        image: imageUrl || undefined,
+        image: finalImageUrl || undefined,
         fileIds: allFileIds,
         seniorityIds: values.seniorities.map((s) => s.id),
         areaIds: values.areas.map((a) => a.id),
