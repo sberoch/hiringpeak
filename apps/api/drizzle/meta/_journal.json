@@ -36,6 +36,13 @@
       "when": 1781190026558,
       "tag": "0004_dusty_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792089339568,
+      "tag": "0005_crm_commercial_access",
+      "breakpoints": true
     }
   ]
 }
