@@ -19,11 +19,19 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { canManageContacts } from "@workspace/shared/lib/contact-access";
-import type { NetworkContact } from "@workspace/shared/types/contact";
+import type {
+  ContactListItem,
+  NetworkContact,
+} from "@workspace/shared/types/contact";
 
 import { usePermissions } from "@/contexts/permission-context";
 import { ContactAvatar } from "./contact-atoms";
 import { ContactCaptureSheet } from "./contact-capture-sheet";
+import {
+  AddFollowUpDialog,
+  NextFollowUpCell,
+  useCanAddFollowUp,
+} from "./contact-follow-ups";
 import { useCurrentUserId } from "./contact-lookups";
 import { DeleteContactDialog } from "./delete-contact-dialog";
 
@@ -34,7 +42,7 @@ function SortHeader({
   column,
   label,
 }: {
-  column: Column<NetworkContact, unknown>;
+  column: Column<ContactListItem, unknown>;
   label: string;
 }) {
   return (
@@ -57,6 +65,8 @@ function CellActions({ contact }: { contact: NetworkContact }) {
   const router = useRouter();
   const { permissionCodes } = usePermissions();
   const canManage = canManageContacts(permissionCodes);
+  const canAddFollowUp = useCanAddFollowUp();
+  const [followUpOpen, setFollowUpOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -98,6 +108,14 @@ function CellActions({ contact }: { contact: NetworkContact }) {
           >
             Abrir LinkedIn
           </DropdownMenuItem>
+          {canAddFollowUp && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => setFollowUpOpen(true)}
+            >
+              Agregar seguimiento
+            </DropdownMenuItem>
+          )}
           {canManage && (
             <>
               <DropdownMenuSeparator />
@@ -124,6 +142,13 @@ function CellActions({ contact }: { contact: NetworkContact }) {
           contact={contact}
         />
       )}
+      {canAddFollowUp && (
+        <AddFollowUpDialog
+          contact={contact}
+          open={followUpOpen}
+          onOpenChange={setFollowUpOpen}
+        />
+      )}
       <DeleteContactDialog
         contact={deleteOpen ? contact : null}
         onClose={() => setDeleteOpen(false)}
@@ -147,7 +172,7 @@ function OwnerCell({ contact }: { contact: NetworkContact }) {
   );
 }
 
-export const columns: ColumnDef<NetworkContact>[] = [
+export const columns: ColumnDef<ContactListItem>[] = [
   {
     id: "name",
     accessorKey: "name",
@@ -218,6 +243,13 @@ export const columns: ColumnDef<NetworkContact>[] = [
     id: "owner",
     header: () => <PlainHeader label="Responsable" />,
     cell: ({ row }) => <OwnerCell contact={row.original} />,
+  },
+  {
+    id: "followUp",
+    header: () => <PlainHeader label="Próximo seguimiento" />,
+    cell: ({ row }) => (
+      <NextFollowUpCell followUp={row.original.nextFollowUp} />
+    ),
   },
   {
     id: "actions",

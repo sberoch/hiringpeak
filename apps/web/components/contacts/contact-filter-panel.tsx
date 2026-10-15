@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellRing,
   Building2,
   RotateCcw,
   SlidersHorizontal,
@@ -59,9 +60,26 @@ function FilterSection({
   );
 }
 
+/**
+ * "Seguimiento: Para contactar" on or off. On, the list is sorted by the
+ * follow-up's due date; off, back to the address book order (by name).
+ */
+export function withFollowUpFilter(
+  filters: ContactFilters,
+  mine: boolean,
+): ContactFilters {
+  if (mine)
+    return { ...filters, followUp: "mine", order: "followUp:asc", page: 1 };
+  const order = filters.order?.startsWith("followUp")
+    ? "name:asc"
+    : filters.order;
+  return { ...filters, followUp: undefined, order, page: 1 };
+}
+
 export function useActiveFilterCount(filters: ContactFilters) {
   return useMemo(() => {
     let count = 0;
+    if (filters.followUp != null) count++;
     if (filters.ownerId != null) count++;
     if (filters.sourceId != null) count++;
     if (filters.company != null) count++;
@@ -91,6 +109,13 @@ export function ActiveFilterChips({
   const companies = useCompanyOptions();
   const me = useCurrentUserId();
   const chips: { label: string; onRemove: () => void }[] = [];
+
+  if (filters.followUp === "mine") {
+    chips.push({
+      label: "Seguimiento: Para contactar",
+      onRemove: () => onFiltersChange(withFollowUpFilter(filters, false)),
+    });
+  }
 
   if (filters.ownerId != null) {
     const user = users.find((u) => u.id === filters.ownerId);
@@ -197,6 +222,25 @@ export function ContactFilterPanel({
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            <FilterSection icon={BellRing} title="Seguimiento">
+              <Select
+                value={filters.followUp ?? "all"}
+                onValueChange={(value) =>
+                  onFiltersChange(withFollowUpFilter(filters, value === "mine"))
+                }
+              >
+                <SelectTrigger className={inputClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mine">
+                    Para contactar (a mi cargo)
+                  </SelectItem>
+                  <SelectItem value="all">Todos los contactos</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterSection>
+
             <FilterSection icon={UserRound} title="Responsable">
               <Select
                 value={selectValue(filters.ownerId)}
@@ -271,7 +315,8 @@ export function ContactFilterPanel({
           <Button
             variant="outline"
             onClick={() =>
-              set({
+              onFiltersChange({
+                ...withFollowUpFilter(filters, false),
                 ownerId: undefined,
                 sourceId: undefined,
                 company: undefined,
