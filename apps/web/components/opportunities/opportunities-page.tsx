@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
+import { CompanyStatus } from "@workspace/shared/enums";
 import { summarizePipeline } from "@workspace/shared/lib/opportunity-pipeline";
 import type {
   OpportunityFilters,
@@ -67,6 +68,7 @@ export function OpportunitiesPage() {
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState(ALL);
   const [lostReason, setLostReason] = useState(ALL);
+  const [companyStatus, setCompanyStatus] = useState(ALL);
   const [onlyNoNextStep, setOnlyNoNextStep] = useState(false);
   /** Explicit expand/collapse choices; groups not in here use their default. */
   const [collapsedOverride, setCollapsedOverride] = useState<
@@ -78,6 +80,8 @@ export function OpportunitiesPage() {
     search: debouncedSearch.trim() || undefined,
     ownerId: owner === ALL ? undefined : owner === MINE ? myId : Number(owner),
     lostReasonId: lostReason === ALL ? undefined : Number(lostReason),
+    companyStatus:
+      companyStatus === ALL ? undefined : (companyStatus as CompanyStatus),
     noNextStep: onlyNoNextStep || undefined,
   };
 
@@ -93,7 +97,11 @@ export function OpportunitiesPage() {
 
   const summary = summarizePipeline(stages ?? [], opportunities ?? []);
   const filtering =
-    !!filters.search || owner !== ALL || lostReason !== ALL || onlyNoNextStep;
+    !!filters.search ||
+    owner !== ALL ||
+    lostReason !== ALL ||
+    companyStatus !== ALL ||
+    onlyNoNextStep;
   const isCollapsed = (stage: OpportunityStage, byDefault: boolean) =>
     collapsedOverride[stage.id] ??
     (stage.isLost && lostReason !== ALL ? false : byDefault);
@@ -146,6 +154,18 @@ export function OpportunitiesPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={companyStatus} onValueChange={setCompanyStatus}>
+          <SelectTrigger className="h-9 w-[200px] bg-surface text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Prospectos y clientes</SelectItem>
+            <SelectItem value={CompanyStatus.PROSPECT}>
+              Solo prospectos
+            </SelectItem>
+            <SelectItem value={CompanyStatus.CLIENT}>Solo clientes</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="ml-1 flex items-center gap-2">
           <Checkbox
             id="only-no-next-step"
@@ -190,6 +210,7 @@ export function OpportunitiesPage() {
                 setSearch("");
                 setOwner(ALL);
                 setLostReason(ALL);
+                setCompanyStatus(ALL);
                 setOnlyNoNextStep(false);
               }}
             >

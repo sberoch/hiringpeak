@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type { CreateVacancySchema } from "@/components/vacancies/new-vacancy.schema";
 import type { EditVacancySchema } from "@/components/vacancies/edit-vacancy.schema";
 
@@ -9,7 +8,6 @@ const REQUIRED_MESSAGE = "Este campo es obligatorio.";
 const companySchema = z.object(
   {
     id: z.number(),
-    status: z.enum([CompanyStatusEnum.ACTIVE, CompanyStatusEnum.PROSPECT]),
     name: z.string(),
     description: z.string().optional(),
   },

@@ -43,23 +43,35 @@ import { cn } from "@workspace/ui/lib/utils";
 
 import {
   apiErrorMessage,
+  defaultOpportunityOwnerId,
   opportunityHref,
   parseMoneyInput,
   useCommercialAccess,
   useCommercialUsers,
 } from "./opportunity-ui";
 
-export function NewOpportunityButton() {
+/** "Nueva oportunidad"; on a Company page, pass its id to preselect it. */
+export function NewOpportunityButton({
+  companyId,
+  size,
+}: {
+  companyId?: number;
+  size?: "sm";
+} = {}) {
   const { canManage } = useCommercialAccess();
   const [open, setOpen] = useState(false);
   if (!canManage) return null;
   return (
     <>
-      <Button variant="brand" onClick={() => setOpen(true)}>
+      <Button variant="brand" size={size} onClick={() => setOpen(true)}>
         <Plus className="h-4 w-4" />
         Nueva oportunidad
       </Button>
-      <NewOpportunitySheet open={open} onOpenChange={setOpen} />
+      <NewOpportunitySheet
+        open={open}
+        onOpenChange={setOpen}
+        companyId={companyId}
+      />
     </>
   );
 }
@@ -67,9 +79,11 @@ export function NewOpportunityButton() {
 function NewOpportunitySheet({
   open,
   onOpenChange,
+  companyId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  companyId?: number;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -82,13 +96,24 @@ function NewOpportunitySheet({
             Un posible trabajo para una empresa. Entra en la primera etapa.
           </SheetDescription>
         </SheetHeader>
-        {open && <NewOpportunityForm onDone={() => onOpenChange(false)} />}
+        {open && (
+          <NewOpportunityForm
+            initialCompanyId={companyId}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );
 }
 
-function NewOpportunityForm({ onDone }: { onDone: () => void }) {
+function NewOpportunityForm({
+  initialCompanyId,
+  onDone,
+}: {
+  initialCompanyId?: number;
+  onDone: () => void;
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSession();
@@ -103,16 +128,20 @@ function NewOpportunityForm({ onDone }: { onDone: () => void }) {
   });
   const { data: commercialUsers = [] } = useCommercialUsers();
 
-  const [companyId, setCompanyId] = useState<number | null>(null);
+  const [companyId, setCompanyId] = useState<number | null>(
+    initialCompanyId ?? null,
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [ownerId, setOwnerId] = useState<number | null>(null);
 
   const company = companies?.items.find((c) => c.id === companyId) ?? null;
-  const defaultOwnerId = commercialUsers.some((u) => u.id === myId)
-    ? myId
-    : null;
+  const defaultOwnerId = defaultOpportunityOwnerId(
+    company?.accountOwnerId,
+    myId,
+    commercialUsers,
+  );
   const effectiveOwnerId = ownerId ?? defaultOwnerId;
   const fee = parseMoneyInput(amount);
   const feeInvalid = fee != null && (!Number.isFinite(fee) || fee < 0);
@@ -256,6 +285,9 @@ function NewOpportunityForm({ onDone }: { onDone: () => void }) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-brand">
+          {company?.accountOwner
+            ? "Por defecto, el responsable de cuenta de la empresa."
+            : "Por defecto, vos."}{" "}
           Solo usuarios con acceso al área comercial.
         </p>
       </div>

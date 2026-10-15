@@ -42,9 +42,13 @@ export const InteractionType = {
 export type InteractionType =
   (typeof InteractionType)[keyof typeof InteractionType];
 
+/**
+ * Company Status, derived at read time: Client once the Company has ever had a
+ * won Opportunity or any Vacancy, otherwise Prospect.
+ */
 export enum CompanyStatus {
-  ACTIVE = "Active",
   PROSPECT = "Prospect",
+  CLIENT = "Client",
 }
 
 export enum CandidateVacancyState {

@@ -50,7 +50,6 @@ import {
   getAllVacancyStatuses,
   VACANCY_STATUS_API_KEY,
 } from "@/lib/api/vacancy-status";
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type { User } from "@workspace/shared/types/user";
 import type { Vacancy } from "@workspace/shared/types/vacancy";
 import {
@@ -222,13 +221,12 @@ export function VacancyForm({
   const { data: companies } = useQuery({
     queryKey: [
       COMPANIES_API_KEY,
-      { limit: 1e9, page: 1, status: CompanyStatusEnum.ACTIVE },
+      { limit: 1e9, page: 1 },
     ],
     queryFn: () =>
       getAllCompanies({
         limit: 1e9,
         page: 1,
-        status: CompanyStatusEnum.ACTIVE,
       }),
   });
 

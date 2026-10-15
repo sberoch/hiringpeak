@@ -1,10 +1,7 @@
 import { z } from "zod";
 
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
-
 const companySchema = z.object({
   id: z.number(),
-  status: z.enum([CompanyStatusEnum.ACTIVE, CompanyStatusEnum.PROSPECT]),
   name: z.string(),
   description: z.string().optional(),
 });

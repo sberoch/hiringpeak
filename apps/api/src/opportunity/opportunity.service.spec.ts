@@ -31,7 +31,10 @@ type Store = {
  * transaction rolls the store back when its callback throws. `failInsertInto`
  * makes inserts into that table fail, to observe atomicity.
  */
-function makeDb(store: Store, options: { failInsertInto?: unknown } = {}) {
+function makeDb(
+  store: Store,
+  options: { failInsertInto?: unknown; commercialUserIds?: number[] } = {},
+) {
   const tables = new Map<unknown, keyof Store>([
     [companies, 'companies'],
     [contacts, 'contacts'],
@@ -82,9 +85,13 @@ function makeDb(store: Store, options: { failInsertInto?: unknown } = {}) {
       for (const step of ['from', 'innerJoin', 'where']) {
         node[step] = vi.fn(() => node);
       }
-      node.orderBy = vi.fn(async () => [
-        { id: 7, name: 'Lucía', email: 'l@x.com' },
-      ]);
+      node.orderBy = vi.fn(async () =>
+        (options.commercialUserIds ?? [7]).map((id) => ({
+          id,
+          name: `User ${id}`,
+          email: `u${id}@x.com`,
+        })),
+      );
       return node;
     }),
     // Open Tasks attached to Opportunities (next step): none in these fixtures.
@@ -182,6 +189,22 @@ describe('OpportunityService.createFromContact', () => {
       expect(store.opportunityContacts).toEqual([
         { id: expect.any(Number), opportunityId: created.id, contactId: 3 },
       ]);
+    });
+
+    it("is owned by the Company's Account Owner by default", async () => {
+      store.contacts[0].companyId = 9;
+      store.companies[1].accountOwnerId = 8;
+      const service = await makeService(
+        makeDb(store, { commercialUserIds: [7, 8] }),
+      );
+      await service.createFromContact(3, { title: 'CFO search' }, actor);
+      expect(store.opportunities[0].ownerId).toBe(8);
+    });
+
+    it('is owned by the creator when the Company has no Account Owner', async () => {
+      const service = await makeService(makeDb(store));
+      await service.createFromContact(3, { title: 'CFO search' }, actor);
+      expect(store.opportunities[0].ownerId).toBe(actor.createdBy);
     });
 
     it('rejects another Company', async () => {

@@ -30,6 +30,7 @@ import {
 } from '@workspace/shared/schemas';
 import type { OpportunityNextStep } from '@workspace/shared/types/opportunity';
 import { AuthzService } from '../auth/authz/authz.service';
+import { companyStatusCondition } from '../company/company-status-filter';
 import { insertProspectCompany } from '../company/prospect-company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
@@ -49,6 +50,7 @@ import {
 } from './opportunity.dto';
 import { planOpportunityFromContact } from './opportunity-from-contact';
 import { hasNoNextStep, nextStepOf } from './opportunity-next-step';
+import { defaultOpportunityOwner } from './opportunity-owner';
 import { editCloseDate, transitionStage } from './opportunity-stage-transition';
 
 const OPPORTUNITY_RELATIONS = {
@@ -208,11 +210,21 @@ export class OpportunityService {
     };
   }
 
-  /** New Opportunities start in the first open stage, owned by the creator unless told otherwise. */
+  /**
+   * New Opportunities start in the first open stage, owned by the requested
+   * owner, else the Company's Account Owner, else the creator.
+   */
   async create(dto: CreateOpportunityServiceDto) {
     const { organizationId, createdBy } = dto;
-    const ownerId = dto.ownerId ?? createdBy;
-    await this.assertCompanyInOrganization(dto.companyId, organizationId);
+    const company = await this.findCompanyInOrganization(
+      dto.companyId,
+      organizationId,
+    );
+    const ownerId = defaultOpportunityOwner({
+      requested: dto.ownerId,
+      accountOwnerId: company.accountOwnerId,
+      creatorId: createdBy,
+    });
     await this.assertCommercialOwner(ownerId, organizationId);
 
     const initialStage = await this.stageService.findInitial(organizationId);
@@ -262,13 +274,21 @@ export class OpportunityService {
     if ('violation' in plan) {
       throw new BadRequestException(FROM_CONTACT_VIOLATIONS[plan.violation]);
     }
-    if (plan.company.kind === 'existing' && plan.setsContactCompany) {
-      await this.assertCompanyInOrganization(
-        plan.company.companyId,
-        organizationId,
-      );
-    }
-    const ownerId = dto.ownerId ?? createdBy;
+    // A new Company has no Account Owner yet.
+    const accountOwnerId =
+      plan.company.kind === 'existing'
+        ? (
+            await this.findCompanyInOrganization(
+              plan.company.companyId,
+              organizationId,
+            )
+          ).accountOwnerId
+        : null;
+    const ownerId = defaultOpportunityOwner({
+      requested: dto.ownerId,
+      accountOwnerId,
+      creatorId: createdBy,
+    });
     await this.assertCommercialOwner(ownerId, organizationId);
     const initialStage = await this.stageService.findInitial(organizationId);
     if (!initialStage) {
@@ -331,7 +351,7 @@ export class OpportunityService {
     const { organizationId } = dto;
     await this.findOne(id, organizationId);
     if (dto.companyId !== undefined) {
-      await this.assertCompanyInOrganization(dto.companyId, organizationId);
+      await this.findCompanyInOrganization(dto.companyId, organizationId);
     }
     if (dto.ownerId !== undefined) {
       await this.assertCommercialOwner(dto.ownerId, organizationId);
@@ -513,18 +533,19 @@ export class OpportunityService {
     });
   }
 
-  private async assertCompanyInOrganization(
+  private async findCompanyInOrganization(
     companyId: number,
     organizationId: number,
   ) {
     const company = await this.db.query.companies.findFirst({
-      columns: { id: true },
+      columns: { id: true, accountOwnerId: true },
       where: and(
         eq(companies.id, companyId),
         eq(companies.organizationId, organizationId),
       ),
     });
     if (!company) throw new NotFoundException('Company not found');
+    return company;
   }
 
   private async assertCommercialOwner(ownerId: number, organizationId: number) {
@@ -545,6 +566,15 @@ export class OpportunityService {
     }
     if (params.companyId != null) {
       filters.push(eq(opportunities.companyId, params.companyId));
+    }
+    if (params.companyStatus) {
+      filters.push(
+        companyStatusCondition(
+          this.db,
+          opportunities.companyId,
+          params.companyStatus,
+        ),
+      );
     }
     if (params.contactId != null) {
       filters.push(

@@ -171,7 +171,6 @@ function createVacancy(params: {
       id: 4,
       name: 'Compañía Demo',
       description: 'Cliente',
-      status: 'Active',
       vacancyCount: 1,
       createdAt: '2026-04-01T10:00:00.000Z',
     },

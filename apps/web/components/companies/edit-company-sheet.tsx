@@ -14,13 +14,6 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select";
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -30,7 +23,7 @@ import {
 } from "@workspace/ui/components/sheet";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { COMPANIES_API_KEY, updateCompany } from "@/lib/api/company";
-import { Company, COMPANY_STATUS_NAMES } from "@workspace/shared/types/company";
+import { Company } from "@workspace/shared/types/company";
 
 import {
   editCompanyFormSchema,
@@ -55,7 +48,6 @@ export function EditCompanySheet({
     defaultValues: {
       name: company.name,
       description: company.description || "",
-      status: company.status,
     },
   });
 
@@ -118,33 +110,6 @@ export function EditCompanySheet({
                         className="resize-none"
                         {...field}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado</FormLabel>
-                    <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccione un estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(COMPANY_STATUS_NAMES).map(
-                            ([status, name]) => (
-                              <SelectItem value={status} key={status}>
-                                {name}
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

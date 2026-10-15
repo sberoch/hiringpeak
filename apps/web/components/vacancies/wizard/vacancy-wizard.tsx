@@ -53,7 +53,6 @@ import {
   getAllVacancyStatuses,
   VACANCY_STATUS_API_KEY,
 } from "@/lib/api/vacancy-status";
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type { AiVacancyDraft } from "@workspace/shared/types/vacancy-ai";
 import type {
   Vacancy,
@@ -323,13 +322,12 @@ export function VacancyWizard({ vacancyId }: VacancyWizardProps) {
   const { data: aiCompanies } = useQuery({
     queryKey: [
       COMPANIES_API_KEY,
-      { limit: 1e9, page: 1, status: CompanyStatusEnum.ACTIVE },
+      { limit: 1e9, page: 1 },
     ],
     queryFn: () =>
       getAllCompanies({
         limit: 1e9,
         page: 1,
-        status: CompanyStatusEnum.ACTIVE,
       }),
     enabled: isAiSeededMode,
   });
