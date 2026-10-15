@@ -16,6 +16,9 @@ import {
 import type { ContactView } from "@workspace/shared/types/contact";
 import { COMPANIES_API_KEY } from "@/lib/api/company";
 import { CONTACT_API_KEY, deleteContact } from "@/lib/api/contact";
+import { INTERACTION_API_KEY } from "@/lib/api/interaction";
+import { OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
+import { TASK_API_KEY } from "@/lib/api/tasks";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
 
 interface DeleteContactDialogProps {
@@ -39,6 +42,9 @@ export function DeleteContactDialog({
       queryClient.invalidateQueries({ queryKey: [COMPANIES_API_KEY] });
       queryClient.invalidateQueries({ queryKey: [VACANCY_API_KEY] });
       queryClient.invalidateQueries({ queryKey: [CONTACT_API_KEY] });
+      queryClient.invalidateQueries({ queryKey: [INTERACTION_API_KEY] });
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
       onClose();
       onDeleted?.();
     },
@@ -55,8 +61,10 @@ export function DeleteContactDialog({
             ¿Eliminar a {contact?.name}?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-slate-brand">
-            Las vacantes que lo tienen como contacto quedan sin contacto de la
-            vacante. Las vacantes no se borran.
+            Sale de sus interacciones, oportunidades y tareas, y deja de ser
+            contacto de cualquier vacante. Las interacciones, oportunidades,
+            tareas y vacantes no se borran; sus tareas siguen siendo
+            comerciales.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

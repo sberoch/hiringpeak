@@ -32,6 +32,7 @@ import type { OpportunityNextStep } from '@workspace/shared/types/opportunity';
 import { AuthzService } from '../auth/authz/authz.service';
 import { companyStatusCondition } from '../company/company-status-filter';
 import { insertProspectCompany } from '../company/prospect-company';
+import { releaseOpportunities } from '../common/deletion/deletion-keeps-history';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import {
@@ -472,16 +473,24 @@ export class OpportunityService {
     };
   }
 
+  /**
+   * Deletes the Opportunity but not its history: Interactions and Vacancies
+   * stay unlinked, Tasks stay commercial (see `releaseOpportunities`).
+   */
   async remove(id: number, organizationId: number) {
-    const existing = await this.findOne(id, organizationId);
-    await this.db
-      .delete(opportunities)
-      .where(
-        and(
-          eq(opportunities.id, id),
-          eq(opportunities.organizationId, organizationId),
-        ),
-      );
+    const where = and(
+      eq(opportunities.id, id),
+      eq(opportunities.organizationId, organizationId),
+    );
+    const existing = await this.db.query.opportunities.findFirst({
+      where,
+      with: { company: { columns: { id: true, name: true } } },
+    });
+    if (!existing) throw new NotFoundException('Opportunity not found');
+    await this.db.transaction(async (tx) => {
+      await releaseOpportunities(tx, [id]);
+      await tx.delete(opportunities).where(where);
+    });
     return existing;
   }
 

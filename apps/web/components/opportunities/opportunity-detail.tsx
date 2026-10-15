@@ -25,6 +25,9 @@ import {
   updateOpportunity,
   updateOpportunityCloseDate,
 } from "@/lib/api/opportunity";
+import { INTERACTION_API_KEY } from "@/lib/api/interaction";
+import { TASK_API_KEY } from "@/lib/api/tasks";
+import { VACANCY_API_KEY } from "@/lib/api/vacancy";
 import { formatMoney } from "@/lib/utils";
 import type {
   Opportunity,
@@ -688,7 +691,12 @@ function DeleteOpportunityDialog({
     mutationFn: () => deleteOpportunity(opportunity.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
-      toast.success(`«${opportunity.title}» eliminada`);
+      queryClient.invalidateQueries({ queryKey: [INTERACTION_API_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+      queryClient.invalidateQueries({ queryKey: [VACANCY_API_KEY] });
+      toast.success(`«${opportunity.title}» eliminada`, {
+        description: "Interacciones, vacantes y tareas quedaron sin vincular.",
+      });
       router.push("/opportunities");
     },
     onError: (err) =>
@@ -700,9 +708,22 @@ function DeleteOpportunityDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Eliminar «{opportunity.title}»?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Se borra la oportunidad. La empresa {opportunity.company.name} no se
-            modifica.
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              <p>Se borra la oportunidad, pero la historia no se pierde:</p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>
+                  Sus interacciones quedan en {opportunity.company.name}, sin
+                  vincular a ninguna oportunidad.
+                </li>
+                <li>Sus vacantes siguen en pie, sin vincular.</li>
+                <li>
+                  Sus tareas siguen existiendo: pierden el vínculo con la
+                  oportunidad, pero siguen siendo comerciales (solo las ve quien
+                  tiene acceso comercial).
+                </li>
+              </ul>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

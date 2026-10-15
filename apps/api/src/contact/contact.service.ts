@@ -48,6 +48,7 @@ import type {
 import type { LastInteraction } from '@workspace/shared/types/interaction';
 import { lastInteractionByKey } from '../interaction/last-interaction';
 import { insertProspectCompany } from '../company/prospect-company';
+import { releaseContact } from '../common/deletion/deletion-keeps-history';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -396,21 +397,28 @@ export class ContactService {
     });
   }
 
-  /** Vacancies pointing at the Contact lose their Vacancy Contact (FK set null). */
+  /**
+   * Deletes the Contact but not the records they were on (see
+   * `releaseContact`): their Tasks stay commercial, Vacancies lose them as
+   * Vacancy Contact.
+   */
   async remove(id: number, actor: ContactActor): Promise<Contact> {
     const existing = await this.findRow(id, actor.organizationId);
     this.assertNoViolation(networkFieldViolation({}, actor.codes, existing));
 
-    const [contact] = await this.db
-      .delete(contacts)
-      .where(
-        and(
-          eq(contacts.id, id),
-          eq(contacts.organizationId, actor.organizationId),
-        ),
-      )
-      .returning();
-    return contact;
+    return this.db.transaction(async (tx) => {
+      await releaseContact(tx, id);
+      const [contact] = await tx
+        .delete(contacts)
+        .where(
+          and(
+            eq(contacts.id, id),
+            eq(contacts.organizationId, actor.organizationId),
+          ),
+        )
+        .returning();
+      return contact;
+    });
   }
 
   private async findRow(id: number, organizationId: number): Promise<Contact> {
