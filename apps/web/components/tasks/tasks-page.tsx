@@ -17,6 +17,7 @@ import {
   getUnreadNotificationCount,
   NOTIFICATION_API_KEY,
 } from "@/lib/api/notifications";
+import { OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { PermissionCode } from "@workspace/shared/enums";
 import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { Button } from "@workspace/ui/components/button";
@@ -133,6 +134,8 @@ export function TasksPage() {
     mutationFn: (id: number) => completeTask(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+      // An Opportunity's next step is derived from its open Tasks.
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
     },
     onError: () => toast.error("No se pudo completar la tarea"),
   });
@@ -140,6 +143,8 @@ export function TasksPage() {
     mutationFn: (id: number) => reopenTask(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+      // An Opportunity's next step is derived from its open Tasks.
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
     },
     onError: () => toast.error("No se pudo reabrir la tarea"),
   });

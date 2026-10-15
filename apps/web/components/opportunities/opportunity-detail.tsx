@@ -51,6 +51,7 @@ import {
 } from "@workspace/ui/components/popover";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { OpportunityInteractions } from "@/components/interactions/interaction-lists";
 import {
   apiErrorMessage,
   formatDay,
@@ -59,6 +60,7 @@ import {
   useCommercialUsers,
   useOpportunityStages,
 } from "./opportunity-ui";
+import { OpportunityNextStepSection } from "./opportunity-next-step";
 import { OpportunityVacanciesCard } from "./opportunity-vacancies";
 import { useStageChange } from "./stage-change";
 
@@ -170,12 +172,21 @@ export function OpportunityDetail({ id }: { id: string }) {
         </div>
       )}
 
-      <FactsCard opportunity={opportunity} canManage={canManage} />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0">
+          <OpportunityInteractions opportunity={opportunity} />
+        </div>
+        <aside className="min-w-0 space-y-5">
+          <FactsCard opportunity={opportunity} canManage={canManage} />
 
-      <OpportunityVacanciesCard
-        opportunity={opportunity}
-        canManage={canManage}
-      />
+          <OpportunityNextStepSection opportunity={opportunity} />
+
+          <OpportunityVacanciesCard
+            opportunity={opportunity}
+            canManage={canManage}
+          />
+        </aside>
+      </div>
 
       {dialog}
       <DeleteOpportunityDialog

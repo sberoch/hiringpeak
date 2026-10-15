@@ -31,6 +31,17 @@ export const PermissionCode = {
 export type PermissionCode =
   (typeof PermissionCode)[keyof typeof PermissionCode];
 
+/** What kind of Interaction happened (commercial side). */
+export const InteractionType = {
+  CALL: "call",
+  MEETING: "meeting",
+  EMAIL: "email",
+  LUNCH: "lunch",
+  OTHER: "other",
+} as const;
+export type InteractionType =
+  (typeof InteractionType)[keyof typeof InteractionType];
+
 export enum CompanyStatus {
   ACTIVE = "Active",
   PROSPECT = "Prospect",

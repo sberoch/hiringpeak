@@ -1,4 +1,5 @@
 import type { PaginationFilters } from "./api.js";
+import type { LastInteraction } from "./interaction.js";
 
 /**
  * A Contact as every Company reader sees it (recruiters included): who the
@@ -50,10 +51,11 @@ export type ContactFollowUp = {
 };
 
 /**
- * A row of the Contactos list: the Contact with their next follow-up (with
- * "Para contactar", the next one owned by the caller).
+ * A row of the Contactos list, with the Contact's last Interaction and next
+ * follow-up (with "Para contactar", the next one owned by the caller).
  */
-export type ContactListItem = NetworkContact & {
+export type NetworkContactListItem = NetworkContact & {
+  lastInteraction: LastInteraction | null;
   nextFollowUp: ContactFollowUp | null;
 };
 
@@ -103,6 +105,8 @@ export type ContactFilters = PaginationFilters & {
   ownerId?: number | "none";
   sourceId?: number | "none";
   company?: "with" | "without" | number;
+  /** Days: last Interaction older than this (or none). */
+  lastInteractionOlderThan?: number;
   /** "Seguimiento: Para contactar": Contacts with an open follow-up owned by me. */
   followUp?: "mine";
 };

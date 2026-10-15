@@ -3,6 +3,7 @@
 import {
   BellRing,
   Building2,
+  History,
   RotateCcw,
   SlidersHorizontal,
   Tag,
@@ -83,9 +84,13 @@ export function useActiveFilterCount(filters: ContactFilters) {
     if (filters.ownerId != null) count++;
     if (filters.sourceId != null) count++;
     if (filters.company != null) count++;
+    if (filters.lastInteractionOlderThan != null) count++;
     return count;
   }, [filters]);
 }
+
+/** "Última interacción > 30/60/90 días". */
+const STALE_DAYS = [30, 60, 90] as const;
 
 /** Select value for an "id or none" filter; "" shows the placeholder. */
 const selectValue = (value: number | string | undefined) =>
@@ -151,6 +156,18 @@ export function ActiveFilterChips({
       label: `Empresa: ${label}`,
       onRemove: () =>
         onFiltersChange({ ...filters, company: undefined, page: 1 }),
+    });
+  }
+
+  if (filters.lastInteractionOlderThan != null) {
+    chips.push({
+      label: `Últ. interacción: hace más de ${filters.lastInteractionOlderThan} días`,
+      onRemove: () =>
+        onFiltersChange({
+          ...filters,
+          lastInteractionOlderThan: undefined,
+          page: 1,
+        }),
     });
   }
 
@@ -308,6 +325,29 @@ export function ContactFilterPanel({
                 </SelectContent>
               </Select>
             </FilterSection>
+
+            <FilterSection icon={History} title="Última interacción">
+              <Select
+                value={selectValue(filters.lastInteractionOlderThan)}
+                onValueChange={(value) =>
+                  set({ lastInteractionOlderThan: Number(value) })
+                }
+              >
+                <SelectTrigger className={inputClass}>
+                  <SelectValue placeholder="Cualquiera" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STALE_DAYS.map((days) => (
+                    <SelectItem key={days} value={String(days)}>
+                      Hace más de {days} días
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-brand">
+                Incluye a quienes nunca tuvieron una interacción.
+              </p>
+            </FilterSection>
           </div>
         </div>
 
@@ -320,6 +360,7 @@ export function ContactFilterPanel({
                 ownerId: undefined,
                 sourceId: undefined,
                 company: undefined,
+                lastInteractionOlderThan: undefined,
               })
             }
             className="flex-1 !rounded-xl border-brand-border py-2.5 text-slate-brand transition-all hover:border-electric hover:bg-electric/5 hover:text-ink"

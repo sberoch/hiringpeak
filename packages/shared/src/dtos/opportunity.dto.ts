@@ -72,6 +72,11 @@ export const OpportunityQueryParamsSchema = z.object({
   companyId: z.coerce.number().int().optional(),
   /** Only the Opportunities this Contact is part of. */
   contactId: z.coerce.number().int().optional(),
+  /** "Solo sin próximo paso": only open Opportunities with No Next Step. */
+  noNextStep: z
+    .union([z.boolean(), z.enum(["true", "false"])])
+    .transform((v) => (typeof v === "string" ? v === "true" : v))
+    .optional(),
 });
 
 export const OpportunityStageQueryParamsSchema = PaginationParamsSchema;

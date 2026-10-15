@@ -63,6 +63,8 @@ export const ContactQueryParamsSchema = PaginationParamsSchema.extend({
   ownerId: IdOrNoneSchema.optional(),
   sourceId: IdOrNoneSchema.optional(),
   company: CompanyFilterSchema.optional(),
+  /** Last Interaction older than N days (never interacted counts as older). */
+  lastInteractionOlderThan: z.coerce.number().int().positive().optional(),
   /** "Seguimiento: Para contactar": an open attached Task owned by the caller. */
   followUp: z.literal("mine").optional(),
 });

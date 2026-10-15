@@ -10,10 +10,12 @@ import {
   count,
   desc,
   eq,
+  gte,
   ilike,
   inArray,
   isNotNull,
   isNull,
+  notInArray,
   or,
   sql,
   SQL,
@@ -25,6 +27,8 @@ import {
   taskContacts,
   tasks,
   users,
+  interactionContacts,
+  interactions,
   type Contact,
 } from '@workspace/shared/schemas';
 import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
@@ -37,10 +41,12 @@ import {
 import type {
   ContactDuplicate,
   ContactFollowUp,
-  ContactListItem,
   CreatedContact,
   NetworkContact,
+  NetworkContactListItem,
 } from '@workspace/shared/types/contact';
+import type { LastInteraction } from '@workspace/shared/types/interaction';
+import { lastInteractionByKey } from '../interaction/last-interaction';
 import { insertProspectCompany } from '../company/prospect-company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
@@ -85,7 +91,7 @@ export class ContactService {
   /** The Organization's network (commercial access only, see controller). */
   async findAll(
     params: ContactFindAllServiceParams,
-  ): Promise<PaginatedResponse<ContactListItem>> {
+  ): Promise<PaginatedResponse<NetworkContactListItem>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
 
@@ -105,9 +111,15 @@ export class ContactService {
       itemsQuery,
       countQuery,
     ]);
+    const lastInteractions = await this.findLastInteractions(
+      items.map((item) => item.id),
+    );
     return paginatedResponse(
       await this.withNextFollowUps(
-        items.map((item) => this.toNetworkContact(item)),
+        items.map((item) => ({
+          ...this.toNetworkContact(item),
+          lastInteraction: lastInteractions.get(item.id) ?? null,
+        })),
         params,
       ),
       totalItems,
@@ -119,10 +131,10 @@ export class ContactService {
    * Each Contact with their next follow-up among those the viewer may see
    * (with "Para contactar", among the viewer's own).
    */
-  private async withNextFollowUps(
-    items: NetworkContact[],
+  private async withNextFollowUps<T extends NetworkContact>(
+    items: T[],
     params: ContactFindAllServiceParams,
-  ): Promise<ContactListItem[]> {
+  ): Promise<(T & { nextFollowUp: ContactFollowUp | null })[]> {
     if (items.length === 0) return [];
     const rows = await this.db
       .select({
@@ -186,6 +198,25 @@ export class ContactService {
           this.visibleOpenFollowUp(params),
         ),
       );
+  }
+
+  /** Each Contact's latest Interaction ("Última interacción"). */
+  private async findLastInteractions(contactIds: number[]) {
+    if (contactIds.length === 0) return new Map<number, LastInteraction>();
+    const rows = await this.db
+      .select({
+        key: interactionContacts.contactId,
+        id: interactions.id,
+        type: interactions.type,
+        date: interactions.date,
+      })
+      .from(interactionContacts)
+      .innerJoin(
+        interactions,
+        eq(interactions.id, interactionContacts.interactionId),
+      )
+      .where(inArray(interactionContacts.contactId, contactIds));
+    return lastInteractionByKey(rows);
   }
 
   async findOne(id: number, organizationId: number): Promise<NetworkContact> {
@@ -543,6 +574,33 @@ export class ContactService {
       );
     }
 
+    if (params.lastInteractionOlderThan != null) {
+      // Older than N days: no Interaction on or after the cutoff day.
+      const recentlyInteracted = this.db
+        .select({ id: interactionContacts.contactId })
+        .from(interactionContacts)
+        .innerJoin(
+          interactions,
+          eq(interactions.id, interactionContacts.interactionId),
+        )
+        .where(
+          gte(
+            interactions.date,
+            localDayDaysAgo(params.lastInteractionOlderThan),
+          ),
+        );
+      filters.push(notInArray(contacts.id, recentlyInteracted));
+    }
+
     return and(...filters);
   }
+}
+
+/** The local `YYYY-MM-DD` day N days before `now`. */
+function localDayDaysAgo(days: number, now: Date = new Date()): string {
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days);
+  const y = day.getFullYear();
+  const m = String(day.getMonth() + 1).padStart(2, '0');
+  const d = String(day.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }

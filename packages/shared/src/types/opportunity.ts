@@ -1,3 +1,5 @@
+import type { LastInteraction } from "./interaction.js";
+
 export type OpportunityStage = {
   id: number;
   name: string;
@@ -51,6 +53,29 @@ export type Opportunity = {
   stage: OpportunityStage;
   owner: { id: number; name: string };
   lostReason: { id: number; name: string } | null;
+  /** The earliest open attached Task by due date, undated last; null if none. */
+  nextStep: OpportunityNextStep | null;
+  /** Open (neither won nor lost) and no open Task attached. Derived, never stored. */
+  noNextStep: boolean;
+};
+
+/** An Opportunity's next step: an open Task attached to it. */
+export type OpportunityNextStep = {
+  id: number;
+  title: string;
+  /** `YYYY-MM-DD`, or null when undated. */
+  dueDate: string | null;
+  /** Task Owner. */
+  assignedTo: number;
+  owner: { id: number; name: string };
+};
+
+/**
+ * A row of `GET /opportunity`. `lastInteraction`: the latest Interaction tied
+ * to it, else the latest with its Company.
+ */
+export type OpportunityListItem = Opportunity & {
+  lastInteraction: LastInteraction | null;
 };
 
 /** A Vacancy produced by the Opportunity, as listed on its page. */
@@ -82,6 +107,8 @@ export type OpportunityFilters = {
   companyId?: number;
   /** Only the Opportunities this Contact is part of. */
   contactId?: number;
+  /** "Solo sin próximo paso": only open Opportunities with No Next Step. */
+  noNextStep?: boolean;
 };
 
 export type CreateOpportunityPayload = {

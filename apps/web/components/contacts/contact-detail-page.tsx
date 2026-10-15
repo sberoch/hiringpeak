@@ -19,6 +19,7 @@ import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { canManageContacts } from "@workspace/shared/lib/contact-access";
 import type { NetworkContact } from "@workspace/shared/types/contact";
 
+import { ContactInteractionsTab } from "@/components/interactions/interaction-lists";
 import { usePermissions } from "@/contexts/permission-context";
 import { CONTACT_API_KEY, getContactById } from "@/lib/api/contact";
 import { ContactAvatar, CopyChip, LinkedinLink } from "./contact-atoms";
@@ -31,11 +32,15 @@ import { CreateOpportunityDialog } from "./create-opportunity-dialog";
 import { SourceBadge } from "./contact-table-columns";
 import { DeleteContactDialog } from "./delete-contact-dialog";
 
-/** The Contact page's tabs; a later ticket adds Interacciones. */
-type ContactTab = "resumen" | "seguimientos" | "oportunidades";
+type ContactTab =
+  | "resumen"
+  | "interacciones"
+  | "seguimientos"
+  | "oportunidades";
 
 const CONTACT_TABS: { key: ContactTab; label: string }[] = [
   { key: "resumen", label: "Resumen" },
+  { key: "interacciones", label: "Interacciones" },
   { key: "seguimientos", label: "Seguimientos" },
   { key: "oportunidades", label: "Oportunidades" },
 ];
@@ -176,9 +181,15 @@ function ContactDetail({
         <TabsContent value="resumen">
           <ContactSummary contact={contact} />
         </TabsContent>
+
+        <TabsContent value="interacciones">
+          <ContactInteractionsTab contact={contact} />
+        </TabsContent>
+
         <TabsContent value="seguimientos">
           <ContactFollowUpsTab contact={contact} />
         </TabsContent>
+
         <TabsContent value="oportunidades">
           <ContactOpportunitiesTab
             contact={contact}
