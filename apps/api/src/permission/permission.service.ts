@@ -40,6 +40,8 @@ const PERMISSION_SEED: { code: string; label: string; description: string }[] = 
   { code: PermissionCode.TASK_READ_ALL, label: 'Ver todas las tareas', description: 'Ver tareas de todos los usuarios de la organización' },
   { code: PermissionCode.TASK_MANAGE, label: 'Gestionar tareas propias', description: 'Crear, editar, completar y eliminar tareas propias' },
   { code: PermissionCode.TASK_MANAGE_ALL, label: 'Gestionar todas las tareas', description: 'Crear, editar, completar, reasignar y eliminar tareas de cualquier usuario' },
+  { code: PermissionCode.CRM_READ, label: 'Ver área comercial', description: 'Ver oportunidades, contactos, interacciones y tareas comerciales' },
+  { code: PermissionCode.CRM_MANAGE, label: 'Gestionar área comercial', description: 'Crear, editar y eliminar oportunidades, contactos e interacciones, y configurar el área comercial' },
 ];
 
 @Injectable()
