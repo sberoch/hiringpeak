@@ -22,3 +22,4 @@ export * from "./company.dto.js";
 export * from "./contact.dto.js";
 export * from "./task.dto.js";
 export * from "./notification.dto.js";
+export * from "./opportunity.dto.js";

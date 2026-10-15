@@ -24,3 +24,6 @@ export * from "./user.schema";
 export * from "./vacancy.schema";
 export * from "./vacancyfilters.schema";
 export * from "./vacancystatus.schema";
+export * from "./lostreason.schema";
+export * from "./opportunity.schema";
+export * from "./opportunitystage.schema";

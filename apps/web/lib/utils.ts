@@ -257,3 +257,8 @@ export function mergeCandidatesWithVacancies(
     };
   });
 }
+
+/** Amounts carry no currency; rendered like salaries: "$ 18.500.000". */
+export function formatMoney(amount: number): string {
+  return `$ ${amount.toLocaleString("es-AR")}`;
+}
