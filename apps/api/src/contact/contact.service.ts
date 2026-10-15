@@ -15,17 +15,29 @@ import {
   isNotNull,
   isNull,
   or,
+  sql,
   SQL,
 } from 'drizzle-orm';
 import {
   companies,
   contacts,
   contactSources,
+  taskContacts,
+  tasks,
+  users,
   type Contact,
 } from '@workspace/shared/schemas';
 import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
+import {
+  defaultFollowUpOwner,
+  followUpDueDate,
+  followUpTitle,
+  nextFollowUp,
+} from '@workspace/shared/lib/contact-follow-up';
 import type {
   ContactDuplicate,
+  ContactFollowUp,
+  ContactListItem,
   CreatedContact,
   NetworkContact,
 } from '@workspace/shared/types/contact';
@@ -38,6 +50,8 @@ import {
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
 import { AuthzService } from '../auth/authz/authz.service';
+import type { CreateTaskServiceDto } from '../task/task.dto';
+import { formatLocalDay as localDay, TaskService } from '../task/task.service';
 import {
   findLikelyDuplicates,
   type DuplicateProbe,
@@ -65,12 +79,13 @@ export class ContactService {
   constructor(
     @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
     private readonly authzService: AuthzService,
+    private readonly taskService: TaskService,
   ) {}
 
   /** The Organization's network (commercial access only, see controller). */
   async findAll(
     params: ContactFindAllServiceParams,
-  ): Promise<PaginatedResponse<NetworkContact>> {
+  ): Promise<PaginatedResponse<ContactListItem>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
 
@@ -91,10 +106,86 @@ export class ContactService {
       countQuery,
     ]);
     return paginatedResponse(
-      items.map((item) => this.toNetworkContact(item)),
+      await this.withNextFollowUps(
+        items.map((item) => this.toNetworkContact(item)),
+        params,
+      ),
       totalItems,
       paginationQuery,
     );
+  }
+
+  /**
+   * Each Contact with their next follow-up among those the viewer may see
+   * (with "Para contactar", among the viewer's own).
+   */
+  private async withNextFollowUps(
+    items: NetworkContact[],
+    params: ContactFindAllServiceParams,
+  ): Promise<ContactListItem[]> {
+    if (items.length === 0) return [];
+    const rows = await this.db
+      .select({
+        contactId: taskContacts.contactId,
+        id: tasks.id,
+        title: tasks.title,
+        dueDate: tasks.dueDate,
+        ownerId: users.id,
+        ownerName: users.name,
+      })
+      .from(taskContacts)
+      .innerJoin(tasks, eq(tasks.id, taskContacts.taskId))
+      .innerJoin(users, eq(users.id, tasks.assignedTo))
+      .where(
+        and(
+          inArray(
+            taskContacts.contactId,
+            items.map((item) => item.id),
+          ),
+          this.visibleOpenFollowUp(params),
+        ),
+      );
+    return items.map((item) => {
+      const next = nextFollowUp(
+        rows.filter((row) => row.contactId === item.id),
+      );
+      const followUp: ContactFollowUp | null = next && {
+        id: next.id,
+        title: next.title,
+        dueDate: next.dueDate,
+        owner: { id: next.ownerId, name: next.ownerName },
+      };
+      return { ...item, nextFollowUp: followUp };
+    });
+  }
+
+  /**
+   * Open follow-ups the viewer may see: their own without TASK_READ_ALL, and
+   * with "Para contactar" (`followUp: 'mine'`).
+   */
+  private visibleOpenFollowUp(params: ContactFindAllServiceParams): SQL {
+    const conditions = [
+      eq(tasks.organizationId, params.organizationId),
+      eq(tasks.completed, false),
+    ];
+    if (params.followUp === 'mine' || !params.viewer.readsAllTasks) {
+      conditions.push(eq(tasks.assignedTo, params.viewer.userId));
+    }
+    return and(...conditions)!;
+  }
+
+  /** The due date of the Contact's next visible follow-up, for sorting. */
+  private nextFollowUpDue(params: ContactFindAllServiceParams) {
+    return this.db
+      .select({ dueDate: sql`min(${tasks.dueDate})` })
+      .from(taskContacts)
+      .innerJoin(tasks, eq(tasks.id, taskContacts.taskId))
+      .where(
+        and(
+          eq(taskContacts.contactId, contacts.id),
+          this.visibleOpenFollowUp(params),
+        ),
+      );
   }
 
   async findOne(id: number, organizationId: number): Promise<NetworkContact> {
@@ -171,7 +262,7 @@ export class ContactService {
 
     const duplicates = await this.findDuplicates(dto, actor);
 
-    const { newCompanyName, ...fields } = dto;
+    const { newCompanyName, followUpInDays, ...fields } = dto;
     const values = {
       organizationId: actor.organizationId,
       companyId: fields.companyId ?? null,
@@ -194,9 +285,41 @@ export class ContactService {
         );
       }
       const [created] = await tx.insert(contacts).values(values).returning();
-      return created;
+      const followUp =
+        followUpInDays != null
+          ? await this.taskService.insertTask(
+              tx,
+              this.captureFollowUp(created, followUpInDays, actor),
+            )
+          : null;
+      return { ...created, followUp };
     });
+    if (contact.followUp) {
+      await this.taskService.notifyNewOwner(contact.followUp, actor.userId);
+    }
     return { ...this.toCreated(contact), duplicates };
+  }
+
+  /**
+   * "Abordar en X días": a follow-up Task attached to the new Contact, due
+   * today + X, owned by the Contact Owner (see `defaultFollowUpOwner`).
+   */
+  private captureFollowUp(
+    contact: Contact,
+    days: number,
+    actor: ContactActor,
+  ): CreateTaskServiceDto {
+    return {
+      title: followUpTitle(contact.name),
+      dueDate: followUpDueDate(localDay(new Date()), days),
+      assignedTo: defaultFollowUpOwner('capture', {
+        creatorId: actor.userId,
+        contactOwnerId: contact.ownerId,
+      }),
+      contactIds: [contact.id],
+      createdBy: actor.userId,
+      organizationId: actor.organizationId,
+    };
   }
 
   /** A plain edit; changing the Company never rewrites past records (ADR 0004). */
@@ -356,6 +479,15 @@ export class ContactService {
       'asc',
     ];
     const sortOrder = sortOrderString?.toLowerCase() === 'desc' ? desc : asc;
+    if (sortBy === 'followUp') {
+      // Contacts without a follow-up (and undated ones) go last.
+      const direction = sortOrder === desc ? sql`desc` : sql`asc`;
+      return [
+        sql`${this.nextFollowUpDue(params)} ${direction} nulls last`,
+        asc(contacts.name),
+        asc(contacts.id),
+      ];
+    }
     const column = contacts[sortBy];
     if (column) return [sortOrder(column), asc(contacts.id)];
     throw new BadRequestException('Invalid sortBy parameter');
@@ -397,6 +529,19 @@ export class ContactService {
       filters.push(isNull(contacts.companyId));
     else if (params.company != null)
       filters.push(eq(contacts.companyId, params.company));
+
+    if (params.followUp === 'mine') {
+      filters.push(
+        inArray(
+          contacts.id,
+          this.db
+            .select({ id: taskContacts.contactId })
+            .from(taskContacts)
+            .innerJoin(tasks, eq(tasks.id, taskContacts.taskId))
+            .where(this.visibleOpenFollowUp(params)),
+        ),
+      );
+    }
 
     return and(...filters);
   }

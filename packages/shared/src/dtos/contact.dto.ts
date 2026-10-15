@@ -33,10 +33,17 @@ export const CreateContactSchema = z.object({
   sourceId: optionalId,
   ownerId: optionalId,
   shortDescription: optionalText,
+  /**
+   * "Abordar en X días": schedules a follow-up Task attached to the new
+   * Contact, due today + X and owned by the Contact Owner. Create only.
+   */
+  followUpInDays: z.number().int().min(0).max(999).nullable().optional(),
 });
 
 /** A plain edit; changing the Company moves the person to their new employer. */
-export const UpdateContactSchema = CreateContactSchema.partial();
+export const UpdateContactSchema = CreateContactSchema.omit({
+  followUpInDays: true,
+}).partial();
 
 /** `company`: "with" / "without" a Company, or a Company id. */
 const CompanyFilterSchema = z.union([
@@ -56,6 +63,8 @@ export const ContactQueryParamsSchema = PaginationParamsSchema.extend({
   ownerId: IdOrNoneSchema.optional(),
   sourceId: IdOrNoneSchema.optional(),
   company: CompanyFilterSchema.optional(),
+  /** "Seguimiento: Para contactar": an open attached Task owned by the caller. */
+  followUp: z.literal("mine").optional(),
 });
 
 /** Probe for probable duplicates before saving a new Contact. */

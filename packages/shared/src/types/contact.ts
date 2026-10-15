@@ -41,6 +41,22 @@ export type NetworkContact = Contact & {
   owner: { id: number; name: string } | null;
 };
 
+/** A follow-up: an open Task attached to the Contact. */
+export type ContactFollowUp = {
+  id: number;
+  title: string;
+  dueDate: string | null;
+  owner: { id: number; name: string };
+};
+
+/**
+ * A row of the Contactos list: the Contact with their next follow-up (with
+ * "Para contactar", the next one owned by the caller).
+ */
+export type ContactListItem = NetworkContact & {
+  nextFollowUp: ContactFollowUp | null;
+};
+
 export type ContactDuplicateReason = "email" | "linkedin" | "name";
 
 /** A probable duplicate of a Contact being created. A warning, never a block. */
@@ -74,15 +90,21 @@ export type CreateContactDto = {
   /** Absent: defaults to the creator. `null`: "Sin responsable". */
   ownerId?: number | null;
   shortDescription?: string | null;
+  /** "Abordar en X días": a follow-up Task due today + X, owned by the Contact Owner. */
+  followUpInDays?: number | null;
 };
 
-export type UpdateContactDto = Partial<CreateContactDto>;
+export type UpdateContactDto = Partial<
+  Omit<CreateContactDto, "followUpInDays">
+>;
 
 export type ContactFilters = PaginationFilters & {
   search?: string;
   ownerId?: number | "none";
   sourceId?: number | "none";
   company?: "with" | "without" | number;
+  /** "Seguimiento: Para contactar": Contacts with an open follow-up owned by me. */
+  followUp?: "mine";
 };
 
 export type ContactDuplicatesProbe = {

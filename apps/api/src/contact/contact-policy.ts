@@ -18,6 +18,8 @@ type ContactWrite = {
   sourceId?: number | null;
   ownerId?: number | null;
   shortDescription?: string | null;
+  /** "Abordar en X días": a follow-up Task, which is commercial. */
+  followUpInDays?: number | null;
 };
 
 /**
@@ -46,6 +48,9 @@ export function networkFieldViolation(
     write.shortDescription !== undefined
   ) {
     return 'Sin acceso comercial no se puede cargar el origen, el responsable ni la descripción del contacto.';
+  }
+  if (write.followUpInDays != null) {
+    return 'Sin acceso comercial no se pueden agendar seguimientos.';
   }
   return null;
 }
