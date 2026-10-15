@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { and, desc, eq, inArray, SQL } from 'drizzle-orm';
 import {
-  companies,
   contacts,
   interactionContacts,
   interactions,
@@ -17,6 +16,7 @@ import {
 import type { Interaction } from '@workspace/shared/types/interaction';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import { findCompanyInOrganization } from '../company/company-in-organization';
 import { stampInteractionCompany } from './interaction-company-stamp';
 import type {
   CreateInteractionDto,
@@ -137,7 +137,7 @@ export class InteractionService {
       organizationId,
     );
     if (dto.companyId != null) {
-      await this.assertCompanyInOrganization(tx, dto.companyId, organizationId);
+      await findCompanyInOrganization(tx, dto.companyId, organizationId);
     }
 
     const stamp = stampInteractionCompany({
@@ -274,21 +274,6 @@ export class InteractionService {
       throw new BadRequestException('La oportunidad no existe.');
     }
     return opportunity.companyId;
-  }
-
-  private async assertCompanyInOrganization(
-    db: Executor,
-    companyId: number,
-    organizationId: number,
-  ) {
-    const company = await db.query.companies.findFirst({
-      columns: { id: true },
-      where: and(
-        eq(companies.id, companyId),
-        eq(companies.organizationId, organizationId),
-      ),
-    });
-    if (!company) throw new BadRequestException('La empresa no existe.');
   }
 }
 

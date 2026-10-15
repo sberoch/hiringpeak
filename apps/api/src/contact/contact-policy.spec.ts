@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PermissionCode } from '@workspace/shared/enums';
-import {
-  contactOwnerViolation,
-  defaultContactOwner,
-  networkFieldViolation,
-} from './contact-policy';
+import { defaultContactOwner, networkFieldViolation } from './contact-policy';
 
 const PARTNER = [PermissionCode.CRM_MANAGE, PermissionCode.COMPANY_MANAGE];
 const RECRUITER = [PermissionCode.COMPANY_MANAGE];
@@ -26,20 +22,6 @@ describe('defaultContactOwner', () => {
 
   it('keeps an explicitly chosen owner', () => {
     expect(defaultContactOwner(9, { id: 7, codes: PARTNER })).toBe(9);
-  });
-});
-
-describe('contactOwnerViolation', () => {
-  it('rejects an owner without commercial access', () => {
-    expect(contactOwnerViolation(3, [1, 2])).not.toBeNull();
-  });
-
-  it('accepts an owner with commercial access', () => {
-    expect(contactOwnerViolation(2, [1, 2])).toBeNull();
-  });
-
-  it('accepts no owner', () => {
-    expect(contactOwnerViolation(null, [1, 2])).toBeNull();
   });
 });
 

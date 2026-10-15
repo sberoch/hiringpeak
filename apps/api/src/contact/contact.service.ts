@@ -51,9 +51,9 @@ import type {
   NetworkContactListItem,
   WrittenContact,
 } from '@workspace/shared/types/contact';
-import type { LastInteraction } from '@workspace/shared/types/interaction';
 import { InteractionService } from '../interaction/interaction.service';
-import { lastInteractionByKey } from '../interaction/last-interaction';
+import { findLastInteractions } from '../interaction/last-interactions.query';
+import { findCompanyInOrganization } from '../company/company-in-organization';
 import { insertProspectCompany } from '../company/prospect-company';
 import { releaseContact } from '../common/deletion/deletion-keeps-history';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -70,11 +70,7 @@ import {
   findLikelyDuplicates,
   type DuplicateProbe,
 } from './contact-duplicates';
-import {
-  contactOwnerViolation,
-  defaultContactOwner,
-  networkFieldViolation,
-} from './contact-policy';
+import { defaultContactOwner, networkFieldViolation } from './contact-policy';
 import type {
   ContactActor,
   ContactFindAllServiceParams,
@@ -122,8 +118,10 @@ export class ContactService {
       itemsQuery,
       countQuery,
     ]);
-    const lastInteractions = await this.findLastInteractions(
-      items.map((item) => item.id),
+    const lastInteractions = await findLastInteractions(
+      this.db,
+      params.organizationId,
+      { contactIds: items.map((item) => item.id) },
     );
     return paginatedResponse(
       await this.withNextFollowUps(
@@ -211,25 +209,6 @@ export class ContactService {
       );
   }
 
-  /** Each Contact's latest Interaction ("Última interacción"). */
-  private async findLastInteractions(contactIds: number[]) {
-    if (contactIds.length === 0) return new Map<number, LastInteraction>();
-    const rows = await this.db
-      .select({
-        key: interactionContacts.contactId,
-        id: interactions.id,
-        type: interactions.type,
-        date: interactions.date,
-      })
-      .from(interactionContacts)
-      .innerJoin(
-        interactions,
-        eq(interactions.id, interactionContacts.interactionId),
-      )
-      .where(inArray(interactionContacts.contactId, contactIds));
-    return lastInteractionByKey(rows);
-  }
-
   async findOne(id: number, organizationId: number): Promise<NetworkContact> {
     const contact = await this.db.query.contacts.findFirst({
       where: and(
@@ -297,7 +276,8 @@ export class ContactService {
       );
     }
     if (dto.companyId != null) {
-      await this.assertCompanyInOrganization(
+      await findCompanyInOrganization(
+        this.db,
         dto.companyId,
         actor.organizationId,
       );
@@ -308,7 +288,10 @@ export class ContactService {
       id: actor.userId,
       codes: actor.codes,
     });
-    await this.assertOwnerAllowed(ownerId, actor.organizationId);
+    await this.authzService.assertCommercialOwner(
+      ownerId,
+      actor.organizationId,
+    );
 
     const duplicates = await this.findDuplicates(dto, actor);
 
@@ -389,14 +372,18 @@ export class ContactService {
     const existing = await this.findRow(id, actor.organizationId);
     this.assertNoViolation(networkFieldViolation(dto, actor.codes, existing));
     if (dto.companyId != null && dto.companyId !== existing.companyId) {
-      await this.assertCompanyInOrganization(
+      await findCompanyInOrganization(
+        this.db,
         dto.companyId,
         actor.organizationId,
       );
     }
     await this.assertSourceInOrganization(dto.sourceId, actor.organizationId);
     if (dto.ownerId !== undefined && dto.ownerId !== existing.ownerId) {
-      await this.assertOwnerAllowed(dto.ownerId, actor.organizationId);
+      await this.authzService.assertCommercialOwner(
+        dto.ownerId,
+        actor.organizationId,
+      );
     }
 
     const { newCompanyName, ...fields } = dto;
@@ -464,20 +451,6 @@ export class ContactService {
     if (violation) throw new BadRequestException(violation);
   }
 
-  private async assertCompanyInOrganization(
-    companyId: number,
-    organizationId: number,
-  ) {
-    const company = await this.db.query.companies.findFirst({
-      columns: { id: true },
-      where: and(
-        eq(companies.id, companyId),
-        eq(companies.organizationId, organizationId),
-      ),
-    });
-    if (!company) throw new BadRequestException('La empresa no existe.');
-  }
-
   private async assertSourceInOrganization(
     sourceId: number | null | undefined,
     organizationId: number,
@@ -491,21 +464,6 @@ export class ContactService {
       ),
     });
     if (!source) throw new BadRequestException('El origen no existe.');
-  }
-
-  private async assertOwnerAllowed(
-    ownerId: number | null | undefined,
-    organizationId: number,
-  ) {
-    if (ownerId == null) return;
-    const commercialUsers =
-      await this.authzService.listCommercialUsers(organizationId);
-    this.assertNoViolation(
-      contactOwnerViolation(
-        ownerId,
-        commercialUsers.map((user) => user.id),
-      ),
-    );
   }
 
   /**

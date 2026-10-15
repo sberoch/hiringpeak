@@ -31,6 +31,7 @@ import {
 import type { OpportunityNextStep } from '@workspace/shared/types/opportunity';
 import { AuthzService } from '../auth/authz/authz.service';
 import { companyStatusCondition } from '../company/company-status-filter';
+import { findCompanyInOrganization } from '../company/company-in-organization';
 import { insertProspectCompany } from '../company/prospect-company';
 import { releaseOpportunities } from '../common/deletion/deletion-keeps-history';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -67,9 +68,6 @@ const FROM_CONTACT_VIOLATIONS = {
   company_required:
     'Elegí una empresa existente o creá una nueva para el contacto.',
 } as const;
-
-const OWNER_WITHOUT_COMMERCIAL_ACCESS =
-  'El responsable de la oportunidad debe tener acceso al área comercial.';
 
 @Injectable()
 export class OpportunityService {
@@ -217,7 +215,9 @@ export class OpportunityService {
    */
   async create(dto: CreateOpportunityServiceDto) {
     const { organizationId, createdBy } = dto;
-    const company = await this.findCompanyInOrganization(
+    const company = await findCompanyInOrganization(
+      this.db,
+
       dto.companyId,
       organizationId,
     );
@@ -226,7 +226,7 @@ export class OpportunityService {
       accountOwnerId: company.accountOwnerId,
       creatorId: createdBy,
     });
-    await this.assertCommercialOwner(ownerId, organizationId);
+    await this.authzService.assertCommercialOwner(ownerId, organizationId);
 
     const initialStage = await this.stageService.findInitial(organizationId);
     if (!initialStage) {
@@ -279,7 +279,9 @@ export class OpportunityService {
     const accountOwnerId =
       plan.company.kind === 'existing'
         ? (
-            await this.findCompanyInOrganization(
+            await findCompanyInOrganization(
+              this.db,
+
               plan.company.companyId,
               organizationId,
             )
@@ -290,7 +292,7 @@ export class OpportunityService {
       accountOwnerId,
       creatorId: createdBy,
     });
-    await this.assertCommercialOwner(ownerId, organizationId);
+    await this.authzService.assertCommercialOwner(ownerId, organizationId);
     const initialStage = await this.stageService.findInitial(organizationId);
     if (!initialStage) {
       throw new BadRequestException(
@@ -352,10 +354,13 @@ export class OpportunityService {
     const { organizationId } = dto;
     await this.findOne(id, organizationId);
     if (dto.companyId !== undefined) {
-      await this.findCompanyInOrganization(dto.companyId, organizationId);
+      await findCompanyInOrganization(this.db, dto.companyId, organizationId);
     }
     if (dto.ownerId !== undefined) {
-      await this.assertCommercialOwner(dto.ownerId, organizationId);
+      await this.authzService.assertCommercialOwner(
+        dto.ownerId,
+        organizationId,
+      );
     }
 
     const set: Record<string, unknown> = { updatedAt: new Date() };
@@ -540,27 +545,6 @@ export class OpportunityService {
         noNextStep: hasNoNextStep(row.stage, nextStep),
       };
     });
-  }
-
-  private async findCompanyInOrganization(
-    companyId: number,
-    organizationId: number,
-  ) {
-    const company = await this.db.query.companies.findFirst({
-      columns: { id: true, accountOwnerId: true },
-      where: and(
-        eq(companies.id, companyId),
-        eq(companies.organizationId, organizationId),
-      ),
-    });
-    if (!company) throw new NotFoundException('Company not found');
-    return company;
-  }
-
-  private async assertCommercialOwner(ownerId: number, organizationId: number) {
-    if (!(await this.authzService.isCommercialUser(ownerId, organizationId))) {
-      throw new BadRequestException(OWNER_WITHOUT_COMMERCIAL_ACCESS);
-    }
   }
 
   private buildWhereClause(params: OpportunityFindAllServiceParams) {

@@ -4,25 +4,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gt,
-  gte,
-  lt,
-  lte,
-  sql,
-  SQL,
-} from 'drizzle-orm';
+import { and, asc, count, desc, eq, SQL } from 'drizzle-orm';
 import {
   contacts,
   ContactSource,
   contactSources,
 } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
+import {
+  moveTo,
+  persistPositions,
+  without,
+} from '../common/ordered-catalog/ordered-catalog';
 import type {
   DbOptions,
   DrizzleDatabase,
@@ -85,8 +78,9 @@ export class ContactSourceService {
     );
   }
 
-  async findOne(id: number, organizationId: number) {
-    const source = await this.db.query.contactSources.findFirst({
+  async findOne(id: number, organizationId: number, options?: DbOptions) {
+    const db = options?.tx ?? this.db;
+    const source = await db.query.contactSources.findFirst({
       where: and(
         eq(contactSources.id, id),
         eq(contactSources.organizationId, organizationId),
@@ -111,78 +105,48 @@ export class ContactSourceService {
     );
   }
 
+  /** Adds a Contact Source at position `sort` (default last). */
   async create(dto: CreateContactSourceServiceDto) {
-    const sort = dto.sort ?? 0;
     const { organizationId, name } = dto;
-
-    return await this.db.transaction(async (tx) => {
-      await tx
-        .update(contactSources)
-        .set({ sort: sql`${contactSources.sort} + 1` })
-        .where(
-          and(
-            eq(contactSources.organizationId, organizationId),
-            gte(contactSources.sort, sort),
-          ),
-        );
-
-      const [source] = await tx
+    return this.db.transaction(async (tx) => {
+      const [created] = await tx
         .insert(contactSources)
-        .values({ name, sort, organizationId })
+        .values({ name, sort: 0, organizationId })
         .returning();
-      return source;
+      const before = await this.inOrder(tx, organizationId);
+      const after = moveTo(before, created.id, dto.sort);
+      await persistPositions(tx, contactSources, before, after);
+      return this.findOne(created.id, organizationId, { tx });
     });
   }
 
+  /** Renames and/or moves a Contact Source. */
   async update(id: number, dto: UpdateContactSourceServiceDto) {
-    const { organizationId, ...updateFields } = dto;
-    return await this.db.transaction(async (tx) => {
-      const current = await this.findOne(id, organizationId);
-
-      const newSort = dto.sort;
-      if (newSort !== undefined && newSort !== current.sort) {
-        if (newSort > current.sort) {
-          await tx
-            .update(contactSources)
-            .set({ sort: sql`${contactSources.sort} - 1` })
-            .where(
-              and(
-                eq(contactSources.organizationId, organizationId),
-                gt(contactSources.sort, current.sort),
-                lte(contactSources.sort, newSort),
-              ),
-            );
-        } else {
-          await tx
-            .update(contactSources)
-            .set({ sort: sql`${contactSources.sort} + 1` })
-            .where(
-              and(
-                eq(contactSources.organizationId, organizationId),
-                gte(contactSources.sort, newSort),
-                lt(contactSources.sort, current.sort),
-              ),
-            );
-        }
+    const { organizationId, name, sort } = dto;
+    return this.db.transaction(async (tx) => {
+      await this.findOne(id, organizationId, { tx });
+      if (name !== undefined) {
+        await tx
+          .update(contactSources)
+          .set({ name })
+          .where(eq(contactSources.id, id));
       }
-
-      const [updated] = await tx
-        .update(contactSources)
-        .set(updateFields)
-        .where(
-          and(
-            eq(contactSources.id, id),
-            eq(contactSources.organizationId, organizationId),
-          ),
-        )
-        .returning();
-      return updated;
+      if (sort !== undefined) {
+        const before = await this.inOrder(tx, organizationId);
+        await persistPositions(
+          tx,
+          contactSources,
+          before,
+          moveTo(before, id, sort),
+        );
+      }
+      return this.findOne(id, organizationId, { tx });
     });
   }
 
   async remove(id: number, organizationId: number) {
     return await this.db.transaction(async (tx) => {
-      const current = await this.findOne(id, organizationId);
+      const current = await this.findOne(id, organizationId, { tx });
 
       // Guard: deleting a source in use would silently wipe the "Origen" of
       // every Contact pointing at it (the FK sets null).
@@ -199,26 +163,17 @@ export class ContactSourceService {
         );
       }
 
-      await tx
-        .update(contactSources)
-        .set({ sort: sql`${contactSources.sort} - 1` })
-        .where(
-          and(
-            eq(contactSources.organizationId, organizationId),
-            gt(contactSources.sort, current.sort),
-          ),
-        );
+      const before = await this.inOrder(tx, organizationId);
+      await tx.delete(contactSources).where(eq(contactSources.id, id));
+      await persistPositions(tx, contactSources, before, without(before, id));
+      return current;
+    });
+  }
 
-      const [deleted] = await tx
-        .delete(contactSources)
-        .where(
-          and(
-            eq(contactSources.id, id),
-            eq(contactSources.organizationId, organizationId),
-          ),
-        )
-        .returning();
-      return deleted;
+  private inOrder(db: DrizzleDatabase, organizationId: number) {
+    return db.query.contactSources.findMany({
+      where: eq(contactSources.organizationId, organizationId),
+      orderBy: [asc(contactSources.sort), asc(contactSources.id)],
     });
   }
 

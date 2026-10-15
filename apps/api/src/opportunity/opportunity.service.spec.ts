@@ -1,11 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PermissionCode } from '@workspace/shared/enums';
 import type { CompanyService } from '../company/company.service';
 import type { ContactService } from '../contact/contact.service';
 import { fixtures } from '../common/database/testing/fixtures';
-import { createTestDatabase } from '../common/database/testing/test-database';
+import {
+  createTestDatabase,
+  failInsertsInto,
+} from '../common/database/testing/test-database';
 import { testServices } from '../common/database/testing/test-services';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import type { OpportunityService } from './opportunity.service';
@@ -158,14 +160,7 @@ describe('OpportunityService.createFromContact', () => {
 
     it('leaves the Contact and Companies untouched when the Opportunity cannot be saved', async () => {
       // Fault injection at the database: adding any Opportunity Contact fails.
-      await db.execute(sql`
-        create function fail_insert() returns trigger language plpgsql
-          as $$ begin raise exception 'db down'; end $$
-      `);
-      await db.execute(sql`
-        create trigger fail_insert before insert on opportunity_contacts
-          for each row execute function fail_insert()
-      `);
+      await failInsertsInto('opportunity_contacts');
 
       await expect(
         opportunities.createFromContact(

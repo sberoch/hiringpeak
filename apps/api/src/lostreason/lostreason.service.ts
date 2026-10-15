@@ -20,6 +20,11 @@ import type {
   DbOptions,
   DrizzleDatabase,
 } from '../common/database/types/drizzle';
+import {
+  moveTo,
+  persistPositions,
+  without,
+} from '../common/ordered-catalog/ordered-catalog';
 import { checkLostReasonRemoval } from './lost-reason-removal';
 
 export type LostReasonWithUsage = LostReason & { opportunityCount: number };
@@ -148,10 +153,7 @@ export class LostReasonService {
         );
       }
       await tx.delete(lostReasons).where(eq(lostReasons.id, id));
-      await this.renumber(
-        tx,
-        reasons.filter((r) => r.id !== id),
-      );
+      await persistPositions(tx, lostReasons, reasons, without(reasons, id));
       return reason;
     });
   }
@@ -169,7 +171,7 @@ export class LostReasonService {
       );
   }
 
-  /** Puts reason `id` at `index` (clamped; default last) and renumbers 0..n-1. */
+  /** Puts reason `id` at `index` (clamped; default last). */
   private async place(
     tx: DrizzleDatabase,
     organizationId: number,
@@ -177,24 +179,12 @@ export class LostReasonService {
     index?: number,
   ): Promise<void> {
     const reasons = await this.findAll(organizationId, { tx });
-    const moved = reasons.find((r) => r.id === id)!;
-    const rest = reasons.filter((r) => r.id !== id);
-    const at = Math.max(0, Math.min(index ?? rest.length, rest.length));
-    rest.splice(at, 0, moved);
-    await this.renumber(tx, rest);
-  }
-
-  private async renumber(
-    tx: DrizzleDatabase,
-    ordered: LostReason[],
-  ): Promise<void> {
-    for (const [sort, reason] of ordered.entries()) {
-      if (reason.sort === sort) continue;
-      await tx
-        .update(lostReasons)
-        .set({ sort })
-        .where(eq(lostReasons.id, reason.id));
-    }
+    await persistPositions(
+      tx,
+      lostReasons,
+      reasons,
+      moveTo(reasons, id, index),
+    );
   }
 
   private async usageByReason(

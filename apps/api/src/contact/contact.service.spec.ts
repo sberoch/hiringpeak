@@ -1,11 +1,17 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InteractionType, PermissionCode } from '@workspace/shared/enums';
+import {
+  interactionContacts,
+  interactions as interactionRows,
+} from '@workspace/shared/schemas';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import type { InteractionService } from '../interaction/interaction.service';
 import { fixtures } from '../common/database/testing/fixtures';
-import { createTestDatabase } from '../common/database/testing/test-database';
+import {
+  createTestDatabase,
+  failInsertsInto,
+} from '../common/database/testing/test-database';
 import { testServices } from '../common/database/testing/test-services';
 import type { TaskService } from '../task/task.service';
 import type { ContactActor } from './contact.dto';
@@ -238,14 +244,7 @@ describe('Quick capture: a first Interaction with the new Contact', () => {
 
   it('saves neither when the Interaction cannot be saved', async () => {
     // Fault injection at the database: recording any Interaction fails.
-    await db.execute(sql`
-      create function fail_insert() returns trigger language plpgsql
-        as $$ begin raise exception 'db down'; end $$
-    `);
-    await db.execute(sql`
-      create trigger fail_insert before insert on interactions
-        for each row execute function fail_insert()
-    `);
+    await failInsertsInto('interactions');
 
     await expect(
       contacts.create({ name: 'Martín Gómez', firstInteraction }, partner),
@@ -273,5 +272,31 @@ describe('Quick capture: a first Interaction with the new Contact', () => {
         companyManager,
       ),
     ).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('ContactService.findAll — last Interaction', () => {
+  it("ignores another Organization's Interactions", async () => {
+    const paula = await f.contact(org, { name: 'Paula' });
+    const otherOrg = await f.organization();
+    // A stray link from another Organization's Interaction.
+    const [stray] = await db
+      .insert(interactionRows)
+      .values({
+        organizationId: otherOrg,
+        type: InteractionType.CALL,
+        date: '2026-10-01',
+        summary: 'Ajena',
+      })
+      .returning();
+    await db
+      .insert(interactionContacts)
+      .values({ interactionId: stray.id, contactId: paula });
+
+    const page = await contacts.findAll({
+      organizationId: org,
+      viewer: { userId: lucia, readsAllTasks: true },
+    });
+    expect(page.items[0].lastInteraction).toBeNull();
   });
 });

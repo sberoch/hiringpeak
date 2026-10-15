@@ -66,14 +66,3 @@ export function defaultContactOwner(
   if (requested !== undefined) return requested;
   return hasCommercialAccess(creator.codes) ? creator.id : null;
 }
-
-/** Only users with commercial access can own a Contact. */
-export function contactOwnerViolation(
-  ownerId: number | null | undefined,
-  commercialUserIds: readonly number[],
-): string | null {
-  if (ownerId == null) return null;
-  return commercialUserIds.includes(ownerId)
-    ? null
-    : 'El responsable tiene que tener acceso comercial.';
-}

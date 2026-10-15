@@ -20,6 +20,8 @@ import type { DrizzleDatabase } from '../common/database/types/drizzle';
  * SQL mirror of `deriveCompanyStatus`, to filter lists by Company Status:
  * `companyId` (any column holding a Company id) points to a Client when that
  * Company has any Vacancy or a won Opportunity, otherwise to a Prospect.
+ * Change both together (company-status.ts); company-status.spec.ts checks
+ * that the list filter and the derived status agree.
  */
 export function companyStatusCondition(
   db: Pick<DrizzleDatabase, 'select'>,
