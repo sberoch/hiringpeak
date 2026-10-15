@@ -4,19 +4,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
 import {
   companies,
   NewOpportunity,
   opportunities,
+  vacancies,
 } from '@workspace/shared/schemas';
 import { AuthzService } from '../auth/authz/authz.service';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { LostReasonService } from '../lostreason/lostreason.service';
 import { OpportunityStageService } from '../opportunitystage/opportunitystage.service';
+import { VacancyService } from '../vacancy/vacancy.service';
 import {
   CreateOpportunityServiceDto,
+  CreateVacancyFromOpportunityDto,
   OpportunityFindAllServiceParams,
   UpdateOpportunityServiceDto,
 } from './opportunity.dto';
@@ -39,6 +42,7 @@ export class OpportunityService {
     private readonly authzService: AuthzService,
     private readonly stageService: OpportunityStageService,
     private readonly lostReasonService: LostReasonService,
+    private readonly vacancyService: VacancyService,
   ) {}
 
   /** Every matching Opportunity (not paginated: the list is grouped by stage). */
@@ -61,6 +65,58 @@ export class OpportunityService {
     });
     if (!row) throw new NotFoundException('Opportunity not found');
     return toResponse(row);
+  }
+
+  /** The Opportunity page: the Opportunity plus the Vacancies linked to it. */
+  async findDetail(id: number, organizationId: number) {
+    const row = await this.db.query.opportunities.findFirst({
+      where: and(
+        eq(opportunities.id, id),
+        eq(opportunities.organizationId, organizationId),
+      ),
+      with: {
+        ...OPPORTUNITY_RELATIONS,
+        vacancies: {
+          columns: { id: true, title: true, closedAt: true, createdAt: true },
+          orderBy: [asc(vacancies.createdAt), asc(vacancies.id)],
+          with: {
+            status: { columns: { id: true, name: true, isFinal: true } },
+            assignedTo: { columns: { id: true, name: true } },
+            vacancyContact: { columns: { id: true, name: true, role: true } },
+          },
+        },
+      },
+    });
+    if (!row) throw new NotFoundException('Opportunity not found');
+    return toResponse(row);
+  }
+
+  /**
+   * "Crear vacante": one Vacancy on the Opportunity's Company, linked back to
+   * it. Only a won Opportunity can produce one (VacancyOpportunityPolicy,
+   * enforced where the Vacancy is written). Returns the Vacancy plus the
+   * Opportunity reference for the audit trail.
+   */
+  async createVacancy(
+    id: number,
+    organizationId: number,
+    createdBy: number,
+    dto: CreateVacancyFromOpportunityDto,
+  ) {
+    const opportunity = await this.findOne(id, organizationId);
+    const vacancy = await this.vacancyService.createFromOpportunity({
+      organizationId,
+      opportunityId: opportunity.id,
+      companyId: opportunity.companyId,
+      title: dto.title,
+      assignedTo: dto.assignedTo,
+      vacancyContactId: dto.vacancyContactId,
+      createdBy,
+    });
+    return {
+      ...vacancy,
+      opportunity: { id: opportunity.id, title: opportunity.title },
+    };
   }
 
   /** New Opportunities start in the first open stage, owned by the creator unless told otherwise. */
