@@ -35,13 +35,11 @@ import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
 import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
 import { CompanyContactsTab } from "@/components/companies/company-contacts-tab";
 import { CompanyInteractionsTab } from "@/components/interactions/interaction-lists";
-import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
+import { LastInteractionLabel } from "@/components/interactions/interaction-format";
 import { CompanyOpportunitiesTab } from "@/components/companies/company-opportunities-tab";
-import {
-  AccountOwnerControl,
-  CompanyStatusBadge,
-} from "@/components/companies/company-ui";
-import { useCommercialAccess } from "@/components/opportunities/opportunity-ui";
+import { AccountOwnerControl } from "@/components/companies/account-owner-control";
+import { CompanyStatusBadge } from "@/components/companies/company-status-badge";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import {
   COMPANIES_API_KEY,
   downloadCompanyReportPdf,
@@ -297,7 +295,9 @@ export default function CompanyDetailPage({
                 </div>
                 <div className="h-px bg-brand-border-light" />
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-brand">Responsable de cuenta</span>
+                  <span className="text-muted-brand">
+                    Responsable de cuenta
+                  </span>
                   <AccountOwnerControl company={company} />
                 </div>
                 <div className="h-px bg-brand-border-light" />

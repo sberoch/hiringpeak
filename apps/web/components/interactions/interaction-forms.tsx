@@ -32,15 +32,17 @@ import { useCompanyOptions } from "@/components/contacts/contact-lookups";
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import {
   ContactChips,
+  NetworkContactAdder,
+  useCompanyContacts,
+  type ContactOption,
+} from "@/components/interactions/interaction-contact-pickers";
+import {
   emptyInteractionDraft,
   interactionDraftProblem,
   InteractionFields,
-  NetworkContactAdder,
-  useCompanyContacts,
-  useCreateInteraction,
-  type ContactOption,
   type InteractionDraft,
-} from "./interaction-ui";
+} from "@/components/interactions/interaction-draft-fields";
+import { useCreateInteraction } from "@/components/interactions/interaction-mutations";
 
 function toggle(ids: number[], id: number) {
   return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];

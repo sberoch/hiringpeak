@@ -18,9 +18,14 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 
-import { dueTone, formatDue, todayIsoDay } from "../tasks/_shared";
+import {
+  dueTone,
+  formatDue,
+  todayIsoDay,
+} from "@/components/tasks/task-due-dates";
 import { TasksInContextCard } from "../tasks/tasks-in-context-card";
-import { apiErrorMessage, useCommercialAccess } from "./opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 
 /** Red "Sin próximo paso": an open Opportunity with no open Task attached. */
 export function NoNextStepBadge({ className }: { className?: string }) {

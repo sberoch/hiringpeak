@@ -35,7 +35,7 @@ import {
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 
-import { apiErrorMessage } from "./opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
 
 /**
  * The Vacancies a won Opportunity produced. "Crear vacante" shows only while

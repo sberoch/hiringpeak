@@ -33,10 +33,8 @@ import type {
   OpportunityStageOutcome,
   OpportunityStageWithUsage,
 } from "@workspace/shared/types/opportunity";
-import {
-  apiErrorMessage,
-  stageTone,
-} from "@/components/opportunities/opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { stageTone } from "@/components/opportunities/stage-badge";
 import {
   createOpportunityStage,
   deleteOpportunityStage,

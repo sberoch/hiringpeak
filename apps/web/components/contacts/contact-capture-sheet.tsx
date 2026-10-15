@@ -41,7 +41,7 @@ import {
   MeetSection,
   type InteractionDraft,
   type MeetDraft,
-} from "@/components/interactions/interaction-ui";
+} from "@/components/interactions/interaction-draft-fields";
 import { PermissionCode } from "@workspace/shared/enums";
 import { useCurrentUserId } from "./contact-lookups";
 import {

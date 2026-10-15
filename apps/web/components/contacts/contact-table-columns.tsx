@@ -24,9 +24,9 @@ import type {
   NetworkContactListItem,
 } from "@workspace/shared/types/contact";
 
-import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
+import { LastInteractionLabel } from "@/components/interactions/interaction-format";
 import { usePermissions } from "@/contexts/permission-context";
-import { ContactAvatar } from "./contact-atoms";
+import { ContactAvatar } from "@/components/contacts/contact-avatar-and-links";
 import { ContactCaptureSheet } from "./contact-capture-sheet";
 import {
   AddFollowUpDialog,

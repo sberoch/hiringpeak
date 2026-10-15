@@ -68,14 +68,14 @@ import { cn } from "@workspace/ui/lib/utils";
 
 import { useCompanyOptions } from "@/components/contacts/contact-lookups";
 import { OpportunityInteractions } from "@/components/interactions/interaction-lists";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { formatDay } from "@/components/opportunities/opportunity-format";
+import { parseMoneyInput } from "@/lib/money";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import {
-  apiErrorMessage,
-  formatDay,
-  parseMoneyInput,
-  useCommercialAccess,
   useCommercialUsers,
   useOpportunityStages,
-} from "./opportunity-ui";
+} from "@/components/opportunities/commercial-queries";
 import { OpportunityNextStepSection } from "./opportunity-next-step";
 import { OpportunityVacanciesCard } from "./opportunity-vacancies";
 import { useStageChange } from "./stage-change";

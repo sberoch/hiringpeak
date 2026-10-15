@@ -10,7 +10,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { cn } from "@workspace/ui/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
-import { ContactAvatar } from "@/components/contacts/contact-atoms";
+import { ContactAvatar } from "@/components/contacts/contact-avatar-and-links";
 import { usePermissions } from "@/contexts/permission-context";
 import { COMPANIES_API_KEY, getCompanyById } from "@/lib/api/company";
 import { createContact } from "@/lib/api/contact";

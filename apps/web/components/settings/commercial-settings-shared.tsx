@@ -22,7 +22,7 @@ import { GripVertical, Lock, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
-import { apiErrorMessage } from "@/components/opportunities/opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
 import { usePermissions } from "@/contexts/permission-context";
 import { PermissionCode } from "@workspace/shared/enums";
 import {

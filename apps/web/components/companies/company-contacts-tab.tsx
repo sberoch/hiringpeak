@@ -18,7 +18,7 @@ import {
   ContactAvatar,
   CopyChip,
   LinkedinLink,
-} from "@/components/contacts/contact-atoms";
+} from "@/components/contacts/contact-avatar-and-links";
 import { ContactSheet } from "@/components/contacts/contact-sheet";
 import { DeleteContactDialog } from "@/components/contacts/delete-contact-dialog";
 import { usePermissions } from "@/contexts/permission-context";

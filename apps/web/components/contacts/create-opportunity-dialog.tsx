@@ -32,13 +32,11 @@ import {
   createOpportunityFromContact,
   OPPORTUNITY_API_KEY,
 } from "@/lib/api/opportunity";
-import {
-  apiErrorMessage,
-  defaultOpportunityOwnerId,
-  opportunityHref,
-  parseMoneyInput,
-  useCommercialUsers,
-} from "../opportunities/opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { defaultOpportunityOwnerId } from "@/components/opportunities/opportunity-owner-default";
+import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import { parseMoneyInput } from "@/lib/money";
+import { useCommercialUsers } from "@/components/opportunities/commercial-queries";
 import { useCurrentUserId } from "./contact-lookups";
 import {
   CompanyPicker,

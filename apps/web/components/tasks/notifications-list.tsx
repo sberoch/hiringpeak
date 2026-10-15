@@ -14,9 +14,9 @@ import type { NotificationWithRelations } from "@workspace/shared/types/notifica
 import {
   NOTIF_ICON,
   NOTIF_LABEL,
-  relativeTime,
   type NotificationKind,
-} from "./_shared";
+} from "@/components/tasks/notification-kinds";
+import { relativeTime } from "@/components/tasks/task-due-dates";
 
 function isKnownKind(kind: string): kind is NotificationKind {
   return kind === "assigned" || kind === "due" || kind === "overdue";
@@ -27,8 +27,7 @@ export function NotificationsList() {
 
   const { data, isLoading } = useQuery({
     queryKey: [NOTIFICATION_API_KEY, { order: "createdAt:desc", limit: 100 }],
-    queryFn: () =>
-      getAllNotifications({ order: "createdAt:desc", limit: 100 }),
+    queryFn: () => getAllNotifications({ order: "createdAt:desc", limit: 100 }),
     staleTime: 0,
   });
 

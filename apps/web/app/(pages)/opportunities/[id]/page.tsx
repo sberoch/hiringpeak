@@ -3,7 +3,7 @@
 import { use } from "react";
 
 import { OpportunityDetail } from "@/components/opportunities/opportunity-detail";
-import { CommercialOnly } from "@/components/opportunities/opportunity-ui";
+import { CommercialOnly } from "@/components/opportunities/commercial-access";
 
 export default function OpportunityDetailPage({
   params,

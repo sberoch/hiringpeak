@@ -45,7 +45,12 @@ import {
   reopenTask,
   TASK_API_KEY,
 } from "@/lib/api/tasks";
-import { dueTone, formatDue, OwnerAvatar, todayIsoDay } from "../tasks/_shared";
+import {
+  dueTone,
+  formatDue,
+  todayIsoDay,
+} from "@/components/tasks/task-due-dates";
+import { OwnerAvatar } from "@/components/tasks/task-row";
 import { TaskSheet } from "../tasks/task-sheet";
 import { useCommercialUsers, useCurrentUserId } from "./contact-lookups";
 

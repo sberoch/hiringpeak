@@ -29,18 +29,17 @@ import {
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 
-import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
+import { LastInteractionLabel } from "@/components/interactions/interaction-format";
 import { NewOpportunityButton } from "./new-opportunity-sheet";
 import { NextStepCell } from "./opportunity-next-step";
+import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import { StageBadge, stageTone } from "@/components/opportunities/stage-badge";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import {
-  opportunityHref,
-  StageBadge,
-  stageTone,
-  useCommercialAccess,
   useCommercialUsers,
   useLostReasons,
   useOpportunityStages,
-} from "./opportunity-ui";
+} from "@/components/opportunities/commercial-queries";
 import { useStageChange } from "./stage-change";
 
 const ALL = "all";

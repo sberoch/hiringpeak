@@ -41,14 +41,12 @@ import {
 } from "@workspace/ui/components/sheet";
 import { cn } from "@workspace/ui/lib/utils";
 
-import {
-  apiErrorMessage,
-  defaultOpportunityOwnerId,
-  opportunityHref,
-  parseMoneyInput,
-  useCommercialAccess,
-  useCommercialUsers,
-} from "./opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { defaultOpportunityOwnerId } from "@/components/opportunities/opportunity-owner-default";
+import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import { parseMoneyInput } from "@/lib/money";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
+import { useCommercialUsers } from "@/components/opportunities/commercial-queries";
 
 /** "Nueva oportunidad"; on a Company page, pass its id to preselect it. */
 export function NewOpportunityButton({
