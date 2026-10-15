@@ -1,11 +1,15 @@
 import type {
   ChangeOpportunityStagePayload,
+  CommercialPicklistPayload,
   CommercialUser,
   CreateOpportunityPayload,
   LostReason,
+  LostReasonWithUsage,
   Opportunity,
   OpportunityFilters,
   OpportunityStage,
+  OpportunityStageOutcome,
+  OpportunityStageWithUsage,
   UpdateOpportunityPayload,
 } from "@workspace/shared/types/opportunity";
 
@@ -69,13 +73,77 @@ export async function deleteOpportunity(id: number) {
   return response.data;
 }
 
+/** Ordered by sort; each with how many Opportunities sit in it. */
 export async function getOpportunityStages() {
-  const response = await api.get<OpportunityStage[]>("/opportunityStage");
+  const response =
+    await api.get<OpportunityStageWithUsage[]>("/opportunityStage");
   return response.data;
 }
 
+export async function createOpportunityStage(
+  payload: CommercialPicklistPayload & { name: string },
+) {
+  const response = await api.post<OpportunityStage>(
+    "/opportunityStage",
+    payload,
+  );
+  return response.data;
+}
+
+/** `sort` is the position among the open stages. */
+export async function updateOpportunityStage(
+  id: number,
+  payload: CommercialPicklistPayload,
+) {
+  const response = await api.patch<OpportunityStage>(
+    `/opportunityStage/${id}`,
+    payload,
+  );
+  return response.data;
+}
+
+/** Makes the stage the won or the lost one. */
+export async function setOpportunityStageOutcome(
+  id: number,
+  outcome: OpportunityStageOutcome,
+) {
+  const response = await api.patch<OpportunityStage>(
+    `/opportunityStage/${id}/outcome`,
+    { outcome },
+  );
+  return response.data;
+}
+
+export async function deleteOpportunityStage(id: number) {
+  const response = await api.delete<OpportunityStage>(
+    `/opportunityStage/${id}`,
+  );
+  return response.data;
+}
+
+/** Ordered by sort; each with how many Opportunities carry it. */
 export async function getLostReasons() {
-  const response = await api.get<LostReason[]>("/lostReason");
+  const response = await api.get<LostReasonWithUsage[]>("/lostReason");
+  return response.data;
+}
+
+export async function createLostReason(
+  payload: CommercialPicklistPayload & { name: string },
+) {
+  const response = await api.post<LostReason>("/lostReason", payload);
+  return response.data;
+}
+
+export async function updateLostReason(
+  id: number,
+  payload: CommercialPicklistPayload,
+) {
+  const response = await api.patch<LostReason>(`/lostReason/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteLostReason(id: number) {
+  const response = await api.delete<LostReason>(`/lostReason/${id}`);
   return response.data;
 }
 
