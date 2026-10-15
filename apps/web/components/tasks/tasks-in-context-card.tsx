@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Building2, GitBranch, ListChecks, Plus, User } from "lucide-react";
+import { ListChecks, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getAllTasks, TASK_API_KEY } from "@/lib/api/tasks";
@@ -11,34 +11,33 @@ import type {
   TaskWithRelations,
 } from "@workspace/shared/types/task";
 
-import type { AttachmentValue } from "./attachment-picker";
 import { dueTone, formatDue, todayIsoDay } from "./_shared";
+import { ATTACH_META, type Attachment } from "./attachments";
 import { TaskSheet } from "./task-sheet";
 
-export type TasksInContextContext =
-  | { type: "candidate"; id: number; label: string }
-  | { type: "vacancy"; id: number; label: string }
-  | { type: "company"; id: number; label: string };
+/** The record whose page shows the card: every Task attached to it is listed. */
+export type TasksInContextContext = Pick<Attachment, "type" | "id" | "label">;
 
 function paramsFor(context: TasksInContextContext): TaskParams {
   const base: TaskParams = { order: "createdAt:desc", limit: 100 };
-  if (context.type === "candidate")
-    return { ...base, candidateId: context.id };
-  if (context.type === "vacancy") return { ...base, vacancyId: context.id };
-  return { ...base, companyId: context.id };
+  switch (context.type) {
+    case "candidate":
+      return { ...base, candidateId: context.id };
+    case "vacancy":
+      return { ...base, vacancyId: context.id };
+    case "candidacy":
+      return { ...base, candidacyId: context.id };
+    case "company":
+      return { ...base, companyId: context.id };
+  }
 }
 
-function contextIcon(context: TasksInContextContext) {
-  if (context.type === "candidate") return User;
-  if (context.type === "company") return Building2;
-  return GitBranch;
-}
-
-function contextNoun(context: TasksInContextContext) {
-  if (context.type === "candidate") return "persona";
-  if (context.type === "vacancy") return "vacante";
-  return "empresa";
-}
+const CONTEXT_NOUN: Record<TasksInContextContext["type"], string> = {
+  candidate: "persona",
+  vacancy: "vacante",
+  candidacy: "candidatura",
+  company: "empresa",
+};
 
 interface TasksInContextCardProps {
   context: TasksInContextContext;
@@ -68,11 +67,12 @@ export function TasksInContextCard({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<TaskWithRelations | null>(null);
 
-  const lockedAttachment: NonNullable<AttachmentValue> = {
-    type: context.type,
-    id: context.id,
-    label: context.label,
-  };
+  // A new Task starts attached to this record; more can be added in the sheet.
+  const { type, id, label } = context;
+  const initialAttachment = useMemo<Attachment>(
+    () => ({ type, id, label }),
+    [type, id, label],
+  );
 
   const openNew = () => {
     setEditing(null);
@@ -84,7 +84,7 @@ export function TasksInContextCard({
   };
 
   const HeadingIcon = ListChecks;
-  const ContextIcon = contextIcon(context);
+  const ContextIcon = ATTACH_META[context.type].icon;
 
   return (
     <>
@@ -144,7 +144,7 @@ export function TasksInContextCard({
               </p>
               <p className="mt-1 max-w-xs text-xs text-slate-brand">
                 Captura el trabajo pendiente vinculado a esta{" "}
-                {contextNoun(context)}.
+                {CONTEXT_NOUN[context.type]}.
               </p>
             </div>
           ) : (
@@ -180,7 +180,7 @@ export function TasksInContextCard({
           if (!o) setEditing(null);
         }}
         task={editing}
-        lockedAttachment={editing ? undefined : lockedAttachment}
+        initialAttachment={editing ? undefined : initialAttachment}
       />
     </>
   );

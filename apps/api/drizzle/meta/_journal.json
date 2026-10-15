@@ -43,6 +43,13 @@
       "when": 1792089339568,
       "tag": "0005_crm_commercial_access",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792090052181,
+      "tag": "0006_task_attachments",
+      "breakpoints": true
     }
   ]
 }
