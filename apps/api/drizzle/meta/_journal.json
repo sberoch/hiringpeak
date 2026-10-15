@@ -92,6 +92,13 @@
       "when": 1792092667862,
       "tag": "0012_crm_commercial_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792092949667,
+      "tag": "0013_crm_interactions",
+      "breakpoints": true
     }
   ]
 }

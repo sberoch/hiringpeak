@@ -1,4 +1,5 @@
 import type { PaginationFilters } from "./api.js";
+import type { LastInteraction } from "./interaction.js";
 
 /**
  * A Contact as every Company reader sees it (recruiters included): who the
@@ -39,6 +40,11 @@ export type NetworkContact = Contact & {
   company: { id: number; name: string } | null;
   source: { id: number; name: string } | null;
   owner: { id: number; name: string } | null;
+};
+
+/** A row of the Contactos list. */
+export type NetworkContactListItem = NetworkContact & {
+  lastInteraction: LastInteraction | null;
 };
 
 export type ContactDuplicateReason = "email" | "linkedin" | "name";
@@ -83,6 +89,8 @@ export type ContactFilters = PaginationFilters & {
   ownerId?: number | "none";
   sourceId?: number | "none";
   company?: "with" | "without" | number;
+  /** Days: last Interaction older than this (or none). */
+  lastInteractionOlderThan?: number;
 };
 
 export type ContactDuplicatesProbe = {

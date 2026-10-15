@@ -19,6 +19,7 @@ import {
   companies,
   contacts,
   type Contact,
+  interactions,
   NewOpportunity,
   opportunities,
   opportunityContacts,
@@ -28,6 +29,10 @@ import { AuthzService } from '../auth/authz/authz.service';
 import { insertProspectCompany } from '../company/prospect-company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import {
+  lastInteractionOfOpportunity,
+  type InteractionStamp,
+} from '../interaction/last-interaction';
 import { LostReasonService } from '../lostreason/lostreason.service';
 import { OpportunityStageService } from '../opportunitystage/opportunitystage.service';
 import { VacancyService } from '../vacancy/vacancy.service';
@@ -75,7 +80,45 @@ export class OpportunityService {
       with: OPPORTUNITY_RELATIONS,
       orderBy: [desc(opportunities.createdAt), desc(opportunities.id)],
     });
-    return rows.map(toResponse);
+    const recent = await this.findInteractionStamps(
+      rows,
+      params.organizationId,
+    );
+    return rows.map((row) => ({
+      ...toResponse(row),
+      lastInteraction: lastInteractionOfOpportunity(row, recent),
+    }));
+  }
+
+  /** Interactions tied to these Opportunities or with their Companies. */
+  private async findInteractionStamps(
+    rows: { id: number; companyId: number }[],
+    organizationId: number,
+  ): Promise<InteractionStamp[]> {
+    if (rows.length === 0) return [];
+    return this.db
+      .select({
+        id: interactions.id,
+        type: interactions.type,
+        date: interactions.date,
+        opportunityId: interactions.opportunityId,
+        companyId: interactions.companyId,
+      })
+      .from(interactions)
+      .where(
+        and(
+          eq(interactions.organizationId, organizationId),
+          or(
+            inArray(
+              interactions.opportunityId,
+              rows.map((row) => row.id),
+            ),
+            inArray(interactions.companyId, [
+              ...new Set(rows.map((row) => row.companyId)),
+            ]),
+          ),
+        ),
+      );
   }
 
   async findOne(id: number, organizationId: number) {

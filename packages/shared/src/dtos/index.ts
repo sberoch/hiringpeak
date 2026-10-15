@@ -25,3 +25,4 @@ export * from "./task.dto.js";
 export * from "./notification.dto.js";
 export * from "./opportunity.dto.js";
 export * from "./commercial-settings.dto.js";
+export * from "./interaction.dto.js";

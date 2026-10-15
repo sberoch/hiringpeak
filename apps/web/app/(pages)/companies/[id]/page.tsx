@@ -39,6 +39,8 @@ import { DeleteCompanyDialog } from "@/components/companies/delete-company-dialo
 import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
 import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
 import { CompanyContactsTab } from "@/components/companies/company-contacts-tab";
+import { CompanyInteractionsTab } from "@/components/interactions/interaction-lists";
+import { useCommercialAccess } from "@/components/opportunities/opportunity-ui";
 import {
   COMPANIES_API_KEY,
   downloadCompanyReportPdf,
@@ -46,7 +48,12 @@ import {
 } from "@/lib/api/company";
 import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
 
-type CompanyTab = "resumen" | "contactos" | "vacantes" | "tareas";
+type CompanyTab =
+  | "resumen"
+  | "contactos"
+  | "interacciones"
+  | "vacantes"
+  | "tareas";
 
 function CompanyDetailSkeleton() {
   return (
@@ -89,6 +96,7 @@ export default function CompanyDetailPage({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [tab, setTab] = useState<CompanyTab>("resumen");
+  const { canRead: hasCommercialAccess } = useCommercialAccess();
 
   const {
     filters,
@@ -241,26 +249,38 @@ export default function CompanyDetailPage({
                 count: company.contacts.length,
               },
               {
+                key: "interacciones",
+                label: "Interacciones",
+                commercial: true,
+              },
+              {
                 key: "vacantes",
                 label: "Vacantes",
                 count: company.vacancyCount ?? 0,
               },
               { key: "tareas", label: "Tareas" },
-            ] as { key: CompanyTab; label: string; count?: number }[]
-          ).map((item) => (
-            <TabsTrigger
-              key={item.key}
-              value={item.key}
-              className="-mb-px h-10 flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-sm font-semibold text-slate-brand shadow-none data-[state=active]:border-electric data-[state=active]:bg-transparent data-[state=active]:text-ink data-[state=active]:shadow-none"
-            >
-              {item.label}
-              {item.count != null && (
-                <span className="rounded-md bg-brand-border-light px-1.5 py-0.5 text-[11px] font-semibold text-slate-brand">
-                  {item.count}
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
+            ] as {
+              key: CompanyTab;
+              label: string;
+              count?: number;
+              commercial?: boolean;
+            }[]
+          )
+            .filter((item) => !item.commercial || hasCommercialAccess)
+            .map((item) => (
+              <TabsTrigger
+                key={item.key}
+                value={item.key}
+                className="-mb-px h-10 flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-sm font-semibold text-slate-brand shadow-none data-[state=active]:border-electric data-[state=active]:bg-transparent data-[state=active]:text-ink data-[state=active]:shadow-none"
+              >
+                {item.label}
+                {item.count != null && (
+                  <span className="rounded-md bg-brand-border-light px-1.5 py-0.5 text-[11px] font-semibold text-slate-brand">
+                    {item.count}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
         </TabsList>
 
         <TabsContent value="resumen">
@@ -331,6 +351,12 @@ export default function CompanyDetailPage({
         <TabsContent value="contactos">
           <CompanyContactsTab company={company} />
         </TabsContent>
+
+        {hasCommercialAccess && (
+          <TabsContent value="interacciones">
+            <CompanyInteractionsTab company={company} />
+          </TabsContent>
+        )}
 
         <TabsContent value="vacantes">
           <div className="flex flex-col min-w-0">

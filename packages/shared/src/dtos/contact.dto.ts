@@ -56,6 +56,8 @@ export const ContactQueryParamsSchema = PaginationParamsSchema.extend({
   ownerId: IdOrNoneSchema.optional(),
   sourceId: IdOrNoneSchema.optional(),
   company: CompanyFilterSchema.optional(),
+  /** Last Interaction older than N days (never interacted counts as older). */
+  lastInteractionOlderThan: z.coerce.number().int().positive().optional(),
 });
 
 /** Probe for probable duplicates before saving a new Contact. */
