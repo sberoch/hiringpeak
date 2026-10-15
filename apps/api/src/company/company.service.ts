@@ -7,9 +7,12 @@ import {
 import { and, asc, count, desc, eq, ilike, SQL } from 'drizzle-orm';
 import {
   companies,
+  contacts,
   type Company as CompanyRecord,
+  type Contact as ContactRecord,
   type Vacancy as VacancyRecord,
 } from '@workspace/shared/schemas';
+import { contactForViewer } from '@workspace/shared/lib/contact-access';
 import type { Company as CompanyResponse } from '@workspace/shared/types/company';
 import { CompanyStatusEnum } from '@workspace/shared/types/company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -28,14 +31,21 @@ import {
 
 interface CompanyQueryResult extends CompanyRecord {
   vacancies: VacancyRecord[];
+  contacts: ContactRecord[];
 }
+
 
 @Injectable()
 export class CompanyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
+  /**
+   * `viewerCodes` are the caller's permission codes: they decide which Contact
+   * fields come back (see contactForViewer).
+   */
   async findAll(
     params: CompanyFindAllServiceParams,
+    viewerCodes: readonly string[] = [],
   ): Promise<PaginatedResponse<CompanyResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -48,6 +58,8 @@ export class CompanyService {
       offset: paginationQuery.offset,
       with: {
         vacancies: true,
+        // A Company lists only its current Contacts.
+        contacts: { orderBy: [asc(contacts.name)] },
       },
     });
 
@@ -61,12 +73,18 @@ export class CompanyService {
       countQuery,
     ]);
 
-    const parsedItems = items.map((item) => this.transformQueryResult(item));
+    const parsedItems = items.map((item) =>
+      this.transformQueryResult(item, viewerCodes),
+    );
 
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
   }
 
-  async findOne(id: number, organizationId: number): Promise<CompanyResponse> {
+  async findOne(
+    id: number,
+    organizationId: number,
+    viewerCodes: readonly string[] = [],
+  ): Promise<CompanyResponse> {
     const company = await this.db.query.companies.findFirst({
       where: and(
         eq(companies.id, id),
@@ -74,10 +92,12 @@ export class CompanyService {
       ),
       with: {
         vacancies: true,
+        // A Company lists only its current Contacts.
+        contacts: { orderBy: [asc(contacts.name)] },
       },
     });
     if (!company) throw new NotFoundException('Not found');
-    return this.transformQueryResult(company);
+    return this.transformQueryResult(company, viewerCodes);
   }
 
   async create(dto: CreateCompanyServiceDto) {
@@ -110,12 +130,18 @@ export class CompanyService {
     return company;
   }
 
-  private transformQueryResult(result: CompanyQueryResult): CompanyResponse {
-    const { vacancies, ...rest } = result;
+  private transformQueryResult(
+    result: CompanyQueryResult,
+    viewerCodes: readonly string[],
+  ): CompanyResponse {
+    const { vacancies, contacts: companyContacts, ...rest } = result;
     return {
       ...rest,
       status: this.parseCompanyStatus(rest.status),
       vacancyCount: vacancies.length,
+      contacts: companyContacts.map((contact) =>
+        contactForViewer(contact, viewerCodes),
+      ),
     };
   }
 

@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { integer, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { vacancies } from "./vacancy.schema";
+import { contacts } from "./contact.schema";
 import { CompanyStatus } from "../enums";
 import { organizations } from "./organization.schema";
 
@@ -14,9 +15,6 @@ export const companies = pgTable("companies", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   status: companyStatusEnum("status").notNull(),
-  clientName: text("client_name"),
-  clientEmail: text("client_email"),
-  clientPhone: text("client_phone"),
   organizationId: integer("organization_id")
     .notNull()
     .references(() => organizations.id, {
@@ -31,6 +29,7 @@ export const companyRelations = relations(companies, ({ one, many }) => ({
     references: [organizations.id],
   }),
   vacancies: many(vacancies),
+  contacts: many(contacts),
 }));
 
 export type Company = typeof companies.$inferSelect;

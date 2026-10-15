@@ -1,9 +1,3 @@
-export interface CompanyReportContactInfo {
-  clientName?: string;
-  clientEmail?: string;
-  clientPhone?: string;
-}
-
 export interface CompanyReportVacancyRow {
   id: number;
   title: string;
@@ -16,6 +10,13 @@ export interface CompanyReportVacancyRow {
   hiredCandidates: number;
   rejectedCandidates: number;
   salary?: string;
+  /** Client-facing: the Vacancy Contact by name and role, never email or phone. */
+  vacancyContact?: CompanyReportVacancyContact;
+}
+
+export interface CompanyReportVacancyContact {
+  name: string;
+  role: string;
 }
 
 export interface CompanyReportRejectionCount {
@@ -41,7 +42,6 @@ export interface CompanyReportDocumentData {
   organizationName: string;
   companyName: string;
   companyDescription?: string;
-  contactInfo: CompanyReportContactInfo;
   generatedAt: Date;
   summary: CompanyReportSummary;
   hires: CompanyReportHire[];

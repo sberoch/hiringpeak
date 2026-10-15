@@ -6,9 +6,6 @@ export const CreateCompanySchema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
   status: z.nativeEnum(CompanyStatus),
-  clientName: z.string().optional(),
-  clientEmail: z.string().email().optional(),
-  clientPhone: z.string().optional(),
 });
 
 export const UpdateCompanySchema = CreateCompanySchema.partial();

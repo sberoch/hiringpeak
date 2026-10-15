@@ -21,6 +21,8 @@ export const CreateVacancySchema = z.object({
   statusId: z.number().int(),
   filters: VacancyFiltersSchema,
   companyId: z.number().int(),
+  /** Vacancy Contact: one of the Company's current Contacts, or none. */
+  vacancyContactId: z.number().int().nullable().optional(),
   createdBy: z.number().int(),
   assignedTo: z.number().int(),
 });

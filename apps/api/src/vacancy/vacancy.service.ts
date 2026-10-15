@@ -30,6 +30,7 @@ import {
   CandidateVacancyStatus,
   candidateVacancyStatuses,
   Comment,
+  contacts,
   RejectionReason,
   Company,
   User,
@@ -46,6 +47,12 @@ import {
   vacancyStatuses,
   VacancyStatus,
 } from '@workspace/shared/schemas';
+import type { VacancyContactSummary } from '@workspace/shared/types/contact';
+import {
+  VacancyContactPolicy,
+  type VacancyContactPatch,
+  type VacancyContactState,
+} from './vacancy-contact-policy';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -65,6 +72,7 @@ import type { VacancyListReportSourceRow } from './vacancy-list-report.types';
 
 type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
+  vacancyContact?: VacancyContactSummary | null;
   filters: VacancyFilters & {
     areaIds: Array<VacancyFiltersArea & { area: Area }>;
     industryIds: Array<VacancyFiltersIndustry & { industry: Industry }>;
@@ -87,6 +95,7 @@ type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
 /** Drizzle shape returned by the report finders (full candidate graph). */
 type ReportQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
+  vacancyContact?: VacancyContactSummary | null;
   filters: VacancyFilters & {
     areaIds: Array<VacancyFiltersArea & { area: Area }>;
     industryIds: Array<VacancyFiltersIndustry & { industry: Industry }>;
@@ -113,6 +122,8 @@ type ReportQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
 
 export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
+  /** Loaded only where needed (detail, Company Report); name and role only. */
+  vacancyContact?: VacancyContactSummary | null;
   filters:
     | (VacancyFilters & {
         areas: Area[];
@@ -505,6 +516,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -559,6 +571,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -603,6 +616,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -648,6 +662,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -781,6 +796,16 @@ export class VacancyService {
     });
     const closedAt = status?.isFinal ? new Date() : null;
 
+    const vacancyContactId = await this.resolveVacancyContact(
+      tx,
+      organizationId,
+      null,
+      {
+        companyId: createVacancyDto.companyId,
+        vacancyContactId: createVacancyDto.vacancyContactId,
+      },
+    );
+
     const vacancyValues = {
       title: createVacancyDto.title,
       description: createVacancyDto.description ?? '',
@@ -788,6 +813,7 @@ export class VacancyService {
       statusId: createVacancyDto.statusId,
       vacancyFiltersId: filters.id,
       companyId: createVacancyDto.companyId,
+      vacancyContactId: vacancyContactId ?? null,
       createdBy: createVacancyDto.createdBy,
       assignedTo: createVacancyDto.assignedTo,
       organizationId,
@@ -811,6 +837,32 @@ export class VacancyService {
         ...vacancyFields,
         updatedAt: new Date(),
       };
+      delete setFields.vacancyContactId;
+      if (
+        updateVacancyDto.companyId !== undefined ||
+        updateVacancyDto.vacancyContactId !== undefined
+      ) {
+        const current = await tx.query.vacancies.findFirst({
+          columns: { companyId: true, vacancyContactId: true },
+          where: and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        });
+        if (!current) throw new NotFoundException('Vacancy not found');
+        const vacancyContactId = await this.resolveVacancyContact(
+          tx,
+          organizationId,
+          current,
+          {
+            companyId: updateVacancyDto.companyId,
+            vacancyContactId: updateVacancyDto.vacancyContactId,
+          },
+        );
+        if (vacancyContactId !== undefined) {
+          setFields.vacancyContactId = vacancyContactId;
+        }
+      }
       if (updateVacancyDto.statusId != null) {
         const newStatus = await tx.query.vacancyStatuses.findFirst({
           where: eq(vacancyStatuses.id, updateVacancyDto.statusId),
@@ -914,6 +966,40 @@ export class VacancyService {
       return vacancy;
     });
     return vacancy;
+  }
+
+  /**
+   * Applies the Vacancy Contact rule (see VacancyContactPolicy): the named
+   * Contact must currently work at the Vacancy's Company, and changing the
+   * Company clears it. Returns the value to store (undefined = unchanged).
+   */
+  private async resolveVacancyContact(
+    tx: DrizzleDatabase,
+    organizationId: number,
+    current: VacancyContactState | null,
+    patch: VacancyContactPatch,
+  ): Promise<number | null | undefined> {
+    const contact =
+      patch.vacancyContactId != null
+        ? await tx.query.contacts.findFirst({
+            columns: { companyId: true },
+            where: and(
+              eq(contacts.id, patch.vacancyContactId),
+              eq(contacts.organizationId, organizationId),
+            ),
+          })
+        : undefined;
+    const resolution = VacancyContactPolicy.resolve({
+      current,
+      patch,
+      contactCompanyId: contact?.companyId ?? null,
+    });
+    if (!resolution.ok) {
+      throw new BadRequestException(
+        'El contacto de la vacante tiene que trabajar en la empresa de la vacante.',
+      );
+    }
+    return resolution.vacancyContactId;
   }
 
   /**

@@ -11,6 +11,7 @@ import {
 import { stringToColor } from '@workspace/shared/utils';
 import type {
   CompanyReportDocumentData,
+  CompanyReportVacancyContact,
   CompanyReportVacancyRow,
 } from './company-report.types';
 import { formatReportDate } from './company-report.utils';
@@ -135,28 +136,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.slate,
     lineHeight: 1.5,
-  },
-  metaStrip: {
-    marginTop: 14,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  metaCell: {
-    marginRight: 24,
-    marginBottom: 4,
-  },
-  metaLabel: {
-    fontSize: 7,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    color: COLORS.muted,
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  metaValue: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: COLORS.ink,
   },
 
   // ── Section ──────────────────────────────────────────────────
@@ -292,6 +271,12 @@ const styles = StyleSheet.create({
     fontWeight: 600,
     textAlign: 'right',
   },
+  vacancyContactLine: {
+    marginTop: 4,
+    fontSize: 9.5,
+    color: COLORS.slate,
+    fontWeight: 600,
+  },
   vacancyDescription: {
     marginTop: 6,
     fontSize: 9.5,
@@ -393,20 +378,6 @@ export function CompanyReportDocument({
             <Text style={styles.companyDescription}>
               {report.companyDescription}
             </Text>
-          ) : null}
-
-          {hasContact(report) ? (
-            <View style={styles.metaStrip}>
-              {report.contactInfo.clientName ? (
-                <MetaCell label="Cliente" value={report.contactInfo.clientName} />
-              ) : null}
-              {report.contactInfo.clientEmail ? (
-                <MetaCell label="Email" value={report.contactInfo.clientEmail} />
-              ) : null}
-              {report.contactInfo.clientPhone ? (
-                <MetaCell label="Teléfono" value={report.contactInfo.clientPhone} />
-              ) : null}
-            </View>
           ) : null}
         </View>
 
@@ -546,28 +517,6 @@ function buildSummaryCards(report: CompanyReportDocumentData): SummaryCard[] {
   ];
 }
 
-function hasContact(report: CompanyReportDocumentData): boolean {
-  return Boolean(
-    report.contactInfo.clientName ||
-      report.contactInfo.clientEmail ||
-      report.contactInfo.clientPhone,
-  );
-}
-
-interface MetaCellProps {
-  label: string;
-  value: string;
-}
-
-function MetaCell({ label, value }: MetaCellProps) {
-  return (
-    <View style={styles.metaCell}>
-      <Text style={styles.metaLabel}>{label}</Text>
-      <Text style={styles.metaValue}>{value}</Text>
-    </View>
-  );
-}
-
 interface SectionHeaderProps {
   title: string;
   count?: number;
@@ -624,10 +573,20 @@ function VacancyCard({ vacancy }: { vacancy: CompanyReportVacancyRow }) {
         </View>
         <Text style={styles.vacancyTenure}>{tenureLabel}</Text>
       </View>
+      {vacancy.vacancyContact ? (
+        <Text style={styles.vacancyContactLine}>
+          Contacto: {formatVacancyContact(vacancy.vacancyContact)}
+        </Text>
+      ) : null}
       {vacancy.description ? (
         <Text style={styles.vacancyDescription}>{vacancy.description}</Text>
       ) : null}
       <Text style={styles.vacancyMetaLine}>{metaParts.join(' · ')}</Text>
     </View>
   );
+}
+
+/** Client-facing: name and role only, never email or phone. */
+function formatVacancyContact(contact: CompanyReportVacancyContact): string {
+  return contact.role ? `${contact.name} · ${contact.role}` : contact.name;
 }
