@@ -10,13 +10,6 @@ export const editCompanyFormSchema = z.object({
     message: "El nombre debe tener al menos 2 caracteres.",
   }),
   description: z.string().optional().or(z.literal("")),
-  clientName: z.string().optional().or(z.literal("")),
-  clientEmail: z
-    .string()
-    .email({ message: "Ingrese un email válido." })
-    .optional()
-    .or(z.literal("")),
-  clientPhone: z.string().optional().or(z.literal("")),
 });
 
 export type EditCompanyFormSchema = z.infer<typeof editCompanyFormSchema>;

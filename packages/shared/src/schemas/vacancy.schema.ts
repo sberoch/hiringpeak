@@ -15,6 +15,7 @@ import { candidateVacancies } from "./candidatevacancy.schema";
 import { users } from "./user.schema";
 import { organizations } from "./organization.schema";
 import { aiVacancyRuns } from "./ai-vacancy-run.schema";
+import { contacts } from "./contact.schema";
 
 export const vacancies = pgTable("vacancies", {
   id: serial("id").primaryKey(),
@@ -42,6 +43,10 @@ export const vacancies = pgTable("vacancies", {
       onDelete: "cascade",
     }),
   aiVacancyRunId: integer("ai_vacancy_run_id").references(() => aiVacancyRuns.id, {
+    onDelete: "set null",
+  }),
+  /** Vacancy Contact: the client-side counterpart this search runs with. */
+  vacancyContactId: integer("vacancy_contact_id").references(() => contacts.id, {
     onDelete: "set null",
   }),
   salary: text("salary"),
@@ -76,6 +81,10 @@ export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
   aiVacancyRun: one(aiVacancyRuns, {
     fields: [vacancies.aiVacancyRunId],
     references: [aiVacancyRuns.id],
+  }),
+  vacancyContact: one(contacts, {
+    fields: [vacancies.vacancyContactId],
+    references: [contacts.id],
   }),
   candidateVacancies: many(candidateVacancies),
   createdBy: one(users, {

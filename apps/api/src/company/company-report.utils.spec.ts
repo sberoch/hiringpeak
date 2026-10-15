@@ -17,9 +17,7 @@ const baseCompany: Company = {
   status: CompanyStatusEnum.ACTIVE,
   vacancyCount: 2,
   createdAt: '2026-04-08T00:00:00.000Z',
-  clientName: 'Ana Pérez',
-  clientEmail: 'ana@cliente.com',
-  clientPhone: '+54 11 5555-5555',
+  contacts: [],
 };
 
 const generatedAt = new Date('2026-04-08T10:00:00.000Z');
@@ -73,7 +71,42 @@ describe('company-report.utils', () => {
     expect(report.vacancies.map((v) => v.id)).toEqual([1, 3, 2]);
     expect(report.vacancies[2]?.daysOpen).toBe(52); // closed vacancy uses created→closed
     expect(report.vacancies[0]?.salary).toBe('USD 3000-4000');
-    expect(report.contactInfo.clientName).toBe('Ana Pérez');
+  });
+
+  it("shows each vacancy's Vacancy Contact by name and role only", () => {
+    const row = buildCompanyReportVacancyRow(
+      createVacancy({
+        id: 1,
+        title: 'CFO',
+        statusName: 'Abierta',
+        createdAt: new Date('2026-04-01T10:00:00.000Z'),
+        closedAt: null,
+        vacancyContact: {
+          id: 9,
+          companyId: baseCompany.id,
+          name: 'Ana Pérez',
+          role: 'CEO',
+          email: 'ana@cliente.com',
+          phone: '+54 11 5555-5555',
+        },
+      }),
+      generatedAt,
+    );
+    expect(row.vacancyContact).toEqual({ name: 'Ana Pérez', role: 'CEO' });
+  });
+
+  it('leaves the Vacancy Contact out when the vacancy has none', () => {
+    const row = buildCompanyReportVacancyRow(
+      createVacancy({
+        id: 1,
+        title: 'CFO',
+        statusName: 'Abierta',
+        createdAt: new Date('2026-04-01T10:00:00.000Z'),
+        closedAt: null,
+      }),
+      generatedAt,
+    );
+    expect(row.vacancyContact).toBeUndefined();
   });
 
   it('keeps zero values when there are no vacancies', () => {
@@ -243,6 +276,7 @@ function createVacancy(params: {
   candidateStatusNames?: string[];
   description?: string;
   salary?: string;
+  vacancyContact?: Record<string, unknown> | null;
 }): VacancyApiResponse {
   const statusNames = params.candidateStatusNames ?? [];
   return {
@@ -256,6 +290,8 @@ function createVacancy(params: {
     vacancyFiltersId: null,
     statusId: 1,
     companyId: baseCompany.id,
+    vacancyContactId: params.vacancyContact ? 9 : null,
+    vacancyContact: params.vacancyContact ?? null,
     organizationId: 1,
     status: {
       id: params.id,

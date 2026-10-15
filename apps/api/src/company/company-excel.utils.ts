@@ -48,10 +48,17 @@ export function buildCompanyReportWorkbook(params: {
         ['Generado', formatExcelDateTime(generatedAt)],
         ['Empresa', data.companyName],
         ['Estado', company.status],
-        ['Cliente', data.contactInfo.clientName],
-        ['Email cliente', data.contactInfo.clientEmail],
-        ['Teléfono cliente', data.contactInfo.clientPhone],
       ],
+    },
+    {
+      title: 'Contactos',
+      rows:
+        company.contacts.length > 0
+          ? company.contacts.map((contact) => [
+              contact.role ? `${contact.name} (${contact.role})` : contact.name,
+              [contact.email, contact.phone].filter(Boolean).join(' · '),
+            ])
+          : [['Sin contactos', '']],
     },
     {
       title: 'Descripción',
@@ -115,6 +122,16 @@ function vacancyColumns(
   return [
     { header: 'Título', width: 30, value: (row) => row.title },
     { header: 'Estado', width: 18, value: (row) => row.statusName },
+    {
+      header: 'Contacto de la vacante',
+      width: 26,
+      value: (row) =>
+        row.vacancyContact
+          ? [row.vacancyContact.name, row.vacancyContact.role]
+              .filter(Boolean)
+              .join(' · ')
+          : undefined,
+    },
     {
       header: 'Asignado a',
       width: 22,

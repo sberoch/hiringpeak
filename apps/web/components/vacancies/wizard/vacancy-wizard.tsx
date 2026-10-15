@@ -99,6 +99,7 @@ const EMPTY_DEFAULTS = {
   title: "",
   description: "",
   salary: "",
+  vacancyContactId: null,
   filters: EMPTY_FILTERS,
 } as unknown as VacancyWizardFormSchema;
 
@@ -109,6 +110,7 @@ function vacancyToFormValues(vacancy: Vacancy): VacancyWizardFormSchema {
     salary: vacancy.salary ?? "",
     status: vacancy.status,
     company: vacancy.company,
+    vacancyContactId: vacancy.vacancyContactId ?? null,
     createdBy: vacancy.createdBy,
     assignedTo: vacancy.assignedTo,
     filters: {
@@ -182,6 +184,7 @@ function aiDraftToFormValues(
     company:
       catalogs.companies.find((company) => company.id === draft.companyId) ??
       (undefined as unknown as VacancyWizardFormSchema["company"]),
+    vacancyContactId: null,
     createdBy:
       sessionUser ??
       (undefined as unknown as VacancyWizardFormSchema["createdBy"]),
