@@ -15,17 +15,20 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import type { ContactView } from "@workspace/shared/types/contact";
 import { COMPANIES_API_KEY } from "@/lib/api/company";
-import { deleteContact } from "@/lib/api/contact";
+import { CONTACT_API_KEY, deleteContact } from "@/lib/api/contact";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
 
 interface DeleteContactDialogProps {
   contact: ContactView | null;
   onClose: () => void;
+  /** Called after the Contact is gone (e.g. leave their page). */
+  onDeleted?: () => void;
 }
 
 export function DeleteContactDialog({
   contact,
   onClose,
+  onDeleted,
 }: DeleteContactDialogProps) {
   const queryClient = useQueryClient();
 
@@ -35,7 +38,9 @@ export function DeleteContactDialog({
       toast.success(`${deleted.name} eliminado`);
       queryClient.invalidateQueries({ queryKey: [COMPANIES_API_KEY] });
       queryClient.invalidateQueries({ queryKey: [VACANCY_API_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CONTACT_API_KEY] });
       onClose();
+      onDeleted?.();
     },
     onError: () => {
       toast.error("No se pudo eliminar el contacto.");

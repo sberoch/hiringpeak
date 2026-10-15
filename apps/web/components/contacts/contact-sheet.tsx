@@ -26,7 +26,11 @@ import {
 } from "@workspace/ui/components/sheet";
 import type { ContactView } from "@workspace/shared/types/contact";
 import { COMPANIES_API_KEY } from "@/lib/api/company";
-import { createContact, updateContact } from "@/lib/api/contact";
+import {
+  CONTACT_API_KEY,
+  createContact,
+  updateContact,
+} from "@/lib/api/contact";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
 
 const contactFormSchema = z.object({
@@ -90,6 +94,7 @@ export function ContactSheet({
       });
       queryClient.invalidateQueries({ queryKey: [COMPANIES_API_KEY] });
       queryClient.invalidateQueries({ queryKey: [VACANCY_API_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CONTACT_API_KEY] });
       onClose();
     },
     onError: () => {

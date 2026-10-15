@@ -10,34 +10,98 @@ import {
   ClipboardList,
   UserCheck,
   XCircle,
+  Tag,
+  type LucideIcon,
 } from "lucide-react";
+import { PermissionCode } from "@workspace/shared/enums";
+import { usePermissions } from "@/contexts/permission-context";
 
-const settingsNav = [
+type SettingsNavItem = { href: string; label: string; icon: LucideIcon };
+
+type SettingsNavGroup = {
+  /** Group heading; the first group has none. */
+  label?: string;
+  items: SettingsNavItem[];
+  /** Show the group when the user has any of these; omit = everyone. */
+  requiredPermissions?: PermissionCode[];
+};
+
+const generalNav: SettingsNavItem[] = [
   { href: "/settings/areas", label: "Áreas", icon: Layers },
   { href: "/settings/seniorities", label: "Seniority", icon: TrendingUp },
   { href: "/settings/industries", label: "Industrias", icon: Factory },
   { href: "/settings/sources", label: "Fuentes", icon: Radio },
-  { href: "/settings/vacancy-statuses", label: "Estados de vacante", icon: ClipboardList },
-  { href: "/settings/candidate-statuses", label: "Estados de candidato", icon: UserCheck },
-  { href: "/settings/rejection-reasons", label: "Motivos de rechazo", icon: XCircle },
+  {
+    href: "/settings/vacancy-statuses",
+    label: "Estados de vacante",
+    icon: ClipboardList,
+  },
+  {
+    href: "/settings/candidate-statuses",
+    label: "Estados de candidato",
+    icon: UserCheck,
+  },
+  {
+    href: "/settings/rejection-reasons",
+    label: "Motivos de rechazo",
+    icon: XCircle,
+  },
+];
+
+/** «Comercial»: the commercial picklists, for commercial administrators. */
+const commercialNav: SettingsNavItem[] = [
+  {
+    href: "/settings/contact-sources",
+    label: "Orígenes de contacto",
+    icon: Tag,
+  },
+];
+
+const settingsNavGroups: SettingsNavGroup[] = [
+  { items: generalNav },
+  {
+    label: "Comercial",
+    items: commercialNav,
+    requiredPermissions: [PermissionCode.CRM_MANAGE],
+  },
 ];
 
 export function SettingsSidebar() {
   const pathname = usePathname();
+  const { hasAnyPermission, isLoading } = usePermissions();
+  const groups = settingsNavGroups.filter(
+    (group) =>
+      !group.requiredPermissions ||
+      (!isLoading && hasAnyPermission(group.requiredPermissions)),
+  );
 
   return (
     <nav className="w-[240px] shrink-0">
       <div className="sticky top-6 rounded-2xl border border-brand-border bg-surface p-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)] min-h-[calc(100vh-10rem)]">
-        <ul className="space-y-0.5">
-          {settingsNav.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
+        {groups.map((group, index) => (
+          <div
+            key={group.label ?? "general"}
+            className={
+              index > 0
+                ? "mt-3 border-t border-brand-border/60 pt-3"
+                : undefined
+            }
+          >
+            {group.label && (
+              <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-brand">
+                {group.label}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = pathname === item.href;
+                const Icon = item.icon;
 
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`
                     flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                     transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
                     ${
@@ -46,9 +110,9 @@ export function SettingsSidebar() {
                         : "text-slate-brand hover:text-ink hover:bg-brand-border-light/70"
                     }
                   `}
-                >
-                  <div
-                    className={`
+                    >
+                      <div
+                        className={`
                       flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
                       transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
                       ${
@@ -57,15 +121,17 @@ export function SettingsSidebar() {
                           : "bg-brand-border-light text-slate-brand group-hover:bg-brand-border"
                       }
                     `}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </div>
     </nav>
   );
