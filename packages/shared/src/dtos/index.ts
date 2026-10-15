@@ -20,6 +20,7 @@ export * from "./vacancy-ai.dto.js";
 export * from "./candidatevacancy.dto.js";
 export * from "./company.dto.js";
 export * from "./contact.dto.js";
+export * from "./contactsource.dto.js";
 export * from "./task.dto.js";
 export * from "./notification.dto.js";
 export * from "./opportunity.dto.js";

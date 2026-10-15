@@ -12,8 +12,10 @@ import {
   candidateFiles,
   opportunityStages,
   lostReasons,
+  contactSources,
 } from '@workspace/shared/schemas';
 import {
+  DEFAULT_CONTACT_SOURCES,
   DEFAULT_LOST_REASONS,
   DEFAULT_OPPORTUNITY_STAGES,
 } from '@workspace/shared/static/commercial-defaults';
@@ -206,6 +208,11 @@ export async function seedCatalogs(
   console.log('  Seeding lost reasons...');
   for (const { name, sort } of DEFAULT_LOST_REASONS) {
     await findOrCreateByName(tx, lostReasons, name, organizationId, { sort });
+  }
+
+  console.log('  Seeding contact sources...');
+  for (const { name, sort } of DEFAULT_CONTACT_SOURCES) {
+    await findOrCreateByName(tx, contactSources, name, organizationId, { sort });
   }
 
   // candidateFiles: fixture row only in dev seed; skip in prod.

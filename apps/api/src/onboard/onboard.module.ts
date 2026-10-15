@@ -6,6 +6,7 @@ import { RoleModule } from '../role/role.module';
 import { UserModule } from '../user/user.module';
 import { OpportunityStageModule } from '../opportunitystage/opportunitystage.module';
 import { LostReasonModule } from '../lostreason/lostreason.module';
+import { ContactSourceModule } from '../contactsource/contactsource.module';
 import { OnboardController } from './onboard.controller';
 import { OnboardService } from './onboard.service';
 
@@ -18,6 +19,7 @@ import { OnboardService } from './onboard.service';
     UserModule,
     OpportunityStageModule,
     LostReasonModule,
+    ContactSourceModule,
   ],
   controllers: [OnboardController],
   providers: [OnboardService],

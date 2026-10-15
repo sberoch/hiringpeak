@@ -11,6 +11,7 @@ export * from "./candidatevacancystatus.schema";
 export * from "./comment.schema";
 export * from "./company.schema";
 export * from "./contact.schema";
+export * from "./contactsource.schema";
 export * from "./industry.schema";
 export * from "./notification.schema";
 export * from "./organization.schema";

@@ -27,6 +27,7 @@ import { VacancyModule } from './vacancy/vacancy.module';
 import { CandidateVacancyModule } from './candidatevacancy/candidatevacancy.module';
 import { CompanyModule } from './company/company.module';
 import { ContactModule } from './contact/contact.module';
+import { ContactSourceModule } from './contactsource/contactsource.module';
 import { OrganizationModule } from './organization/organization.module';
 import { OnboardModule } from './onboard/onboard.module';
 import { FeatureFlagModule } from './feature-flag/feature-flag.module';
@@ -64,6 +65,7 @@ import { OpportunityModule } from './opportunity/opportunity.module';
     CandidateVacancyModule,
     CompanyModule,
     ContactModule,
+    ContactSourceModule,
     AreaModule,
     IndustryModule,
     SeniorityModule,

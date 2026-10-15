@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  BookUser,
   Briefcase,
   Building2,
   ChevronLeft,
@@ -147,6 +148,14 @@ const OPPORTUNITIES_ITEM: SidebarItem = {
   requiredPermissions: [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE],
 };
 
+const CONTACTS_ITEM: SidebarItem = {
+  id: "contacts",
+  title: "Contactos",
+  url: "/contacts",
+  icon: <BookUser className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE],
+};
+
 const ADMIN_SECTION: SidebarSection = {
   label: "Administración",
   items: [
@@ -192,7 +201,7 @@ const ADMIN_SECTION: SidebarSection = {
 
 /**
  * Users with commercial access get a «Comercial» section holding Oportunidades,
- * Empresas and Tareas; everyone else keeps the original «Espacio de trabajo» layout.
+ * Empresas, Contactos and Tareas; everyone else keeps the original «Espacio de trabajo» layout.
  */
 function buildSidebarSections(commercialAccess: boolean): SidebarSection[] {
   if (!commercialAccess) {
@@ -217,7 +226,7 @@ function buildSidebarSections(commercialAccess: boolean): SidebarSection[] {
     },
     {
       label: "Comercial",
-      items: [OPPORTUNITIES_ITEM, COMPANIES_ITEM, TASKS_ITEM],
+      items: [OPPORTUNITIES_ITEM, COMPANIES_ITEM, CONTACTS_ITEM, TASKS_ITEM],
     },
     ADMIN_SECTION,
   ];

@@ -1,7 +1,8 @@
 /**
  * Commercial picklists every Organization starts with. Seeded during
  * Onboarding, by the dev/prod seed scripts, and (for Organizations that
- * existed before the CRM) by migration 0008 — keep that SQL in sync.
+ * existed before the CRM) by migrations 0008 (stages, lost reasons) and
+ * 0010 (contact sources) — keep that SQL in sync.
  */
 export const DEFAULT_OPPORTUNITY_STAGES: readonly {
   name: string;
@@ -24,3 +25,11 @@ export const DEFAULT_LOST_REASONS: readonly { name: string; sort: number }[] = [
   { name: "Sin respuesta", sort: 3 },
   { name: "Otro", sort: 4 },
 ];
+
+export const DEFAULT_CONTACT_SOURCES: readonly { name: string; sort: number }[] =
+  [
+    { name: "Evento", sort: 0 },
+    { name: "Referido", sort: 1 },
+    { name: "LinkedIn", sort: 2 },
+    { name: "Cliente actual", sort: 3 },
+  ];

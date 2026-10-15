@@ -9,6 +9,8 @@ export const PAGE_AUTHORIZATION_ACCESS: Record<string, true> = {
   "/candidates/new": true,
   "/companies": true,
   "/companies/new": true,
+  "/contacts": true,
+  "/contacts/:id": true,
   "/dashboard": true,
   "/opportunities": true,
   "/opportunities/:id": true,

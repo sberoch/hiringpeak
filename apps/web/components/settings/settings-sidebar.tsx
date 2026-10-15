@@ -12,6 +12,7 @@ import {
   XCircle,
   GitBranch,
   CircleOff,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +35,7 @@ const settingsNav: SettingsNavItem[] = [
 const commercialNav: SettingsNavItem[] = [
   { href: "/settings/opportunity-stages", label: "Etapas de oportunidad", icon: GitBranch },
   { href: "/settings/lost-reasons", label: "Motivos de pérdida", icon: CircleOff },
+  { href: "/settings/contact-sources", label: "Orígenes de contacto", icon: Tag },
 ];
 
 function SettingsNavList({ items }: { items: SettingsNavItem[] }) {
