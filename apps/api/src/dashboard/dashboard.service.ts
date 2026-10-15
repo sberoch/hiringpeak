@@ -2,14 +2,21 @@ import { Inject, Injectable } from '@nestjs/common';
 import { count, eq, inArray, gte, lt, and, sql, avg } from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
-import { Dashboard, RecruiterStats } from '@workspace/shared/types/dashboard';
+import {
+  CommercialSummary,
+  Dashboard,
+  RecruiterStats,
+} from '@workspace/shared/types/dashboard';
 import {
   candidates,
   candidateVacancies,
+  opportunities,
+  opportunityStages,
   users,
   vacancies,
   vacancyStatuses,
 } from '@workspace/shared/schemas';
+import { computeCommercialSummary } from './commercial-metrics';
 
 const OPEN_STATUS_POSSIBLE_VALUES = ['Abierta', 'Abierto', 'Open'];
 const FILLED_STATUS_POSSIBLE_VALUES = ['Cubierta', 'Filled'];
@@ -203,8 +210,7 @@ export class DashboardService {
 
     // Merge candidate counts
     for (const [recruiterId, entry] of recruiterMap) {
-      entry.candidatesInPipeline =
-        candidatesByRecruiter.get(recruiterId) || 0;
+      entry.candidatesInPipeline = candidatesByRecruiter.get(recruiterId) || 0;
     }
 
     const stats: RecruiterStats[] = Array.from(recruiterMap.entries()).map(
@@ -229,5 +235,37 @@ export class DashboardService {
     stats.sort((a, b) => b.totalVacancies - a.totalVacancies);
 
     return stats;
+  }
+
+  /** «Comercial» section: every Owner's row, scoped to the Organization. */
+  async getCommercialSummary(
+    organizationId: number,
+    now = new Date(),
+  ): Promise<CommercialSummary> {
+    const rows = await this.db
+      .select({
+        ownerId: opportunities.ownerId,
+        ownerName: users.name,
+        isWon: opportunityStages.isWon,
+        isLost: opportunityStages.isLost,
+        estimatedFee: opportunities.estimatedFee,
+        createdAt: opportunities.createdAt,
+        closeDate: opportunities.closeDate,
+      })
+      .from(opportunities)
+      .innerJoin(
+        opportunityStages,
+        eq(opportunityStages.id, opportunities.stageId),
+      )
+      .innerJoin(users, eq(users.id, opportunities.ownerId))
+      .where(eq(opportunities.organizationId, organizationId));
+
+    return computeCommercialSummary(
+      rows.map(({ isWon, isLost, ...row }) => ({
+        ...row,
+        outcome: isWon ? 'won' : isLost ? 'lost' : 'open',
+      })),
+      now,
+    );
   }
 }
