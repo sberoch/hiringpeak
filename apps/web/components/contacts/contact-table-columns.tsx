@@ -19,8 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { canManageContacts } from "@workspace/shared/lib/contact-access";
-import type { NetworkContact } from "@workspace/shared/types/contact";
+import type {
+  NetworkContact,
+  NetworkContactListItem,
+} from "@workspace/shared/types/contact";
 
+import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
 import { usePermissions } from "@/contexts/permission-context";
 import { ContactAvatar } from "./contact-atoms";
 import { ContactCaptureSheet } from "./contact-capture-sheet";
@@ -34,7 +38,7 @@ function SortHeader({
   column,
   label,
 }: {
-  column: Column<NetworkContact, unknown>;
+  column: Column<NetworkContactListItem, unknown>;
   label: string;
 }) {
   return (
@@ -147,7 +151,7 @@ function OwnerCell({ contact }: { contact: NetworkContact }) {
   );
 }
 
-export const columns: ColumnDef<NetworkContact>[] = [
+export const columns: ColumnDef<NetworkContactListItem>[] = [
   {
     id: "name",
     accessorKey: "name",
@@ -218,6 +222,13 @@ export const columns: ColumnDef<NetworkContact>[] = [
     id: "owner",
     header: () => <PlainHeader label="Responsable" />,
     cell: ({ row }) => <OwnerCell contact={row.original} />,
+  },
+  {
+    id: "lastInteraction",
+    header: () => <PlainHeader label="Últ. interacción" />,
+    cell: ({ row }) => (
+      <LastInteractionLabel last={row.original.lastInteraction} />
+    ),
   },
   {
     id: "actions",

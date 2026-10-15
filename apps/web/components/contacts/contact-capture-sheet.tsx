@@ -31,6 +31,16 @@ import {
   updateContact,
 } from "@/lib/api/contact";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
+import { createInteraction, INTERACTION_API_KEY } from "@/lib/api/interaction";
+import { usePermissions } from "@/contexts/permission-context";
+import {
+  emptyMeetDraft,
+  interactionDraftProblem,
+  MeetSection,
+  type InteractionDraft,
+  type MeetDraft,
+} from "@/components/interactions/interaction-ui";
+import { PermissionCode } from "@workspace/shared/enums";
 import { useCurrentUserId } from "./contact-lookups";
 import {
   CompanyPicker,
@@ -135,6 +145,7 @@ export function ContactCaptureSheet({
   contact,
 }: ContactCaptureSheetProps) {
   const me = useCurrentUserId();
+  const { hasPermission } = usePermissions();
   const isEdit = !!contact;
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft>(() =>
@@ -145,7 +156,15 @@ export function ContactCaptureSheet({
   const [batch, setBatch] = useState<{ id: number; name: string }[]>([]);
   const set = (patch: Partial<Draft>) =>
     setDraft((current) => ({ ...current, ...patch }));
-  const problem = draftProblem(draft);
+  /** "Nos conocimos en…" (creation only; logging needs CRM_MANAGE). */
+  const [meet, setMeet] = useState<MeetDraft>(emptyMeetDraft);
+  const canLogInteractions =
+    !isEdit && hasPermission(PermissionCode.CRM_MANAGE);
+  const problem =
+    draftProblem(draft) ??
+    (canLogInteractions && meet.open && interactionDraftProblem(meet)
+      ? "Escribí dónde se conocieron o cerrá esa sección"
+      : null);
   const duplicates = useContactDuplicates({
     name: isEdit ? "" : draft.name,
     email: isEdit ? "" : draft.email,
@@ -154,6 +173,7 @@ export function ContactCaptureSheet({
 
   const reset = () => {
     setDraft(contact ? draftFromContact(contact) : emptyDraft());
+    setMeet(emptyMeetDraft());
     setFormKey((key) => key + 1);
   };
 
@@ -167,13 +187,36 @@ export function ContactCaptureSheet({
     void queryClient.invalidateQueries({ queryKey: [CONTACT_API_KEY] });
     void queryClient.invalidateQueries({ queryKey: [COMPANIES_API_KEY] });
     void queryClient.invalidateQueries({ queryKey: [VACANCY_API_KEY] });
+    void queryClient.invalidateQueries({ queryKey: [INTERACTION_API_KEY] });
   };
 
   const { mutate: create, isPending: isCreating } = useMutation({
-    mutationFn: (args: { payload: CreateContactDto; another: boolean }) =>
-      createContact(args.payload),
-    onSuccess: (created, { another }) => {
-      toast.success(`${created.name} guardado`);
+    /** The Contact first, so the first Interaction stamps their Company. */
+    mutationFn: async (args: {
+      payload: CreateContactDto;
+      meet: InteractionDraft | null;
+      another: boolean;
+    }) => {
+      const created = await createContact(args.payload);
+      if (args.meet) {
+        await createInteraction({
+          ...args.meet,
+          summary: args.meet.summary.trim(),
+          contactIds: [created.id],
+        }).catch(() =>
+          toast.error(
+            "El contacto se guardó, pero no se pudo registrar la primera interacción.",
+          ),
+        );
+      }
+      return created;
+    },
+    onSuccess: (created, { another, meet: firstInteraction }) => {
+      toast.success(`${created.name} guardado`, {
+        description: firstInteraction
+          ? "Con su primera interacción"
+          : undefined,
+      });
       if (created.duplicates.length > 0) {
         toast.warning("Puede que ya lo tuvieras cargado", {
           description: created.duplicates
@@ -210,7 +253,12 @@ export function ContactCaptureSheet({
     if (problem || isPending) return;
     const payload = draftPayload(draft);
     if (isEdit) update(payload);
-    else create({ payload, another });
+    else
+      create({
+        payload,
+        meet: canLogInteractions && meet.open ? meet : null,
+        another,
+      });
   };
 
   return (
@@ -225,7 +273,7 @@ export function ContactCaptureSheet({
           </SheetTitle>
           <SheetDescription className="text-slate-brand">
             {isEdit
-              ? "Si cambió de trabajo, elegí su nueva empresa."
+              ? "Si cambió de trabajo, elegí su nueva empresa. Sus interacciones pasadas conservan la empresa de ese momento."
               : "Cargá las tarjetas de a una. «Guardar y cargar otro» deja el formulario vacío para el siguiente."}
           </SheetDescription>
         </SheetHeader>
@@ -323,6 +371,9 @@ export function ContactCaptureSheet({
               placeholder="Quién es y por qué nos interesa"
             />
           </Field>
+          {canLogInteractions && (
+            <MeetSection value={meet} onChange={setMeet} />
+          )}
         </div>
 
         <SheetFooter className="sticky bottom-0 flex-row items-center gap-2 border-t border-brand-border bg-surface">

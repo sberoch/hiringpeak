@@ -7,6 +7,7 @@ import type {
   CreateContactDto,
   CreatedContact,
   NetworkContact,
+  NetworkContactListItem,
   UpdateContactDto,
 } from "@workspace/shared/types/contact";
 
@@ -18,7 +19,7 @@ export const CONTACT_API_KEY = "contact";
 /** The Organization's network (commercial access only). */
 export async function getContacts(params: ContactFilters) {
   const searchParams = filtersToSearchParams(params);
-  const response = await api.get<PaginatedResponse<NetworkContact>>(
+  const response = await api.get<PaginatedResponse<NetworkContactListItem>>(
     `/contact${searchParams}`,
   );
   return response.data;

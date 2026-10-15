@@ -110,7 +110,7 @@ export function OpportunityNextStepSection({
   );
   const closed = opportunity.stage.isWon || opportunity.stage.isLost;
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="space-y-4">
       {!closed && <NextStepCard opportunity={opportunity} />}
       <TasksInContextCard context={context} variant="compact" />
     </div>

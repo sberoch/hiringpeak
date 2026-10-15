@@ -1,3 +1,5 @@
+import type { LastInteraction } from "./interaction.js";
+
 export type OpportunityStage = {
   id: number;
   name: string;
@@ -66,6 +68,14 @@ export type OpportunityNextStep = {
   /** Task Owner. */
   assignedTo: number;
   owner: { id: number; name: string };
+};
+
+/**
+ * A row of `GET /opportunity`. `lastInteraction`: the latest Interaction tied
+ * to it, else the latest with its Company.
+ */
+export type OpportunityListItem = Opportunity & {
+  lastInteraction: LastInteraction | null;
 };
 
 /** A Vacancy produced by the Opportunity, as listed on its page. */

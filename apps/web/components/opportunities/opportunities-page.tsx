@@ -10,8 +10,8 @@ import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
 import { summarizePipeline } from "@workspace/shared/lib/opportunity-pipeline";
 import type {
-  Opportunity,
   OpportunityFilters,
+  OpportunityListItem,
   OpportunityStage,
 } from "@workspace/shared/types/opportunity";
 import { Checkbox } from "@workspace/ui/components/checkbox";
@@ -28,6 +28,7 @@ import {
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
 import { NewOpportunityButton } from "./new-opportunity-sheet";
 import { NextStepCell } from "./opportunity-next-step";
 import {
@@ -44,7 +45,7 @@ import { useStageChange } from "./stage-change";
 const ALL = "all";
 const MINE = "me";
 /** Table columns, for the full-width group header and empty rows. */
-const COLUMN_COUNT = 6;
+const COLUMN_COUNT = 7;
 
 function useDebounced<T>(value: T, delayMs = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -206,11 +207,12 @@ export function OpportunitiesPage() {
         ) : (
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[26%]" />
-              <col className="w-[16%]" />
-              <col className="w-[12%]" />
-              <col className="w-[20%]" />
-              <col className="w-[12%]" />
+              <col className="w-[22%]" />
+              <col className="w-[13%]" />
+              <col className="w-[11%]" />
+              <col className="w-[18%]" />
+              <col className="w-[11%]" />
+              <col className="w-[11%]" />
               <col className="w-[14%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
@@ -220,6 +222,7 @@ export function OpportunitiesPage() {
                 <th className="px-3 py-2 text-right">Fee estimado</th>
                 <th className="px-3 py-2">Próximo paso</th>
                 <th className="px-3 py-2">Responsable</th>
+                <th className="px-3 py-2">Últ. interacción</th>
                 <th className="px-3 py-2">Etapa</th>
               </tr>
             </thead>
@@ -343,7 +346,7 @@ function OpportunityRow({
   canManage,
   onMove,
 }: {
-  opportunity: Opportunity;
+  opportunity: OpportunityListItem;
   stages: OpportunityStage[];
   canManage: boolean;
   onMove: (stage: OpportunityStage) => void;
@@ -390,6 +393,9 @@ function OpportunityRow({
       </td>
       <td className="truncate px-3 py-3 text-slate-brand">
         {opportunity.owner.name}
+      </td>
+      <td className="px-3 py-3">
+        <LastInteractionLabel last={opportunity.lastInteraction} />
       </td>
       <td className="px-3 py-2">
         {canManage ? (
