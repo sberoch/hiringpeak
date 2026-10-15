@@ -11,15 +11,70 @@ An executive-search firm operating on the platform; the tenant boundary and the 
 _Avoid_: Tenant, Account, Workspace, Agency, Firm.
 
 **Company**:
-A client of an **Organization** — an external firm that has engaged the executive-search agency to fill one or more **Vacancies**. A Company is *not* a tenant: it has no login and never accesses the platform directly; the Organization's recruiters interact with it on its behalf.
-_Avoid_: Client, Account, Customer, Employer.
+An external firm the **Organization** has a commercial relationship with — whether a prospect it is pitching or a client that has engaged it to fill one or more **Vacancies**. One continuous record across the whole relationship: a prospect does not "convert" into a different entity when it signs. A Company is *not* a tenant: it has no login and never accesses the platform directly; the Organization's users interact with it on its behalf.
+_Avoid_: Client, Account, Customer, Employer, Lead.
 
-**Client Contact** (embedded in Company as `clientName` / `clientEmail` / `clientPhone`):
-The named person at the **Company** who serves as the Organization's point of contact for the engagement. Not a separate entity; not a platform user.
-_Avoid_: Hiring manager, Sponsor.
+**Contact** (UI Spanish: "Contacto"):
+A person the **Organization** has, or wants, a commercial relationship with — the CEO who signs, the CHRO who briefs the search, or someone a partner met at an event who might one day bring business. The relationship is with the *person*: a Contact may work at a **Company** the Organization tracks, or have no Company at all. Being a Contact implies nothing about an **Opportunity** — most never lead to one. Not a platform user, and deliberately *not* a **Candidate**: the same human may be both, but the two records are kept separate and are not linked. Follow-ups with a Contact ("reach out in 10 days") are **Tasks** attached to them — any open Task attached to the Contact counts, whoever owns it; a Contact has no stage or status of its own.
+A Contact's Company is their *current* employer and changes when they move: the same Contact follows the person from Acme to Globex, keeping all their history. Nothing is rewritten by the move, because each **Interaction** records the Company it was with at the time; past **Opportunities** and **Vacancies** at the old Company keep pointing to the Contact. The same person entered twice is tolerated — creation warns about a likely duplicate but never blocks it. A **Vacancy** may name one Contact as its **Vacancy Contact**.
+_Avoid_: Client Contact (the former single embedded contact, superseded), Lead, Hiring manager, Sponsor.
 
-**Company Status** (`Active` | `Prospect`):
-A lightweight CRM-style state on a **Company**. `Prospect` = the Organization is pitching the Company but has no signed engagement yet; `Active` = the Organization has a signed engagement and is actively running searches for them. There is no explicit "lost" or "churned" state today.
+**Contact Source** (UI Spanish: "Origen"):
+A per-Organization picklist label for how the Organization came to know a **Contact** — e.g. "Evento", "Referido", "LinkedIn". Same family as **Candidate Source**: a plain label with no behavior. The specifics ("AmCham 2026") belong in the first **Interaction**, not in the label.
+_Avoid_: Candidate Source (that's the **Candidate** axis), Origin, Channel.
+
+**Contact Owner**:
+The single **User** whose relationship a **Contact** is — whose network the person belongs to. Optional, reassignable, defaults to the User who created the Contact. Follow-up **Tasks** on a Contact are owned by whoever creates them — adding a follow-up means committing to it yourself — except the follow-up scheduled while capturing a new Contact ("reach out in X days"), which goes to the Contact Owner. Same single-owner model as **Account Owner**, and likewise must have access to the commercial side.
+_Avoid_: Account Owner (that's the **Company** axis), Assignee.
+
+**Vacancy Contact**:
+The **Contact** who is the client-side counterpart for one **Vacancy** — the person that search is run with. Optional, at most one per Vacancy, and it varies by search rather than being fixed per **Company** (the CEO for the CFO search, HR for an analyst search). This is the person the client-facing **Company Report** shows for each Vacancy — by name and role only, never their email or phone. There is no "primary Contact" on a Company.
+_Avoid_: Primary contact, Hiring manager.
+
+**Account Owner**:
+The single **User** responsible for the Organization's overall relationship with a **Company** — keeping it warm between and beyond individual **Opportunities**. Same single-owner, reassignable, no-co-owners model as **Vacancy Owner**. Distinct from **Opportunity Owner**: the Account Owner owns the relationship, an Opportunity Owner owns one possible deal within it.
+Optional — a Company may have none. Only a **User** with access to the commercial side can be an Account Owner.
+_Avoid_: Relationship manager, Assignee.
+
+**Opportunity** (UI Spanish: "Oportunidad"):
+One possible piece of work for one **Company**, tracked from the first real commercial conversation until it is won or lost. Belongs to exactly one Company. A won Opportunity can lead to zero or more **Vacancies**, each created one at a time and linked back to it; a Vacancy need not come from an Opportunity. *Only a won* Opportunity can produce or be linked to a Vacancy — if work has started, the deal is won. Moving an Opportunity back out of won is allowed and leaves its Vacancies untouched (state changes don't cascade).
+_Avoid_: Deal, Lead (a not-yet-qualified contact, not a possible project), Project, Search (that's a **Vacancy**).
+
+**Opportunity Stage** (UI Spanish: "Etapa"):
+A per-Organization configurable, ordered stage an **Opportunity** moves through — the commercial counterpart of a **Pipeline Stage**. Exactly one stage is flagged as the *won* outcome and exactly one as the *lost* outcome; the outcome is never inferred from sort order, and the won and lost stages always sort after every open stage. Which stage carries an outcome flag can only change while neither the stage giving it up nor the one receiving it holds any Opportunity.
+_Avoid_: Status, Pipeline Stage (that's the **Candidacy** axis).
+
+**Lost Reason** (UI Spanish: "Motivo de pérdida"):
+A per-Organization configurable picklist label categorising *why* an **Opportunity** was lost — e.g. "Precio", "Eligió otra consultora", "Se canceló la búsqueda". The commercial counterpart of **Rejection Reason**, with the same lifecycle: an Opportunity carries exactly one Lost Reason while in the lost stage — entering it requires one, leaving it clears it. Answers *why*, while the **Opportunity Stage** answers *where*.
+_Avoid_: Rejection Reason (that's the **Candidacy** axis), Reason (bare).
+
+**Opportunity Close Date** (UI Spanish: "Fecha de cierre"):
+The date an **Opportunity** was won or lost — the basis for "won this year" and win-rate figures. The commercial counterpart of a **Vacancy**'s **Close Date**, with the same rules and for the same reason (people update the system late): it exists only while the Opportunity sits in the won or lost **Opportunity Stage**, defaults to today on entering it, is freely backdatable, and leaving won/lost clears it.
+_Avoid_: Close Date (bare — that's the **Vacancy**'s), Won date, Deadline.
+
+**No Next Step** (UI Spanish: "Sin próximo paso"):
+A derived state of an open **Opportunity** (neither won nor lost) that has no open **Task** attached — nobody has committed to doing anything about it. Never stored. The system's answer to follow-ups depending on someone remembering. Applies to Opportunities only — never to **Contacts**, most of whom legitimately have nothing pending.
+_Avoid_: Stale, Stalled (imply elapsed time; this is about a missing commitment, not inactivity).
+
+**Commercial side** (permissions: `CRM_READ` / `CRM_MANAGE`):
+The part of the platform about winning and keeping **Companies** — **Opportunities**, **Estimated Fees**, **Interactions**, setting **Account Owners**, and configuring **Opportunity Stages** and **Lost Reasons**. Part of the core product, gated only by those two permissions (one pair, Organization-wide, no own-vs-all split). Users without them — typically recruiters — still see **Companies**, a Company's **Contacts** (who they are and how to reach them), the **Account Owner** and **Company Status** read-only, since search work needs them — but not the Organization's wider network: Contacts without a Company, **Contact Source**, **Contact Owner**, and Contacts' follow-ups belong to the commercial side; editing Companies stays under `COMPANY_MANAGE`, while creating and editing Contacts is allowed with either `COMPANY_MANAGE` or `CRM_MANAGE`, since most Contacts are now the commercial network rather than client-side counterparts.
+_Avoid_: Sales module.
+
+**Opportunity Owner**:
+The single **User** responsible for moving an **Opportunity** forward. Same single-owner, reassignable, no-co-owners model as **Vacancy Owner**. Defaults to the Company's **Account Owner**, else to the User creating the Opportunity. Must be a User with access to the commercial side.
+_Avoid_: Assignee, Salesperson.
+
+**Estimated Fee**:
+The amount an **Opportunity** is expected to bill if won — a single hand-entered estimate, not derived from salary × fee % and not split into installments (that belongs to future invoicing). Like every other amount in the platform it carries no currency: there is no multicurrency. Optional until someone estimates it. The basis for "how much business is at stake": open Opportunities' Estimated Fees are simply totalled, with no probability weighting.
+_Avoid_: Value, Amount (bare), Revenue (implies money already earned).
+
+**Interaction** (UI Spanish: "Interacción"):
+A record of something that happened between the **Organization** and one or more **Contacts** and/or a **Company** — a call, meeting, email or lunch — with a type, the date it happened, a summary, and the **User** who recorded it; involves at least one Contact or a Company, and is optionally tied to an **Opportunity**. The Company it records is the one it was with *at the time* (defaulting to the Contacts' current Company), so a Contact later changing employer never moves past Interactions between Companies. The unit of relationship history. Logged by hand, and part of the commercial side only — recruiters' day-to-day exchanges with a client during a search are not Interactions.
+_Avoid_: Activity (ruled out alongside **Task**), Comment (a note on a **Candidate**), Note, Touchpoint, Audit Event (a system record of a User's action in the platform, not a real-world exchange with a client).
+
+**Company Status** (`Prospect` | `Client`):
+Where a **Company** stands commercially — *derived*, never set by hand. `Client` = the Company has ever had a won **Opportunity** or any **Vacancy**; `Prospect` = neither. Counting Vacancies keeps clients that predate Opportunities correct. There is no "lost" or "churned" status: a client the Organization has drifted away from is a view over the date of its latest **Interaction**, not a status.
+_Avoid_: Active (the former manual value — "active" wrongly suggests current work is running).
 
 **Vacancy**:
 A specific role a **Company** has engaged the **Organization** to fill — the unit of search work. Has a configurable **Vacancy Status**, an assigned recruiter, a free-form description, optional structured **Vacancy Filters** (matching criteria), and a **Pipeline** of candidates being evaluated for it.
@@ -83,7 +138,7 @@ A free-text internal note authored by a User on a **Candidate**. Internal-only �
 _Avoid_: Note (vague), Annotation.
 
 **Task**:
-A unit of assignable recruiter work-to-be-done, carrying an *optional* due date and a *binary* done state (open or done — no configurable task-status workflow; dismissing a Task means deleting it), optionally attached to exactly one of a **Candidate**, **Vacancy**, **Candidacy**, or **Company** (or standalone — attached to nothing). A Task with no due date is valid (a backlog item) and never produces a **Notification**. A Task past its due date and not done is **overdue** — a derived state, never stored. Modelled on **Vacancy**, not **Comment**: like a Vacancy it has a `createdBy` (immutable audit, no domain meaning) and a single reassignable owner (**Task Owner**). It is *not* a **Comment** (a free-text note *about* a Candidate, no deadline, no completion) and *not* an **Audit Event** (an immutable record of something that already happened). Internal-only; never surfaced to the **Company**. An End-User-only concept — **Internal Users** have no Organization and therefore no Tasks.
+A unit of assignable work-to-be-done — recruiting work and commercial follow-ups alike — carrying an *optional* due date and a *binary* done state (open or done — no configurable task-status workflow; dismissing a Task means deleting it), attached to any number of **Candidates**, **Vacancies**, **Candidacies**, **Companies**, **Contacts** and **Opportunities**, in any combination (or none — standalone). A commercial follow-up is not a separate concept: it is a Task attached to commercial records. A Task with any **Opportunity** or any **Contact** attached is *commercial* — so a follow-up with someone from the Organization's network never reaches recruiters; search work that involves a client-side person is attached to the **Vacancy** instead. A Task stays commercial if the record that made it so is later deleted: only Users with access to the commercial side can see, create or own it — read access (`CRM_READ`) is enough — and within that, their Task permissions apply as usual. A Task with no due date is valid (a backlog item) and never produces a **Notification**. A Task past its due date and not done is **overdue** — a derived state, never stored. Modelled on **Vacancy**, not **Comment**: like a Vacancy it has a `createdBy` (immutable audit, no domain meaning) and a single reassignable owner (**Task Owner**). It is *not* a **Comment** (a free-text note *about* a Candidate, no deadline, no completion) and *not* an **Audit Event** (an immutable record of something that already happened). Internal-only; never surfaced to the **Company**. An End-User-only concept — **Internal Users** have no Organization and therefore no Tasks.
 _Avoid_: To-do, Reminder (that names the **Notification**, not the work), Action Item, Activity, Ticket.
 
 **Task Owner** (`tasks.assignedTo`):
@@ -156,9 +211,11 @@ _Avoid_: Signup, Registration (imply self-service), Provisioning (too generic).
 ## Relationships
 
 - Every persisted entity (except the platform-wide user/role/permission catalog and feature flags) belongs to exactly one **Organization**.
-- A **Task** has one **Task Owner** and is attached to *at most one* of a **Candidate**, **Vacancy**, **Candidacy**, or **Company** (or none — standalone).
+- A **Task** has one **Task Owner** and is attached to any number of **Candidates**, **Vacancies**, **Candidacies**, **Companies**, **Contacts** and **Opportunities** (or none — standalone).
 - A **Notification** belongs to exactly one recipient **User**; it is generated by a **Task** becoming due/overdue or being assigned. A Notification is never an **Audit Event** and vice versa.
-- A **Task**'s lifecycle is *independent* of its attached entity's domain state: closing/filling a **Vacancy** or rejecting a **Candidacy** never auto-completes, hides, or removes its Tasks (consistent with the existing "terminal status doesn't cascade" precedent). Only a hard-delete of the attached row cascades the Task away via FK.
+- A **Contact** works at *at most one* **Company** at a time (their current employer). A **Company** has many **Opportunities** and **Interactions**; an **Opportunity** always belongs to exactly one Company, so one that grows out of a Company-less Contact gives that Contact a Company at that moment; an **Opportunity** may lead to many **Vacancies**; a **Vacancy** may name one **Contact** as its **Vacancy Contact**.
+- Deleting a commercial record never deletes history with it: deleting an **Opportunity** keeps its **Interactions** on the **Company** (unlinked), leaves its **Vacancies** standing (unlinked) and leaves its **Tasks** standing (unlinked, still commercial); deleting a **Contact** removes them from Interactions and Tasks and clears any **Vacancy Contact** pointing at them. Deleting the **Company** itself removes its Opportunities, Vacancies and the Interactions that involved no Contact — but never its people: its **Contacts** survive without a Company, and Interactions involving at least one Contact survive without the Company. A Company lists only its *current* Contacts; people who have moved on appear in its history through the Interactions and Opportunities they took part in.
+- A **Task**'s lifecycle is *independent* of its attached entity's domain state: closing/filling a **Vacancy** or rejecting a **Candidacy** never auto-completes, hides, or removes its Tasks (consistent with the existing "terminal status doesn't cascade" precedent). Hard-deleting an attached record removes only that attachment; the Task survives (standalone if nothing is left).
 
 ## Example dialogue
 
@@ -193,5 +250,5 @@ _Avoid_: Signup, Registration (imply self-service), Provisioning (too generic).
 - **Excel report renderings dump internal-only data; client-prep is manual and unredacted — accepted.** The **Excel** **Report Format** of the otherwise client-facing **Vacancy Report** / **Company Report** deliberately includes internal-only fields the PDF omits (**Rejection Note**, **Blacklist** reason, **Comments**). It is an internal working artifact; a recruiter sharing one with a **Company** must strip columns first, and Excel column-hiding is *not* redaction (the data is still in the file). Knowingly accepted by the domain owners — recruiters understand the file carries internal data. Not to be "fixed" by silently filtering the Excel to the PDF's client boundary; the whole point of the Excel is completeness.
 - **Rejection Stage and Rejection Reason can overlap by name — deliberate.** The seeded `isRejection` **Pipeline Stage** "No es el perfil" and the seeded **Rejection Reason** "No tiene el perfil buscado" are near-synonyms on purpose: both are vocabulary the Organization's recruiters actually use, on two different axes (*where* vs *why*). Not an inconsistency to dedupe.
 - **Vacancy List Report renders unbounded and synchronously — accepted risk.** The **Vacancy List Report** exports *every* Vacancy matching the active filters with no row cap, rendered in-process via `renderToBuffer`. With no filters that is the whole Organization, and a large set blocks the Node event loop during render. Deliberately un-capped for now (the domain is low-volume/high-touch, so sets are small in practice); revisit with a cap, async job, or streaming if it ever bites. Mentioned so the missing cap reads as a choice, not an oversight.
-- **`Task` widens attachment beyond `Comment`'s scope — deliberate.** `Comment` lives only on Candidates; `Task` attaches across Candidate/Vacancy/Candidacy/Company or stands alone. This is intentional, not an inconsistency to "fix" by forcing Tasks onto Candidates only.
+- **`Task` widens attachment beyond `Comment`'s scope — deliberate.** `Comment` lives only on Candidates; `Task` attaches across Candidate/Vacancy/Candidacy/Company/Contact/Opportunity, several at once, or stands alone. This is intentional, not an inconsistency to "fix" by forcing Tasks onto Candidates only.
 - **Task `_ALL` backfill matches seed Role names only.** `TASK_READ_ALL` / `TASK_MANAGE_ALL` are auto-granted to existing Roles named exactly `Administrador` or `Manager`; `Basic` gains `TASK_MANAGE` if missing. A custom Role that *functionally* replaced `Manager` (e.g. `Reclutador`) needs a manual grant — not an oversight.
