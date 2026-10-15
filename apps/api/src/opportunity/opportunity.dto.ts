@@ -1,6 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import {
   ChangeOpportunityStageSchema,
+  CreateOpportunityFromContactSchema,
   CreateOpportunitySchema,
   CreateVacancyFromOpportunitySchema,
   OpportunityQueryParamsSchema,
@@ -11,6 +12,9 @@ import {
 /** Request DTOs (controller): no organizationId — client does not send it */
 export class CreateOpportunityDto extends createZodDto(
   CreateOpportunitySchema,
+) {}
+export class CreateOpportunityFromContactDto extends createZodDto(
+  CreateOpportunityFromContactSchema,
 ) {}
 export class UpdateOpportunityDto extends createZodDto(
   UpdateOpportunitySchema,

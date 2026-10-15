@@ -1,5 +1,5 @@
 {
-  "id": "4405dd34-6bd1-4676-b5e6-5759a2d7fe8e",
+  "id": "e6dca7ca-284c-47e4-8116-292d71c485f2",
   "prevId": "10bf1dde-140d-47d8-96ee-e2bc8c98bde3",
   "version": "7",
   "dialect": "postgresql",
@@ -2091,6 +2091,82 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.opportunity_contacts": {
+      "name": "opportunity_contacts",
+      "schema": "",
+      "columns": {
+        "opportunity_id": {
+          "name": "opportunity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "opportunity_contacts_contact_id_idx": {
+          "name": "opportunity_contacts_contact_id_idx",
+          "columns": [
+            {
+              "expression": "contact_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "opportunity_contacts_opportunity_id_opportunities_id_fk": {
+          "name": "opportunity_contacts_opportunity_id_opportunities_id_fk",
+          "tableFrom": "opportunity_contacts",
+          "tableTo": "opportunities",
+          "columnsFrom": [
+            "opportunity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "opportunity_contacts_contact_id_contacts_id_fk": {
+          "name": "opportunity_contacts_contact_id_contacts_id_fk",
+          "tableFrom": "opportunity_contacts",
+          "tableTo": "contacts",
+          "columnsFrom": [
+            "contact_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "opportunity_contacts_opportunity_id_contact_id_pk": {
+          "name": "opportunity_contacts_opportunity_id_contact_id_pk",
+          "columns": [
+            "opportunity_id",
+            "contact_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.opportunity_stages": {
       "name": "opportunity_stages",
       "schema": "",
@@ -2704,158 +2780,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.task_contacts": {
-      "name": "task_contacts",
-      "schema": "",
-      "columns": {
-        "task_id": {
-          "name": "task_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contact_id": {
-          "name": "contact_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "task_contacts_contact_id_idx": {
-          "name": "task_contacts_contact_id_idx",
-          "columns": [
-            {
-              "expression": "contact_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_contacts_task_id_tasks_id_fk": {
-          "name": "task_contacts_task_id_tasks_id_fk",
-          "tableFrom": "task_contacts",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "task_contacts_contact_id_contacts_id_fk": {
-          "name": "task_contacts_contact_id_contacts_id_fk",
-          "tableFrom": "task_contacts",
-          "tableTo": "contacts",
-          "columnsFrom": [
-            "contact_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "task_contacts_task_id_contact_id_pk": {
-          "name": "task_contacts_task_id_contact_id_pk",
-          "columns": [
-            "task_id",
-            "contact_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.task_opportunities": {
-      "name": "task_opportunities",
-      "schema": "",
-      "columns": {
-        "task_id": {
-          "name": "task_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "opportunity_id": {
-          "name": "opportunity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "task_opportunities_opportunity_id_idx": {
-          "name": "task_opportunities_opportunity_id_idx",
-          "columns": [
-            {
-              "expression": "opportunity_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_opportunities_task_id_tasks_id_fk": {
-          "name": "task_opportunities_task_id_tasks_id_fk",
-          "tableFrom": "task_opportunities",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "task_opportunities_opportunity_id_opportunities_id_fk": {
-          "name": "task_opportunities_opportunity_id_opportunities_id_fk",
-          "tableFrom": "task_opportunities",
-          "tableTo": "opportunities",
-          "columnsFrom": [
-            "opportunity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "task_opportunities_task_id_opportunity_id_pk": {
-          "name": "task_opportunities_task_id_opportunity_id_pk",
-          "columns": [
-            "task_id",
-            "opportunity_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.task_vacancies": {
       "name": "task_vacancies",
       "schema": "",
@@ -2990,13 +2914,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
-        },
-        "stayed_commercial": {
-          "name": "stayed_commercial",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",

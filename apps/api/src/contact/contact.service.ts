@@ -23,13 +23,13 @@ import {
   contactSources,
   type Contact,
 } from '@workspace/shared/schemas';
-import { CompanyStatus } from '@workspace/shared/enums';
 import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 import type {
   ContactDuplicate,
   CreatedContact,
   NetworkContact,
 } from '@workspace/shared/types/contact';
+import { insertProspectCompany } from '../company/prospect-company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -187,7 +187,7 @@ export class ContactService {
     };
     const contact = await this.db.transaction(async (tx) => {
       if (newCompanyName) {
-        values.companyId = await this.createCompany(
+        values.companyId = await insertProspectCompany(
           tx,
           newCompanyName,
           actor.organizationId,
@@ -222,7 +222,7 @@ export class ContactService {
     return this.db.transaction(async (tx) => {
       const set: Record<string, unknown> = { ...fields, updatedAt: new Date() };
       if (newCompanyName) {
-        set.companyId = await this.createCompany(
+        set.companyId = await insertProspectCompany(
           tx,
           newCompanyName,
           actor.organizationId,
@@ -268,24 +268,6 @@ export class ContactService {
     });
     if (!contact) throw new NotFoundException('Not found');
     return contact;
-  }
-
-  /** "Pick or create": a new Company starts as a Prospect, with no description. */
-  private async createCompany(
-    tx: Pick<DrizzleDatabase, 'insert'>,
-    name: string,
-    organizationId: number,
-  ): Promise<number> {
-    const [company] = await tx
-      .insert(companies)
-      .values({
-        name,
-        description: '',
-        status: CompanyStatus.PROSPECT,
-        organizationId,
-      })
-      .returning({ id: companies.id });
-    return company.id;
   }
 
   private assertNoViolation(violation: string | null) {
