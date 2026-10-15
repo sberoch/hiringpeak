@@ -2,8 +2,10 @@ import type {
   ChangeOpportunityStagePayload,
   CommercialUser,
   CreateOpportunityPayload,
+  CreateVacancyFromOpportunityPayload,
   LostReason,
   Opportunity,
+  OpportunityDetail,
   OpportunityFilters,
   OpportunityStage,
   UpdateOpportunityPayload,
@@ -25,7 +27,7 @@ export async function getOpportunities(filters: OpportunityFilters) {
 }
 
 export async function getOpportunity(id: number | string) {
-  const response = await api.get<Opportunity>(`/opportunity/${id}`);
+  const response = await api.get<OpportunityDetail>(`/opportunity/${id}`);
   return response.data;
 }
 
@@ -60,6 +62,18 @@ export async function updateOpportunityCloseDate(
   const response = await api.patch<Opportunity>(
     `/opportunity/${id}/close-date`,
     { closeDate },
+  );
+  return response.data;
+}
+
+/** "Crear vacante": one Vacancy on the won Opportunity's Company, linked to it. */
+export async function createVacancyFromOpportunity(
+  id: number,
+  payload: CreateVacancyFromOpportunityPayload,
+) {
+  const response = await api.post<{ id: number; title: string }>(
+    `/opportunity/${id}/vacancy`,
+    payload,
   );
   return response.data;
 }
