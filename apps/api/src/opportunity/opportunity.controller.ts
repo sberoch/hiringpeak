@@ -25,6 +25,7 @@ import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import {
   ChangeOpportunityStageDto,
   CreateOpportunityDto,
+  CreateOpportunityFromContactDto,
   CreateVacancyFromOpportunityDto,
   OpportunityQueryParams,
   UpdateOpportunityCloseDateDto,
@@ -79,6 +80,31 @@ export class OpportunityController {
   ) {
     return this.opportunityService.create({
       ...createOpportunityDto,
+      organizationId,
+      createdBy: this.parseUserId(user),
+    });
+  }
+
+  /** "Crear oportunidad" from a Contact (see OpportunityService.createFromContact). */
+  @ApiCreatedResponse()
+  @Permissions(PermissionCode.CRM_MANAGE)
+  @AuditAction({
+    eventType: 'create_opportunity',
+    entityType: 'opportunity',
+    labelField: 'title',
+    relatedFields: [
+      { type: 'company', field: 'company.name' },
+      { type: 'contact', field: 'contact.name' },
+    ],
+  })
+  @Post('from-contact/:contactId')
+  async createFromContact(
+    @Param('contactId') contactId: string,
+    @Body() dto: CreateOpportunityFromContactDto,
+    @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
+  ) {
+    return this.opportunityService.createFromContact(+contactId, dto, {
       organizationId,
       createdBy: this.parseUserId(user),
     });

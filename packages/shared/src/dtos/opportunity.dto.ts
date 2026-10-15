@@ -16,6 +16,20 @@ export const CreateOpportunitySchema = z.object({
   ownerId: z.number().int().optional(),
 });
 
+/**
+ * "Crear oportunidad" from a Contact. A Contact with a Company brings it along
+ * (omit both Company fields); a Contact without one needs exactly one of
+ * `companyId` (pick) or `newCompanyName` (create), which also becomes the
+ * Contact's Company. The Contact is added to the new Opportunity.
+ */
+export const CreateOpportunityFromContactSchema = z.object({
+  title: z.string().trim().min(1),
+  estimatedFee: EstimatedFeeSchema.optional(),
+  ownerId: z.number().int().optional(),
+  companyId: z.number().int().nullable().optional(),
+  newCompanyName: z.string().trim().min(1).nullable().optional(),
+});
+
 /** Edit the facts. The stage and its outcome fields change via the stage endpoint. */
 export const UpdateOpportunitySchema = z.object({
   title: z.string().trim().min(1).optional(),
@@ -56,12 +70,17 @@ export const OpportunityQueryParamsSchema = z.object({
   ownerId: z.coerce.number().int().optional(),
   lostReasonId: z.coerce.number().int().optional(),
   companyId: z.coerce.number().int().optional(),
+  /** Only the Opportunities this Contact is part of. */
+  contactId: z.coerce.number().int().optional(),
 });
 
 export const OpportunityStageQueryParamsSchema = PaginationParamsSchema;
 export const LostReasonQueryParamsSchema = PaginationParamsSchema;
 
 export type CreateOpportunityDto = z.infer<typeof CreateOpportunitySchema>;
+export type CreateOpportunityFromContactDto = z.infer<
+  typeof CreateOpportunityFromContactSchema
+>;
 export type UpdateOpportunityDto = z.infer<typeof UpdateOpportunitySchema>;
 export type ChangeOpportunityStageDto = z.infer<
   typeof ChangeOpportunityStageSchema

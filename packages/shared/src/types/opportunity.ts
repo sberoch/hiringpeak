@@ -80,6 +80,8 @@ export type OpportunityFilters = {
   ownerId?: number;
   lostReasonId?: number;
   companyId?: number;
+  /** Only the Opportunities this Contact is part of. */
+  contactId?: number;
 };
 
 export type CreateOpportunityPayload = {
@@ -87,6 +89,18 @@ export type CreateOpportunityPayload = {
   companyId: number;
   estimatedFee?: number | null;
   ownerId?: number;
+};
+
+/**
+ * "Crear oportunidad" from a Contact: omit both Company fields when the Contact
+ * has a Company; otherwise send `companyId` or `newCompanyName`.
+ */
+export type CreateOpportunityFromContactPayload = {
+  title: string;
+  estimatedFee?: number | null;
+  ownerId?: number;
+  companyId?: number | null;
+  newCompanyName?: string | null;
 };
 
 export type UpdateOpportunityPayload = Partial<CreateOpportunityPayload>;

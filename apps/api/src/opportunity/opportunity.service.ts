@@ -4,25 +4,41 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  or,
+  SQL,
+} from 'drizzle-orm';
 import {
   companies,
+  contacts,
+  type Contact,
   NewOpportunity,
   opportunities,
+  opportunityContacts,
   vacancies,
 } from '@workspace/shared/schemas';
 import { AuthzService } from '../auth/authz/authz.service';
+import { insertProspectCompany } from '../company/prospect-company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { LostReasonService } from '../lostreason/lostreason.service';
 import { OpportunityStageService } from '../opportunitystage/opportunitystage.service';
 import { VacancyService } from '../vacancy/vacancy.service';
 import {
+  CreateOpportunityFromContactDto,
   CreateOpportunityServiceDto,
   CreateVacancyFromOpportunityDto,
   OpportunityFindAllServiceParams,
   UpdateOpportunityServiceDto,
 } from './opportunity.dto';
+import { planOpportunityFromContact } from './opportunity-from-contact';
 import { editCloseDate, transitionStage } from './opportunity-stage-transition';
 
 const OPPORTUNITY_RELATIONS = {
@@ -30,6 +46,13 @@ const OPPORTUNITY_RELATIONS = {
   stage: true,
   owner: { columns: { id: true, name: true } },
   lostReason: { columns: { id: true, name: true } },
+} as const;
+
+const FROM_CONTACT_VIOLATIONS = {
+  contact_has_company:
+    'El contacto ya tiene empresa: la oportunidad se crea en esa empresa.',
+  company_required:
+    'Elegí una empresa existente o creá una nueva para el contacto.',
 } as const;
 
 const OWNER_WITHOUT_COMMERCIAL_ACCESS =
@@ -146,6 +169,95 @@ export class OpportunityService {
       } as NewOpportunity)
       .returning();
     return this.findOne(created.id, organizationId);
+  }
+
+  /**
+   * "Crear oportunidad" from a Contact: at the Contact's Company, or at a
+   * picked or new Company that becomes the Contact's Company in the same
+   * transaction. The Contact is added to the Opportunity. Returns the
+   * Opportunity plus the Contact reference for the audit trail.
+   */
+  async createFromContact(
+    contactId: number,
+    dto: CreateOpportunityFromContactDto,
+    actor: { organizationId: number; createdBy: number },
+  ) {
+    const { organizationId, createdBy } = actor;
+    const contact = await this.db.query.contacts.findFirst({
+      columns: { id: true, name: true, companyId: true },
+      where: and(
+        eq(contacts.id, contactId),
+        eq(contacts.organizationId, organizationId),
+      ),
+    });
+    if (!contact) throw new NotFoundException('Contact not found');
+
+    const plan = planOpportunityFromContact(contact, dto);
+    if ('violation' in plan) {
+      throw new BadRequestException(FROM_CONTACT_VIOLATIONS[plan.violation]);
+    }
+    if (plan.company.kind === 'existing' && plan.setsContactCompany) {
+      await this.assertCompanyInOrganization(
+        plan.company.companyId,
+        organizationId,
+      );
+    }
+    const ownerId = dto.ownerId ?? createdBy;
+    await this.assertCommercialOwner(ownerId, organizationId);
+    const initialStage = await this.stageService.findInitial(organizationId);
+    if (!initialStage) {
+      throw new BadRequestException(
+        'No hay etapas de oportunidad abiertas configuradas.',
+      );
+    }
+
+    const { company } = plan;
+    const opportunityId = await this.db.transaction(async (tx) => {
+      const companyId =
+        company.kind === 'new'
+          ? await insertProspectCompany(tx, company.name, organizationId)
+          : company.companyId;
+
+      if (plan.setsContactCompany) {
+        // Only if still without a Company: a concurrent edit must not be overwritten.
+        const updated = await tx
+          .update(contacts)
+          .set({ companyId, updatedAt: new Date() } as Partial<Contact>)
+          .where(
+            and(
+              eq(contacts.id, contact.id),
+              eq(contacts.organizationId, organizationId),
+              isNull(contacts.companyId),
+            ),
+          )
+          .returning({ id: contacts.id });
+        if (updated.length === 0) {
+          throw new BadRequestException(
+            'El contacto cambió de empresa mientras tanto. Volvé a intentarlo.',
+          );
+        }
+      }
+
+      const [created] = await tx
+        .insert(opportunities)
+        .values({
+          title: dto.title,
+          companyId,
+          estimatedFee: toFeeColumn(dto.estimatedFee),
+          ownerId,
+          stageId: initialStage.id,
+          createdBy,
+          organizationId,
+        } as NewOpportunity)
+        .returning();
+      await tx
+        .insert(opportunityContacts)
+        .values({ opportunityId: created.id, contactId: contact.id });
+      return created.id;
+    });
+
+    const opportunity = await this.findOne(opportunityId, organizationId);
+    return { ...opportunity, contact: { id: contact.id, name: contact.name } };
   }
 
   /** Edit the facts (title, Company, Estimated Fee, owner). */
@@ -319,6 +431,17 @@ export class OpportunityService {
     }
     if (params.companyId != null) {
       filters.push(eq(opportunities.companyId, params.companyId));
+    }
+    if (params.contactId != null) {
+      filters.push(
+        inArray(
+          opportunities.id,
+          this.db
+            .select({ id: opportunityContacts.opportunityId })
+            .from(opportunityContacts)
+            .where(eq(opportunityContacts.contactId, params.contactId)),
+        ),
+      );
     }
     const search = params.search?.trim();
     if (search) {
