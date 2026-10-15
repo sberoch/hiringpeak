@@ -14,7 +14,9 @@ import type {
   OpportunityFilters,
   OpportunityStage,
 } from "@workspace/shared/types/opportunity";
+import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 import { LoadingSpinner } from "@workspace/ui/components/loading-spinner";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import {
@@ -27,6 +29,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 
 import { NewOpportunityButton } from "./new-opportunity-sheet";
+import { NextStepCell } from "./opportunity-next-step";
 import {
   opportunityHref,
   StageBadge,
@@ -40,6 +43,8 @@ import { useStageChange } from "./stage-change";
 
 const ALL = "all";
 const MINE = "me";
+/** Table columns, for the full-width group header and empty rows. */
+const COLUMN_COUNT = 6;
 
 function useDebounced<T>(value: T, delayMs = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -61,6 +66,7 @@ export function OpportunitiesPage() {
   const [search, setSearch] = useState("");
   const [owner, setOwner] = useState(ALL);
   const [lostReason, setLostReason] = useState(ALL);
+  const [onlyNoNextStep, setOnlyNoNextStep] = useState(false);
   /** Explicit expand/collapse choices; groups not in here use their default. */
   const [collapsedOverride, setCollapsedOverride] = useState<
     Record<number, boolean>
@@ -71,6 +77,7 @@ export function OpportunitiesPage() {
     search: debouncedSearch.trim() || undefined,
     ownerId: owner === ALL ? undefined : owner === MINE ? myId : Number(owner),
     lostReasonId: lostReason === ALL ? undefined : Number(lostReason),
+    noNextStep: onlyNoNextStep || undefined,
   };
 
   const { data: stages, isLoading: stagesLoading } = useOpportunityStages();
@@ -84,7 +91,8 @@ export function OpportunitiesPage() {
   const { requestMove, dialog } = useStageChange();
 
   const summary = summarizePipeline(stages ?? [], opportunities ?? []);
-  const filtering = !!filters.search || owner !== ALL || lostReason !== ALL;
+  const filtering =
+    !!filters.search || owner !== ALL || lostReason !== ALL || onlyNoNextStep;
   const isCollapsed = (stage: OpportunityStage, byDefault: boolean) =>
     collapsedOverride[stage.id] ??
     (stage.isLost && lostReason !== ALL ? false : byDefault);
@@ -137,6 +145,19 @@ export function OpportunitiesPage() {
             ))}
           </SelectContent>
         </Select>
+        <div className="ml-1 flex items-center gap-2">
+          <Checkbox
+            id="only-no-next-step"
+            checked={onlyNoNextStep}
+            onCheckedChange={(checked) => setOnlyNoNextStep(checked === true)}
+          />
+          <Label
+            htmlFor="only-no-next-step"
+            className="cursor-pointer text-sm font-normal leading-none text-ink"
+          >
+            Solo sin próximo paso
+          </Label>
+        </div>
         <div className="ml-auto flex items-center gap-3 text-xs text-slate-brand">
           <button
             type="button"
@@ -168,6 +189,7 @@ export function OpportunitiesPage() {
                 setSearch("");
                 setOwner(ALL);
                 setLostReason(ALL);
+                setOnlyNoNextStep(false);
               }}
             >
               Limpiar
@@ -184,17 +206,19 @@ export function OpportunitiesPage() {
         ) : (
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[34%]" />
+              <col className="w-[26%]" />
+              <col className="w-[16%]" />
+              <col className="w-[12%]" />
               <col className="w-[20%]" />
+              <col className="w-[12%]" />
               <col className="w-[14%]" />
-              <col className="w-[14%]" />
-              <col className="w-[18%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-brand-border bg-canvas text-left text-[11px] font-semibold uppercase tracking-wide text-slate-brand">
                 <th className="px-3 py-2">Oportunidad</th>
                 <th className="px-3 py-2">Empresa</th>
                 <th className="px-3 py-2 text-right">Fee estimado</th>
+                <th className="px-3 py-2">Próximo paso</th>
                 <th className="px-3 py-2">Responsable</th>
                 <th className="px-3 py-2">Etapa</th>
               </tr>
@@ -203,6 +227,9 @@ export function OpportunitiesPage() {
               if (filtering && group.count === 0) return null;
               const collapsed = isCollapsed(group.stage, group.collapsed);
               const tone = stageTone(group.stage);
+              const noNextStepCount = group.items.filter(
+                (o) => o.noNextStep,
+              ).length;
               return (
                 <tbody key={group.stage.id}>
                   <tr
@@ -217,7 +244,7 @@ export function OpportunitiesPage() {
                       }))
                     }
                   >
-                    <td colSpan={5} className="px-3 py-3">
+                    <td colSpan={COLUMN_COUNT} className="px-3 py-3">
                       <div className="flex items-center gap-2.5">
                         {collapsed ? (
                           <ChevronRight className="h-5 w-5 text-slate-brand" />
@@ -240,6 +267,11 @@ export function OpportunitiesPage() {
                             className="font-semibold text-ink"
                           />
                         </span>
+                        {noNextStepCount > 0 && (
+                          <span className="ml-3 text-sm font-semibold text-red-600">
+                            {noNextStepCount} sin próximo paso
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -256,7 +288,7 @@ export function OpportunitiesPage() {
                   {!collapsed && group.count === 0 && (
                     <tr className="border-b border-brand-border-light">
                       <td
-                        colSpan={5}
+                        colSpan={COLUMN_COUNT}
                         className="px-10 py-2 text-xs text-muted-brand"
                       >
                         Sin oportunidades en esta etapa.
@@ -332,14 +364,6 @@ function OpportunityRow({
         >
           {opportunity.title}
         </Link>
-        {opportunity.lostReason && (
-          <p className="mt-0.5 truncate text-xs text-slate-brand">
-            Motivo:{" "}
-            <span className="font-medium text-ink">
-              {opportunity.lostReason.name}
-            </span>
-          </p>
-        )}
       </td>
       <td className="px-3 py-3">
         <Link
@@ -360,6 +384,9 @@ function OpportunityRow({
         {opportunity.estimatedFee != null
           ? formatMoney(opportunity.estimatedFee)
           : "—"}
+      </td>
+      <td className="px-3 py-3">
+        <NextStepCell opportunity={opportunity} />
       </td>
       <td className="truncate px-3 py-3 text-slate-brand">
         {opportunity.owner.name}

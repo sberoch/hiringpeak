@@ -18,6 +18,7 @@ import {
 import {
   COMMERCIAL_USERS_API_KEY,
   getCommercialUsers,
+  OPPORTUNITY_API_KEY,
 } from "@/lib/api/opportunity";
 import { getAllUsers, USERS_API_KEY } from "@/lib/api/user";
 import { PermissionCode } from "@workspace/shared/enums";
@@ -138,6 +139,8 @@ export function TaskSheet({
     onSuccess: () => {
       toast.success("Tarea eliminada");
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+      // An Opportunity's next step is derived from its open Tasks.
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
       onOpenChange(false);
     },
     onError: () => toast.error("No se pudo eliminar la tarea"),
@@ -175,6 +178,8 @@ export function TaskSheet({
     onSuccess: () => {
       toast.success(isEdit ? "Tarea actualizada" : "Tarea creada");
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+      // An Opportunity's next step is derived from its open Tasks.
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
       onOpenChange(false);
     },
     onError: (err) =>
