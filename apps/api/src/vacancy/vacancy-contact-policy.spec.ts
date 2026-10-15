@@ -35,6 +35,16 @@ describe('VacancyContactPolicy.resolve', () => {
     ).toEqual({ ok: false, reason: 'contact_not_at_company' });
   });
 
+  it('keeps a Vacancy Contact who has since moved to another Company', () => {
+    expect(
+      VacancyContactPolicy.resolve({
+        current,
+        patch: { companyId: 1, vacancyContactId: 10 },
+        contactCompanyId: 5,
+      }),
+    ).toEqual({ ok: true, vacancyContactId: undefined });
+  });
+
   it('accepts "Ninguno" explicitly', () => {
     expect(
       VacancyContactPolicy.resolve({

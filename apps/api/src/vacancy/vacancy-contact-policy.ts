@@ -33,6 +33,20 @@ export const VacancyContactPolicy = {
   }): VacancyContactResolution {
     const { current, patch, contactCompanyId } = params;
     const companyId = patch.companyId ?? current?.companyId ?? null;
+    const companyChanged =
+      current !== null &&
+      patch.companyId !== undefined &&
+      patch.companyId !== current.companyId;
+
+    // Re-sending the Vacancy Contact it already has is no change, even if
+    // that person has since moved to another Company.
+    if (
+      current !== null &&
+      !companyChanged &&
+      patch.vacancyContactId === current.vacancyContactId
+    ) {
+      return { ok: true, vacancyContactId: undefined };
+    }
 
     if (patch.vacancyContactId === null) {
       return { ok: true, vacancyContactId: null };
@@ -45,10 +59,6 @@ export const VacancyContactPolicy = {
       return { ok: true, vacancyContactId: patch.vacancyContactId };
     }
 
-    const companyChanged =
-      current !== null &&
-      patch.companyId !== undefined &&
-      patch.companyId !== current.companyId;
     return {
       ok: true,
       vacancyContactId: companyChanged ? null : undefined,
