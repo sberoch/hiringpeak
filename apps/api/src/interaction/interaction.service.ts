@@ -33,6 +33,7 @@ const INTERACTION_WITH = {
     with: {
       contact: {
         columns: { id: true, name: true, role: true, companyId: true },
+        with: { company: { columns: { id: true, name: true } } },
       },
     },
   },
@@ -48,6 +49,7 @@ type InteractionWithRelations = InteractionRow & {
       name: string;
       role: string;
       companyId: number | null;
+      company?: { id: number; name: string } | null;
     };
   }[];
 };
@@ -281,6 +283,12 @@ function toResponse(row: InteractionWithRelations): Interaction {
     company: row.company,
     opportunity: row.opportunity,
     createdByUser: row.createdByUser,
-    contacts: row.contacts.map(({ contact }) => contact),
+    contacts: row.contacts.map(({ contact }) => ({
+      id: contact.id,
+      name: contact.name,
+      role: contact.role,
+      companyId: contact.companyId,
+      company: contact.company ?? null,
+    })),
   };
 }

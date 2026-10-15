@@ -7,6 +7,7 @@ export type InteractionContact = {
   role: string;
   /** Their current Company; may differ from the Interaction's. */
   companyId: number | null;
+  company: { id: number; name: string } | null;
 };
 
 /** An Interaction as read on the Opportunity, Company and Contact pages. */
