@@ -23,8 +23,12 @@ import {
   NewOpportunity,
   opportunities,
   opportunityContacts,
+  taskOpportunities,
+  tasks,
+  users,
   vacancies,
 } from '@workspace/shared/schemas';
+import type { OpportunityNextStep } from '@workspace/shared/types/opportunity';
 import { AuthzService } from '../auth/authz/authz.service';
 import { insertProspectCompany } from '../company/prospect-company';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -44,6 +48,7 @@ import {
   UpdateOpportunityServiceDto,
 } from './opportunity.dto';
 import { planOpportunityFromContact } from './opportunity-from-contact';
+import { hasNoNextStep, nextStepOf } from './opportunity-next-step';
 import { editCloseDate, transitionStage } from './opportunity-stage-transition';
 
 const OPPORTUNITY_RELATIONS = {
@@ -73,7 +78,11 @@ export class OpportunityService {
     private readonly vacancyService: VacancyService,
   ) {}
 
-  /** Every matching Opportunity (not paginated: the list is grouped by stage). */
+  /**
+   * Every matching Opportunity (not paginated: the list is grouped by stage),
+   * each with its last Interaction and its next step. `noNextStep` keeps only
+   * those with No Next Step.
+   */
   async findAll(params: OpportunityFindAllServiceParams) {
     const rows = await this.db.query.opportunities.findMany({
       where: this.buildWhereClause(params),
@@ -84,10 +93,16 @@ export class OpportunityService {
       rows,
       params.organizationId,
     );
-    return rows.map((row) => ({
-      ...toResponse(row),
-      lastInteraction: lastInteractionOfOpportunity(row, recent),
-    }));
+    const withNextSteps = await this.withNextSteps(
+      rows.map((row) => ({
+        ...toResponse(row),
+        lastInteraction: lastInteractionOfOpportunity(row, recent),
+      })),
+      params.organizationId,
+    );
+    return params.noNextStep
+      ? withNextSteps.filter((o) => o.noNextStep)
+      : withNextSteps;
   }
 
   /** Interactions tied to these Opportunities or with their Companies. */
@@ -130,7 +145,11 @@ export class OpportunityService {
       with: OPPORTUNITY_RELATIONS,
     });
     if (!row) throw new NotFoundException('Opportunity not found');
-    return toResponse(row);
+    const [opportunity] = await this.withNextSteps(
+      [toResponse(row)],
+      organizationId,
+    );
+    return opportunity;
   }
 
   /** The Opportunity page: the Opportunity plus the Vacancies linked to it. */
@@ -154,7 +173,11 @@ export class OpportunityService {
       },
     });
     if (!row) throw new NotFoundException('Opportunity not found');
-    return toResponse(row);
+    const [opportunity] = await this.withNextSteps(
+      [toResponse(row)],
+      organizationId,
+    );
+    return opportunity;
   }
 
   /**
@@ -440,6 +463,54 @@ export class OpportunityService {
         ),
       );
     return existing;
+  }
+
+  /**
+   * Adds each Opportunity's next step (the earliest open attached Task, see
+   * `nextStepOf`) and whether it has No Next Step. Every open attached Task
+   * counts, whoever owns it.
+   */
+  private async withNextSteps<
+    T extends { id: number; stage: { isWon: boolean; isLost: boolean } },
+  >(rows: T[], organizationId: number) {
+    const ids = rows.map((o) => o.id);
+    const openTasks = ids.length
+      ? await this.db
+          .select({
+            opportunityId: taskOpportunities.opportunityId,
+            id: tasks.id,
+            title: tasks.title,
+            dueDate: tasks.dueDate,
+            assignedTo: tasks.assignedTo,
+            ownerName: users.name,
+          })
+          .from(taskOpportunities)
+          .innerJoin(tasks, eq(tasks.id, taskOpportunities.taskId))
+          .innerJoin(users, eq(users.id, tasks.assignedTo))
+          .where(
+            and(
+              inArray(taskOpportunities.opportunityId, ids),
+              eq(tasks.organizationId, organizationId),
+              eq(tasks.completed, false),
+            ),
+          )
+      : [];
+
+    const byOpportunity = new Map<number, OpportunityNextStep[]>();
+    for (const { opportunityId, ownerName, ...task } of openTasks) {
+      const list = byOpportunity.get(opportunityId) ?? [];
+      list.push({ ...task, owner: { id: task.assignedTo, name: ownerName } });
+      byOpportunity.set(opportunityId, list);
+    }
+
+    return rows.map((row) => {
+      const nextStep = nextStepOf(byOpportunity.get(row.id) ?? []);
+      return {
+        ...row,
+        nextStep,
+        noNextStep: hasNoNextStep(row.stage, nextStep),
+      };
+    });
   }
 
   private async assertCompanyInOrganization(

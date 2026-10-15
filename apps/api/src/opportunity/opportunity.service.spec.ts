@@ -87,6 +87,15 @@ function makeDb(store: Store, options: { failInsertInto?: unknown } = {}) {
       ]);
       return node;
     }),
+    // Open Tasks attached to Opportunities (next step): none in these fixtures.
+    select: vi.fn(() => {
+      const node: Record<string, unknown> = {};
+      for (const step of ['from', 'innerJoin']) {
+        node[step] = vi.fn(() => node);
+      }
+      node.where = vi.fn(async () => []);
+      return node;
+    }),
     query: {
       contacts: { findFirst: vi.fn(async () => store.contacts[0]) },
       companies: {
