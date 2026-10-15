@@ -2,6 +2,7 @@ import type {
   ChangeOpportunityStagePayload,
   CommercialPicklistPayload,
   CommercialUser,
+  CreateOpportunityFromContactPayload,
   CreateOpportunityPayload,
   CreateVacancyFromOpportunityPayload,
   LostReason,
@@ -38,6 +39,21 @@ export async function getOpportunity(id: number | string) {
 
 export async function createOpportunity(payload: CreateOpportunityPayload) {
   const response = await api.post<Opportunity>("/opportunity", payload);
+  return response.data;
+}
+
+/**
+ * "Crear oportunidad" from a Contact: at their Company, or at a picked or new
+ * Company that also becomes theirs. The Contact is added to the Opportunity.
+ */
+export async function createOpportunityFromContact(
+  contactId: number,
+  payload: CreateOpportunityFromContactPayload,
+) {
+  const response = await api.post<Opportunity>(
+    `/opportunity/from-contact/${contactId}`,
+    payload,
+  );
   return response.data;
 }
 

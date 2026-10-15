@@ -1,8 +1,10 @@
-import { eq, inArray, SQL } from 'drizzle-orm';
+import { AnyColumn, eq, inArray, not, or, SQL } from 'drizzle-orm';
 import {
   taskCandidacies,
   taskCandidates,
   taskCompanies,
+  taskContacts,
+  taskOpportunities,
   tasks,
   taskVacancies,
 } from '@workspace/shared/schemas';
@@ -10,15 +12,20 @@ import type {
   TaskAttachedCandidacy,
   TaskAttachedCandidate,
   TaskAttachedCompany,
+  TaskAttachedContact,
+  TaskAttachedOpportunity,
   TaskAttachedVacancy,
+  TaskAttachmentClass,
   TaskAttachmentIds,
 } from '@workspace/shared/types/task';
+import { QueryBuilder } from 'drizzle-orm/pg-core';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 
 /**
  * Task attachments (ADR 0005): a Task attaches to any number of Candidates,
- * Vacancies, Candidacies and Companies, stored in one link table per type.
- * This module is the only place that knows the link tables.
+ * Vacancies, Candidacies, Companies, Contacts and Opportunities, stored in
+ * one link table per type. This module is the only place that knows the link
+ * tables.
  */
 
 /** "Tasks attached to this record" filters, one per attachable type. */
@@ -27,6 +34,8 @@ export type TaskAttachedToParams = {
   vacancyId?: number;
   candidacyId?: number;
   companyId?: number;
+  contactId?: number;
+  opportunityId?: number;
 };
 
 type Executor = Pick<DrizzleDatabase, 'insert' | 'delete' | 'select'>;
@@ -56,6 +65,18 @@ const LINKS = [
     filter: 'companyId',
     table: taskCompanies,
     target: taskCompanies.companyId,
+  },
+  {
+    ids: 'contactIds',
+    filter: 'contactId',
+    table: taskContacts,
+    target: taskContacts.contactId,
+  },
+  {
+    ids: 'opportunityIds',
+    filter: 'opportunityId',
+    table: taskOpportunities,
+    target: taskOpportunities.opportunityId,
   },
 ] as const;
 
@@ -114,6 +135,66 @@ export function attachedToFilters(
   return filters;
 }
 
+const qb = new QueryBuilder();
+
+function attachedToAny(table: (typeof LINKS)[number]['table']): SQL {
+  return inArray(tasks.id, qb.select({ taskId: table.taskId }).from(table));
+}
+
+/**
+ * Commercial Tasks (see `isCommercialTask`) as a `where` fragment: any
+ * Opportunity or Contact attached, or the "stayed commercial" mark.
+ */
+export function commercialTaskCondition(): SQL {
+  return or(
+    eq(tasks.stayedCommercial, true),
+    attachedToAny(taskOpportunities),
+    attachedToAny(taskContacts),
+  )!;
+}
+
+/**
+ * `where` fragment for rows tied to a Task (e.g. Notifications) that leaves
+ * out those of commercial Tasks.
+ */
+export function notOfCommercialTask(taskIdColumn: AnyColumn): SQL {
+  return not(
+    inArray(
+      taskIdColumn,
+      qb.select({ id: tasks.id }).from(tasks).where(commercialTaskCondition()),
+    ),
+  );
+}
+
+/**
+ * `where` fragments for who may see what and for the Tasks page pills.
+ * Without commercial access, commercial Tasks are left out. `commercial`
+ * keeps only commercial Tasks; `vacancies` keeps Tasks with any Vacancy,
+ * Candidate or Candidacy attached.
+ */
+export function attachmentClassFilters(params: {
+  commercialAccess: boolean;
+  attachmentClass?: TaskAttachmentClass;
+}): SQL[] {
+  const filters: SQL[] = [];
+  if (!params.commercialAccess) {
+    filters.push(not(commercialTaskCondition()));
+  }
+  if (params.attachmentClass === 'commercial') {
+    filters.push(commercialTaskCondition());
+  }
+  if (params.attachmentClass === 'vacancies') {
+    filters.push(
+      or(
+        attachedToAny(taskVacancies),
+        attachedToAny(taskCandidates),
+        attachedToAny(taskCandidacies),
+      )!,
+    );
+  }
+  return filters;
+}
+
 /** Relational-query `with` that loads every attachment with its display fields. */
 export const withTaskAttachments = {
   taskCandidates: {
@@ -136,6 +217,12 @@ export const withTaskAttachments = {
   taskCompanies: {
     with: { company: { columns: { id: true, name: true } } },
   },
+  taskContacts: {
+    with: { contact: { columns: { id: true, name: true } } },
+  },
+  taskOpportunities: {
+    with: { opportunity: { columns: { id: true, title: true } } },
+  },
 } as const;
 
 type LoadedAttachments = {
@@ -149,6 +236,8 @@ type LoadedAttachments = {
     } | null;
   }[];
   taskCompanies?: { company: TaskAttachedCompany | null }[];
+  taskContacts?: { contact: TaskAttachedContact | null }[];
+  taskOpportunities?: { opportunity: TaskAttachedOpportunity | null }[];
 };
 
 export type TaskAttachments = {
@@ -156,6 +245,8 @@ export type TaskAttachments = {
   vacancies: TaskAttachedVacancy[];
   candidacies: TaskAttachedCandidacy[];
   companies: TaskAttachedCompany[];
+  contacts: TaskAttachedContact[];
+  opportunities: TaskAttachedOpportunity[];
 };
 
 const present = <X>(x: X | null | undefined): x is X => x != null;
@@ -169,6 +260,8 @@ export function flattenTaskAttachments<T extends LoadedAttachments>(
     taskVacancies: vacancies = [],
     taskCandidacies: candidacies = [],
     taskCompanies: companies = [],
+    taskContacts: contacts = [],
+    taskOpportunities: opportunities = [],
     ...rest
   } = row;
   return {
@@ -184,5 +277,7 @@ export function flattenTaskAttachments<T extends LoadedAttachments>(
         vacancyTitle: c.vacancy?.title ?? '',
       })),
     companies: companies.map((l) => l.company).filter(present),
+    contacts: contacts.map((l) => l.contact).filter(present),
+    opportunities: opportunities.map((l) => l.opportunity).filter(present),
   };
 }

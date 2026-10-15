@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { companies } from "./company.schema";
 import { lostReasons } from "./lostreason.schema";
+import { opportunityContacts } from "./opportunitycontact.schema";
 import { opportunityStages } from "./opportunitystage.schema";
 import { organizations } from "./organization.schema";
 import { users } from "./user.schema";
@@ -54,35 +55,39 @@ export const opportunities = pgTable(
   ],
 );
 
-export const opportunitiesRelations = relations(opportunities, ({ one, many }) => ({
-  organization: one(organizations, {
-    fields: [opportunities.organizationId],
-    references: [organizations.id],
+export const opportunitiesRelations = relations(
+  opportunities,
+  ({ one, many }) => ({
+    organization: one(organizations, {
+      fields: [opportunities.organizationId],
+      references: [organizations.id],
+    }),
+    company: one(companies, {
+      fields: [opportunities.companyId],
+      references: [companies.id],
+    }),
+    stage: one(opportunityStages, {
+      fields: [opportunities.stageId],
+      references: [opportunityStages.id],
+    }),
+    lostReason: one(lostReasons, {
+      fields: [opportunities.lostReasonId],
+      references: [lostReasons.id],
+    }),
+    owner: one(users, {
+      fields: [opportunities.ownerId],
+      references: [users.id],
+      relationName: "opportunities_owner",
+    }),
+    createdByUser: one(users, {
+      fields: [opportunities.createdBy],
+      references: [users.id],
+      relationName: "opportunities_created_by",
+    }),
+    vacancies: many(vacancies),
+    opportunityContacts: many(opportunityContacts),
   }),
-  company: one(companies, {
-    fields: [opportunities.companyId],
-    references: [companies.id],
-  }),
-  stage: one(opportunityStages, {
-    fields: [opportunities.stageId],
-    references: [opportunityStages.id],
-  }),
-  lostReason: one(lostReasons, {
-    fields: [opportunities.lostReasonId],
-    references: [lostReasons.id],
-  }),
-  owner: one(users, {
-    fields: [opportunities.ownerId],
-    references: [users.id],
-    relationName: "opportunities_owner",
-  }),
-  createdByUser: one(users, {
-    fields: [opportunities.createdBy],
-    references: [users.id],
-    relationName: "opportunities_created_by",
-  }),
-  vacancies: many(vacancies),
-}));
+);
 
 export type Opportunity = typeof opportunities.$inferSelect;
 export type NewOpportunity = typeof opportunities.$inferInsert;

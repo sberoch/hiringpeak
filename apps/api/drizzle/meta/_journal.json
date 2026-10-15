@@ -82,8 +82,22 @@
     {
       "idx": 11,
       "version": "7",
-      "when": 1792092440364,
-      "tag": "0011_crm_interactions",
+      "when": 1792092074765,
+      "tag": "0011_crm_opportunity_contacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792092667862,
+      "tag": "0012_crm_commercial_tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792092949667,
+      "tag": "0013_crm_interactions",
       "breakpoints": true
     }
   ]

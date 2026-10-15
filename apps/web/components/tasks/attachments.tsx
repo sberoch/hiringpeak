@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  BookUser,
   Building2,
   GitBranch,
+  Handshake,
   Slash,
   User,
   UserCheck,
@@ -10,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { isCommercialTask } from "@workspace/shared/lib/task-visibility";
 import type {
   TaskAttachmentIds,
   TaskWithRelations,
@@ -22,7 +25,19 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 
 /** A record a Task is attached to (ADR 0005: any number, any mix of types). */
-export type AttachmentType = "company" | "vacancy" | "candidacy" | "candidate";
+export type AttachmentType =
+  | "opportunity"
+  | "contact"
+  | "company"
+  | "vacancy"
+  | "candidacy"
+  | "candidate";
+
+/** Attaching one of these makes a Task commercial. */
+export const COMMERCIAL_ATTACHMENT_TYPES: AttachmentType[] = [
+  "opportunity",
+  "contact",
+];
 
 export type Attachment = {
   type: AttachmentType;
@@ -35,6 +50,12 @@ export const ATTACH_META: Record<
   AttachmentType,
   { label: string; plural: string; icon: LucideIcon }
 > = {
+  opportunity: {
+    label: "Oportunidad",
+    plural: "Oportunidades",
+    icon: Handshake,
+  },
+  contact: { label: "Contacto", plural: "Contactos", icon: BookUser },
   company: { label: "Empresa", plural: "Empresas", icon: Building2 },
   vacancy: { label: "Vacante", plural: "Vacantes", icon: GitBranch },
   candidacy: {
@@ -47,6 +68,8 @@ export const ATTACH_META: Record<
 
 /** Display order: relationship first, then recruiting. */
 export const ATTACH_ORDER: AttachmentType[] = [
+  "opportunity",
+  "contact",
   "company",
   "vacancy",
   "candidacy",
@@ -76,6 +99,16 @@ export function candidacyLabel(candidateName: string, vacancyTitle: string) {
 
 export function taskAttachments(task: TaskWithRelations): Attachment[] {
   return sortAttachments([
+    ...(task.opportunities ?? []).map((o) => ({
+      type: "opportunity" as const,
+      id: o.id,
+      label: o.title,
+    })),
+    ...(task.contacts ?? []).map((c) => ({
+      type: "contact" as const,
+      id: c.id,
+      label: c.name,
+    })),
     ...(task.companies ?? []).map((c) => ({
       type: "company" as const,
       id: c.id,
@@ -110,7 +143,28 @@ export function attachmentsToPayload(
     vacancyIds: idsOf("vacancy"),
     candidacyIds: idsOf("candidacy"),
     companyIds: idsOf("company"),
+    contactIds: idsOf("contact"),
+    opportunityIds: idsOf("opportunity"),
   };
+}
+
+/**
+ * Whether a Task with these attachments is commercial; `stayedCommercial`
+ * is the saved Task's sticky mark (editing attachments never sets it).
+ */
+export function isCommercialAttachments(
+  list: Attachment[],
+  stayedCommercial = false,
+): boolean {
+  return isCommercialTask({
+    ...attachmentsToPayload(list),
+    stayedCommercial,
+  });
+}
+
+/** Whether a saved Task is commercial. */
+export function isCommercialTaskRecord(task: TaskWithRelations): boolean {
+  return isCommercialAttachments(taskAttachments(task), task.stayedCommercial);
 }
 
 export function AttachChip({
@@ -130,7 +184,10 @@ export function AttachChip({
     <span
       title={`${meta.label}: ${a.label}${a.sub ? ` (${a.sub})` : ""}`}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md bg-electric/5 px-1.5 py-0.5 text-[11px] font-medium text-electric ring-1 ring-electric/10",
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1",
+        COMMERCIAL_ATTACHMENT_TYPES.includes(a.type)
+          ? "bg-violet-50 text-violet-700 ring-violet-200"
+          : "bg-electric/5 text-electric ring-electric/10",
         className,
       )}
     >

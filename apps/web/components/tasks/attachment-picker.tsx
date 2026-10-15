@@ -11,7 +11,11 @@ import {
   getCandidateVacancies,
 } from "@/lib/api/candidate-vacancy";
 import { COMPANIES_API_KEY, getAllCompanies } from "@/lib/api/company";
+import { CONTACT_API_KEY, getContacts } from "@/lib/api/contact";
+import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
+import { usePermissions } from "@/contexts/permission-context";
+import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { Button } from "@workspace/ui/components/button";
 import {
   CommandDialog,
@@ -43,7 +47,8 @@ interface AttachmentPickerProps {
 /**
  * Attaches a Task to any number of records: the picks show as removable
  * chips, and "Vincular a…" opens one command-palette search across every
- * attachable type. Picking a record toggles it.
+ * attachable type. Picking a record toggles it. Opportunities and Contacts
+ * are only offered to Users with commercial access.
  */
 export function AttachmentPicker({ value, onChange }: AttachmentPickerProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -140,7 +145,9 @@ function PaletteBody({
 }) {
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query.trim(), 250);
-  const { results, isLoading } = useAttachmentSearch(debounced);
+  const { permissionCodes } = usePermissions();
+  const commercial = hasCommercialAccess(permissionCodes);
+  const { results, isLoading } = useAttachmentSearch(debounced, commercial);
   const hasResults = ATTACH_ORDER.some((t) => results[t].length > 0);
 
   return (
@@ -148,7 +155,11 @@ function PaletteBody({
       <CommandInput
         value={query}
         onValueChange={setQuery}
-        placeholder="Buscá empresas, vacantes, candidaturas, postulantes…"
+        placeholder={
+          commercial
+            ? "Buscá oportunidades, contactos, empresas, vacantes…"
+            : "Buscá empresas, vacantes, candidaturas, postulantes…"
+        }
       />
       <CommandList className="max-h-[380px]">
         {!hasResults && (
@@ -219,10 +230,24 @@ function PaletteBody({
 /**
  * Searches every attachable type at once. Candidacies are found through the
  * matching Candidates (a Candidacy reads "Candidate en Vacancy").
+ * Opportunities and Contacts are searched only with commercial access.
  */
-function useAttachmentSearch(query: string) {
+function useAttachmentSearch(query: string, commercial: boolean) {
   const term = query || undefined;
   const page = { limit: RESULTS_PER_TYPE, page: 1 };
+
+  const opportunities = useQuery({
+    queryKey: [OPPORTUNITY_API_KEY, "attach-picker", query],
+    queryFn: () => getOpportunities({ search: term }),
+    enabled: commercial,
+    staleTime: 30_000,
+  });
+  const contacts = useQuery({
+    queryKey: [CONTACT_API_KEY, "attach-picker", query],
+    queryFn: () => getContacts({ search: term, ...page }),
+    enabled: commercial,
+    staleTime: 30_000,
+  });
 
   const companies = useQuery({
     queryKey: [COMPANIES_API_KEY, "attach-picker", query],
@@ -248,6 +273,22 @@ function useAttachmentSearch(query: string) {
   });
 
   const results: Record<Attachment["type"], Attachment[]> = {
+    opportunity: commercial
+      ? (opportunities.data ?? []).slice(0, RESULTS_PER_TYPE).map((o) => ({
+          type: "opportunity",
+          id: o.id,
+          label: o.title,
+          sub: o.company?.name,
+        }))
+      : [],
+    contact: commercial
+      ? (contacts.data?.items ?? []).map((c) => ({
+          type: "contact",
+          id: c.id,
+          label: c.name,
+          sub: c.company?.name ?? undefined,
+        }))
+      : [],
     company: (companies.data?.items ?? []).map((c) => ({
       type: "company",
       id: c.id,
@@ -279,6 +320,9 @@ function useAttachmentSearch(query: string) {
   return {
     results,
     isLoading:
-      companies.isLoading || vacancies.isLoading || candidates.isLoading,
+      companies.isLoading ||
+      vacancies.isLoading ||
+      candidates.isLoading ||
+      (commercial && (opportunities.isLoading || contacts.isLoading)),
   };
 }

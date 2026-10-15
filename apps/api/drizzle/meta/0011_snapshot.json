@@ -1,5 +1,5 @@
 {
-  "id": "8cffae94-4493-44d7-b673-2897b21739a7",
+  "id": "e6dca7ca-284c-47e4-8116-292d71c485f2",
   "prevId": "10bf1dde-140d-47d8-96ee-e2bc8c98bde3",
   "version": "7",
   "dialect": "postgresql",
@@ -1732,257 +1732,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.interaction_contacts": {
-      "name": "interaction_contacts",
-      "schema": "",
-      "columns": {
-        "interaction_id": {
-          "name": "interaction_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contact_id": {
-          "name": "contact_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "interaction_contacts_contact_id_idx": {
-          "name": "interaction_contacts_contact_id_idx",
-          "columns": [
-            {
-              "expression": "contact_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "interaction_contacts_interaction_id_interactions_id_fk": {
-          "name": "interaction_contacts_interaction_id_interactions_id_fk",
-          "tableFrom": "interaction_contacts",
-          "tableTo": "interactions",
-          "columnsFrom": [
-            "interaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "interaction_contacts_contact_id_contacts_id_fk": {
-          "name": "interaction_contacts_contact_id_contacts_id_fk",
-          "tableFrom": "interaction_contacts",
-          "tableTo": "contacts",
-          "columnsFrom": [
-            "contact_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "interaction_contacts_interaction_id_contact_id_pk": {
-          "name": "interaction_contacts_interaction_id_contact_id_pk",
-          "columns": [
-            "interaction_id",
-            "contact_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.interactions": {
-      "name": "interactions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "interactionType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "date": {
-          "name": "date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "summary": {
-          "name": "summary",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "company_id": {
-          "name": "company_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "opportunity_id": {
-          "name": "opportunity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "interactions_organization_id_idx": {
-          "name": "interactions_organization_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "interactions_company_id_idx": {
-          "name": "interactions_company_id_idx",
-          "columns": [
-            {
-              "expression": "company_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "interactions_opportunity_id_idx": {
-          "name": "interactions_opportunity_id_idx",
-          "columns": [
-            {
-              "expression": "opportunity_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "interactions_organization_id_organizations_id_fk": {
-          "name": "interactions_organization_id_organizations_id_fk",
-          "tableFrom": "interactions",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "interactions_company_id_companies_id_fk": {
-          "name": "interactions_company_id_companies_id_fk",
-          "tableFrom": "interactions",
-          "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "interactions_opportunity_id_opportunities_id_fk": {
-          "name": "interactions_opportunity_id_opportunities_id_fk",
-          "tableFrom": "interactions",
-          "tableTo": "opportunities",
-          "columnsFrom": [
-            "opportunity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "interactions_created_by_users_id_fk": {
-          "name": "interactions_created_by_users_id_fk",
-          "tableFrom": "interactions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.lost_reasons": {
       "name": "lost_reasons",
       "schema": "",
@@ -2337,6 +2086,82 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.opportunity_contacts": {
+      "name": "opportunity_contacts",
+      "schema": "",
+      "columns": {
+        "opportunity_id": {
+          "name": "opportunity_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_id": {
+          "name": "contact_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "opportunity_contacts_contact_id_idx": {
+          "name": "opportunity_contacts_contact_id_idx",
+          "columns": [
+            {
+              "expression": "contact_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "opportunity_contacts_opportunity_id_opportunities_id_fk": {
+          "name": "opportunity_contacts_opportunity_id_opportunities_id_fk",
+          "tableFrom": "opportunity_contacts",
+          "tableTo": "opportunities",
+          "columnsFrom": [
+            "opportunity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "opportunity_contacts_contact_id_contacts_id_fk": {
+          "name": "opportunity_contacts_contact_id_contacts_id_fk",
+          "tableFrom": "opportunity_contacts",
+          "tableTo": "contacts",
+          "columnsFrom": [
+            "contact_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "opportunity_contacts_opportunity_id_contact_id_pk": {
+          "name": "opportunity_contacts_opportunity_id_contact_id_pk",
+          "columns": [
+            "opportunity_id",
+            "contact_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -4014,17 +3839,6 @@
       "values": [
         "Active",
         "Prospect"
-      ]
-    },
-    "public.interactionType": {
-      "name": "interactionType",
-      "schema": "public",
-      "values": [
-        "call",
-        "meeting",
-        "email",
-        "lunch",
-        "other"
       ]
     },
     "public.user_type": {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { BookUser, Edit, FileText, Info, Trash } from "lucide-react";
+import { BookUser, Edit, FileText, Handshake, Info, Trash } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -14,6 +14,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
+import { PermissionCode } from "@workspace/shared/enums";
 import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { canManageContacts } from "@workspace/shared/lib/contact-access";
 import type { NetworkContact } from "@workspace/shared/types/contact";
@@ -23,17 +24,20 @@ import { usePermissions } from "@/contexts/permission-context";
 import { CONTACT_API_KEY, getContactById } from "@/lib/api/contact";
 import { ContactAvatar, CopyChip, LinkedinLink } from "./contact-atoms";
 import { ContactCaptureSheet } from "./contact-capture-sheet";
+import { ContactOpportunitiesTab } from "./contact-opportunities-tab";
 import { useCurrentUserId } from "./contact-lookups";
 import { NoCommercialAccess } from "./contacts-page";
+import { CreateOpportunityDialog } from "./create-opportunity-dialog";
 import { SourceBadge } from "./contact-table-columns";
 import { DeleteContactDialog } from "./delete-contact-dialog";
 
-/** The Contact page's tabs; later tickets add Seguimientos and Oportunidades. */
-type ContactTab = "resumen" | "interacciones";
+/** The Contact page's tabs; a later ticket adds Seguimientos. */
+type ContactTab = "resumen" | "interacciones" | "oportunidades";
 
 const CONTACT_TABS: { key: ContactTab; label: string }[] = [
   { key: "resumen", label: "Resumen" },
   { key: "interacciones", label: "Interacciones" },
+  { key: "oportunidades", label: "Oportunidades" },
 ];
 
 /** A Contact's page (commercial access only). */
@@ -42,15 +46,28 @@ export function ContactDetailPage({ id }: { id: number }) {
   if (isLoading) return null;
   if (!hasCommercialAccess(permissionCodes)) return <NoCommercialAccess />;
   return (
-    <ContactDetail id={id} canManage={canManageContacts(permissionCodes)} />
+    <ContactDetail
+      id={id}
+      canManage={canManageContacts(permissionCodes)}
+      canCreateOpportunity={permissionCodes.includes(PermissionCode.CRM_MANAGE)}
+    />
   );
 }
 
-function ContactDetail({ id, canManage }: { id: number; canManage: boolean }) {
+function ContactDetail({
+  id,
+  canManage,
+  canCreateOpportunity,
+}: {
+  id: number;
+  canManage: boolean;
+  canCreateOpportunity: boolean;
+}) {
   const router = useRouter();
   const [tab, setTab] = useState<ContactTab>("resumen");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [createOpportunityOpen, setCreateOpportunityOpen] = useState(false);
   const {
     data: contact,
     isLoading,
@@ -100,26 +117,41 @@ function ContactDetail({ id, canManage }: { id: number; canManage: boolean }) {
               .join(" · ")}
           />
         </div>
-        {canManage && (
+        {(canManage || canCreateOpportunity) && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="brand-ghost"
-              className="bg-white"
-              onClick={() => setEditOpen(true)}
-            >
-              <Edit className="mr-1.5 h-4 w-4" />
-              Editar
-            </Button>
-            <Button
-              variant="brand-ghost"
-              size="sm"
-              className="bg-white text-red-600 hover:border-red-200 hover:bg-red-50"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash className="mr-1.5 h-4 w-4" />
-              Eliminar
-            </Button>
+            {canCreateOpportunity && (
+              <Button
+                size="sm"
+                variant="brand-outline"
+                className="bg-white"
+                onClick={() => setCreateOpportunityOpen(true)}
+              >
+                <Handshake className="mr-1.5 h-4 w-4" />
+                Crear oportunidad
+              </Button>
+            )}
+            {canManage && (
+              <>
+                <Button
+                  size="sm"
+                  variant="brand-ghost"
+                  className="bg-white"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Edit className="mr-1.5 h-4 w-4" />
+                  Editar
+                </Button>
+                <Button
+                  variant="brand-ghost"
+                  size="sm"
+                  className="bg-white text-red-600 hover:border-red-200 hover:bg-red-50"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash className="mr-1.5 h-4 w-4" />
+                  Eliminar
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -148,6 +180,14 @@ function ContactDetail({ id, canManage }: { id: number; canManage: boolean }) {
         <TabsContent value="interacciones">
           <ContactInteractionsTab contact={contact} />
         </TabsContent>
+
+        <TabsContent value="oportunidades">
+          <ContactOpportunitiesTab
+            contact={contact}
+            canCreate={canCreateOpportunity}
+            onCreate={() => setCreateOpportunityOpen(true)}
+          />
+        </TabsContent>
       </Tabs>
 
       {canManage && editOpen && (
@@ -155,6 +195,13 @@ function ContactDetail({ id, canManage }: { id: number; canManage: boolean }) {
           open={editOpen}
           onOpenChange={setEditOpen}
           contact={contact}
+        />
+      )}
+      {canCreateOpportunity && (
+        <CreateOpportunityDialog
+          contact={contact}
+          open={createOpportunityOpen}
+          onOpenChange={setCreateOpportunityOpen}
         />
       )}
       <DeleteContactDialog

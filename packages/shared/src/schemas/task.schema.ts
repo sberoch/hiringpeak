@@ -13,6 +13,8 @@ import {
 import { candidates } from "./candidate.schema";
 import { candidateVacancies } from "./candidatevacancy.schema";
 import { companies } from "./company.schema";
+import { contacts } from "./contact.schema";
+import { opportunities } from "./opportunity.schema";
 import { organizations } from "./organization.schema";
 import { users } from "./user.schema";
 import { vacancies } from "./vacancy.schema";
@@ -38,6 +40,11 @@ export const tasks = pgTable("tasks", {
   organizationId: integer("organization_id")
     .notNull()
     .references(() => organizations.id, { onDelete: "cascade" }),
+  /**
+   * Sticky: set when an attached Opportunity or Contact is deleted, so the
+   * Task stays commercial (never set by editing the Task's attachments).
+   */
+  stayedCommercial: boolean("stayed_commercial").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -109,6 +116,34 @@ export const taskCompanies = pgTable(
   ],
 );
 
+export const taskContacts = pgTable(
+  "task_contacts",
+  {
+    taskId: taskIdColumn(),
+    contactId: integer("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.contactId] }),
+    index("task_contacts_contact_id_idx").on(t.contactId),
+  ],
+);
+
+export const taskOpportunities = pgTable(
+  "task_opportunities",
+  {
+    taskId: taskIdColumn(),
+    opportunityId: integer("opportunity_id")
+      .notNull()
+      .references(() => opportunities.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.opportunityId] }),
+    index("task_opportunities_opportunity_id_idx").on(t.opportunityId),
+  ],
+);
+
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [tasks.organizationId],
@@ -133,6 +168,8 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   taskVacancies: many(taskVacancies),
   taskCandidacies: many(taskCandidacies),
   taskCompanies: many(taskCompanies),
+  taskContacts: many(taskContacts),
+  taskOpportunities: many(taskOpportunities),
 }));
 
 export const taskCandidatesRelations = relations(taskCandidates, ({ one }) => ({
@@ -181,6 +218,31 @@ export const taskCompaniesRelations = relations(taskCompanies, ({ one }) => ({
     references: [companies.id],
   }),
 }));
+
+export const taskContactsRelations = relations(taskContacts, ({ one }) => ({
+  task: one(tasks, {
+    fields: [taskContacts.taskId],
+    references: [tasks.id],
+  }),
+  contact: one(contacts, {
+    fields: [taskContacts.contactId],
+    references: [contacts.id],
+  }),
+}));
+
+export const taskOpportunitiesRelations = relations(
+  taskOpportunities,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [taskOpportunities.taskId],
+      references: [tasks.id],
+    }),
+    opportunity: one(opportunities, {
+      fields: [taskOpportunities.opportunityId],
+      references: [opportunities.id],
+    }),
+  }),
+);
 
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
