@@ -29,6 +29,10 @@ function paramsFor(context: TasksInContextContext): TaskParams {
       return { ...base, candidacyId: context.id };
     case "company":
       return { ...base, companyId: context.id };
+    case "contact":
+      return { ...base, contactId: context.id };
+    case "opportunity":
+      return { ...base, opportunityId: context.id };
   }
 }
 
@@ -37,6 +41,8 @@ const CONTEXT_NOUN: Record<TasksInContextContext["type"], string> = {
   vacancy: "vacante",
   candidacy: "candidatura",
   company: "empresa",
+  contact: "contacto",
+  opportunity: "oportunidad",
 };
 
 interface TasksInContextCardProps {

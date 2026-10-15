@@ -1,12 +1,16 @@
 "use client";
 
-import { AlertTriangle, Clock, UserPlus } from "lucide-react";
+import { AlertTriangle, Clock, Lock, UserPlus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@workspace/ui/lib/utils";
 import type { TaskWithRelations } from "@workspace/shared/types/task";
 
-import { AttachChips, taskAttachments } from "./attachments";
+import {
+  AttachChips,
+  isCommercialTaskRecord,
+  taskAttachments,
+} from "./attachments";
 
 const MONTHS = [
   "ene",
@@ -110,7 +114,6 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-
 export function OwnerAvatar({
   name,
   isMe,
@@ -202,11 +205,17 @@ export function TaskRow({
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            "truncate text-sm font-medium text-ink",
+            "flex min-w-0 items-center gap-1.5 text-sm font-medium text-ink",
             task.completed && "line-through",
           )}
         >
-          {task.title}
+          {isCommercialTaskRecord(task) && (
+            <Lock
+              className="h-3 w-3 shrink-0 text-violet-500"
+              aria-label="Comercial"
+            />
+          )}
+          <span className="truncate">{task.title}</span>
         </p>
         <div className="mt-1 flex items-center gap-2">
           <AttachChips attachments={attachments} />
@@ -214,55 +223,12 @@ export function TaskRow({
       </div>
 
       <span
-        className={cn(
-          "shrink-0 text-xs font-semibold",
-          dueTone(task, today),
-        )}
+        className={cn("shrink-0 text-xs font-semibold", dueTone(task, today))}
       >
         {formatDue(task, today)}
       </span>
-      {!hideOwner && (
-        <OwnerAvatar name={ownerName} isMe={isMe} size="sm" />
-      )}
+      {!hideOwner && <OwnerAvatar name={ownerName} isMe={isMe} size="sm" />}
     </button>
-  );
-}
-
-export function DueSummaryStrip({
-  overdue,
-  today,
-  week,
-  className,
-}: {
-  overdue: number;
-  today: number;
-  week: number;
-  className?: string;
-}) {
-  const items = [
-    { label: "Vencidas", value: overdue, tone: "text-red-600" },
-    { label: "Vence hoy", value: today, tone: "text-amber-600" },
-    { label: "Esta semana", value: week, tone: "text-ink" },
-  ];
-  return (
-    <div
-      className={cn(
-        "flex items-center divide-x divide-brand-border rounded-xl border border-brand-border bg-surface",
-        className,
-      )}
-    >
-      {items.map((it) => (
-        <div
-          key={it.label}
-          className="flex flex-1 flex-col items-center px-4 py-3"
-        >
-          <span className={cn("text-xl font-bold tracking-tight", it.tone)}>
-            {it.value}
-          </span>
-          <span className="text-[11px] text-slate-brand">{it.label}</span>
-        </div>
-      ))}
-    </div>
   );
 }
 
