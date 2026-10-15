@@ -17,6 +17,7 @@ import { contactForViewer } from '@workspace/shared/lib/contact-access';
 import type { Company as CompanyResponse } from '@workspace/shared/types/company';
 import type { LastInteraction } from '@workspace/shared/types/interaction';
 import { AuthzService } from '../auth/authz/authz.service';
+import { releaseCompany } from '../common/deletion/deletion-keeps-history';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -225,14 +226,25 @@ export class CompanyService {
     return company;
   }
 
+  /**
+   * Deletes the Company with its Opportunities and Vacancies, but its people
+   * and their history survive it (see `releaseCompany`).
+   */
   async remove(id: number, organizationId: number) {
-    const [company] = await this.db
-      .delete(companies)
-      .where(
-        and(eq(companies.id, id), eq(companies.organizationId, organizationId)),
-      )
-      .returning();
-    return company;
+    const where = and(
+      eq(companies.id, id),
+      eq(companies.organizationId, organizationId),
+    );
+    const existing = await this.db.query.companies.findFirst({
+      columns: { id: true },
+      where,
+    });
+    if (!existing) throw new NotFoundException('Not found');
+    return this.db.transaction(async (tx) => {
+      await releaseCompany(tx, id);
+      const [company] = await tx.delete(companies).where(where).returning();
+      return company;
+    });
   }
 
   private transformQueryResult(
