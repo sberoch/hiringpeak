@@ -9,6 +9,7 @@ import type {
   Opportunity,
   OpportunityDetail,
   OpportunityFilters,
+  OpportunityListItem,
   OpportunityStage,
   OpportunityStageOutcome,
   OpportunityStageWithUsage,
@@ -24,7 +25,7 @@ export const LOST_REASON_API_KEY = "lostReason";
 export const COMMERCIAL_USERS_API_KEY = "commercialUsers";
 
 export async function getOpportunities(filters: OpportunityFilters) {
-  const response = await api.get<Opportunity[]>(
+  const response = await api.get<OpportunityListItem[]>(
     `/opportunity${filtersToSearchParams(filters)}`,
   );
   return response.data;

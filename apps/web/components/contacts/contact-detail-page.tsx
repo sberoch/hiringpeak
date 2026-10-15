@@ -18,6 +18,7 @@ import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { canManageContacts } from "@workspace/shared/lib/contact-access";
 import type { NetworkContact } from "@workspace/shared/types/contact";
 
+import { ContactInteractionsTab } from "@/components/interactions/interaction-lists";
 import { usePermissions } from "@/contexts/permission-context";
 import { CONTACT_API_KEY, getContactById } from "@/lib/api/contact";
 import { ContactAvatar, CopyChip, LinkedinLink } from "./contact-atoms";
@@ -27,8 +28,13 @@ import { NoCommercialAccess } from "./contacts-page";
 import { SourceBadge } from "./contact-table-columns";
 import { DeleteContactDialog } from "./delete-contact-dialog";
 
-/** The Contact page's tabs; later tickets add Interacciones, Seguimientos and Oportunidades. */
-type ContactTab = "resumen";
+/** The Contact page's tabs; later tickets add Seguimientos and Oportunidades. */
+type ContactTab = "resumen" | "interacciones";
+
+const CONTACT_TABS: { key: ContactTab; label: string }[] = [
+  { key: "resumen", label: "Resumen" },
+  { key: "interacciones", label: "Interacciones" },
+];
 
 /** A Contact's page (commercial access only). */
 export function ContactDetailPage({ id }: { id: number }) {
@@ -124,7 +130,7 @@ function ContactDetail({ id, canManage }: { id: number; canManage: boolean }) {
         className="gap-5"
       >
         <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-brand-border bg-transparent p-0">
-          {([{ key: "resumen", label: "Resumen" }] as const).map((item) => (
+          {CONTACT_TABS.map((item) => (
             <TabsTrigger
               key={item.key}
               value={item.key}
@@ -137,6 +143,10 @@ function ContactDetail({ id, canManage }: { id: number; canManage: boolean }) {
 
         <TabsContent value="resumen">
           <ContactSummary contact={contact} />
+        </TabsContent>
+
+        <TabsContent value="interacciones">
+          <ContactInteractionsTab contact={contact} />
         </TabsContent>
       </Tabs>
 

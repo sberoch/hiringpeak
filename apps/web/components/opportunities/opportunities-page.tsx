@@ -10,8 +10,8 @@ import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
 import { summarizePipeline } from "@workspace/shared/lib/opportunity-pipeline";
 import type {
-  Opportunity,
   OpportunityFilters,
+  OpportunityListItem,
   OpportunityStage,
 } from "@workspace/shared/types/opportunity";
 import { Input } from "@workspace/ui/components/input";
@@ -26,6 +26,7 @@ import {
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
 import { NewOpportunityButton } from "./new-opportunity-sheet";
 import {
   opportunityHref,
@@ -184,11 +185,12 @@ export function OpportunitiesPage() {
         ) : (
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[34%]" />
-              <col className="w-[20%]" />
-              <col className="w-[14%]" />
-              <col className="w-[14%]" />
-              <col className="w-[18%]" />
+              <col className="w-[30%]" />
+              <col className="w-[17%]" />
+              <col className="w-[13%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[16%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-brand-border bg-canvas text-left text-[11px] font-semibold uppercase tracking-wide text-slate-brand">
@@ -196,6 +198,7 @@ export function OpportunitiesPage() {
                 <th className="px-3 py-2">Empresa</th>
                 <th className="px-3 py-2 text-right">Fee estimado</th>
                 <th className="px-3 py-2">Responsable</th>
+                <th className="px-3 py-2">Últ. interacción</th>
                 <th className="px-3 py-2">Etapa</th>
               </tr>
             </thead>
@@ -217,7 +220,7 @@ export function OpportunitiesPage() {
                       }))
                     }
                   >
-                    <td colSpan={5} className="px-3 py-3">
+                    <td colSpan={6} className="px-3 py-3">
                       <div className="flex items-center gap-2.5">
                         {collapsed ? (
                           <ChevronRight className="h-5 w-5 text-slate-brand" />
@@ -256,7 +259,7 @@ export function OpportunitiesPage() {
                   {!collapsed && group.count === 0 && (
                     <tr className="border-b border-brand-border-light">
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-10 py-2 text-xs text-muted-brand"
                       >
                         Sin oportunidades en esta etapa.
@@ -311,7 +314,7 @@ function OpportunityRow({
   canManage,
   onMove,
 }: {
-  opportunity: Opportunity;
+  opportunity: OpportunityListItem;
   stages: OpportunityStage[];
   canManage: boolean;
   onMove: (stage: OpportunityStage) => void;
@@ -363,6 +366,9 @@ function OpportunityRow({
       </td>
       <td className="truncate px-3 py-3 text-slate-brand">
         {opportunity.owner.name}
+      </td>
+      <td className="px-3 py-3">
+        <LastInteractionLabel last={opportunity.lastInteraction} />
       </td>
       <td className="px-3 py-2">
         {canManage ? (
