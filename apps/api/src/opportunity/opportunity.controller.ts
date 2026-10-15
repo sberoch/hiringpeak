@@ -25,6 +25,7 @@ import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import {
   ChangeOpportunityStageDto,
   CreateOpportunityDto,
+  CreateVacancyFromOpportunityDto,
   OpportunityQueryParams,
   UpdateOpportunityCloseDateDto,
   UpdateOpportunityDto,
@@ -59,7 +60,7 @@ export class OpportunityController {
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
   ) {
-    return this.opportunityService.findOne(+id, organizationId);
+    return this.opportunityService.findDetail(+id, organizationId);
   }
 
   @ApiCreatedResponse()
@@ -152,6 +153,29 @@ export class OpportunityController {
       +id,
       organizationId,
       dto.closeDate,
+    );
+  }
+
+  @ApiCreatedResponse()
+  @Permissions(PermissionCode.CRM_MANAGE)
+  @AuditAction({
+    eventType: 'create_vacancy_from_opportunity',
+    entityType: 'opportunity',
+    labelField: 'opportunity.title',
+    relatedFields: [{ type: 'vacancy', field: 'title' }],
+  })
+  @Post(':id/vacancy')
+  async createVacancy(
+    @Param('id') id: string,
+    @Body() dto: CreateVacancyFromOpportunityDto,
+    @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
+  ) {
+    return this.opportunityService.createVacancy(
+      +id,
+      organizationId,
+      this.parseUserId(user),
+      dto,
     );
   }
 

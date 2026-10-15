@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { LatestVacancies } from "@/components/vacancies/latest-vacancies";
 import { LatestCandidates } from "@/components/candidates/latest-candidates";
+import { CommercialSection } from "@/components/dashboard/commercial-section";
 import { DashboardStatCards } from "@/components/dashboard/dashboard-stat-cards";
 import { DueSoonWidget } from "@/components/dashboard/due-soon-widget";
 import { RecruiterStatsTable } from "@/components/dashboard/recruiter-stats";
@@ -14,6 +15,7 @@ import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
 import { auth } from "@/lib/auth";
 import { parseJwt } from "@/lib/utils";
+import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -98,6 +100,11 @@ export default async function Dashboard() {
 
       {/* Due-soon / overdue tasks for the current user */}
       <DueSoonWidget />
+
+      {/* Commercial summary, only for users with commercial access */}
+      {hasCommercialAccess(permissions?.permissionCodes ?? []) && (
+        <CommercialSection />
+      )}
 
       {/* Recruiter performance */}
       <RecruiterStatsTable

@@ -39,6 +39,18 @@ export const UpdateOpportunityCloseDateSchema = z.object({
   closeDate: DayDateSchema,
 });
 
+/**
+ * "Crear vacante" on a won Opportunity: one Vacancy at a time, on the
+ * Opportunity's Company, linked back to it.
+ */
+export const CreateVacancyFromOpportunitySchema = z.object({
+  title: z.string().trim().min(1),
+  /** Vacancy Owner (any User). */
+  assignedTo: z.number().int(),
+  /** Vacancy Contact: one of the Company's current Contacts, or none. */
+  vacancyContactId: z.number().int().nullable().optional(),
+});
+
 export const OpportunityQueryParamsSchema = z.object({
   search: z.string().optional(),
   ownerId: z.coerce.number().int().optional(),
@@ -56,6 +68,9 @@ export type ChangeOpportunityStageDto = z.infer<
 >;
 export type UpdateOpportunityCloseDateDto = z.infer<
   typeof UpdateOpportunityCloseDateSchema
+>;
+export type CreateVacancyFromOpportunityDto = z.infer<
+  typeof CreateVacancyFromOpportunitySchema
 >;
 export type OpportunityQueryParamsDto = z.infer<
   typeof OpportunityQueryParamsSchema

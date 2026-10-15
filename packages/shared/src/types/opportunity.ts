@@ -53,6 +53,28 @@ export type Opportunity = {
   lostReason: { id: number; name: string } | null;
 };
 
+/** A Vacancy produced by the Opportunity, as listed on its page. */
+export type OpportunityVacancy = {
+  id: number;
+  title: string;
+  closedAt: string | null;
+  createdAt: string;
+  status: { id: number; name: string; isFinal: boolean } | null;
+  assignedTo: { id: number; name: string };
+  vacancyContact: { id: number; name: string; role: string } | null;
+};
+
+/** `GET /opportunity/:id` also lists the Vacancies linked to it. */
+export type OpportunityDetail = Opportunity & {
+  vacancies: OpportunityVacancy[];
+};
+
+export type CreateVacancyFromOpportunityPayload = {
+  title: string;
+  assignedTo: number;
+  vacancyContactId?: number | null;
+};
+
 export type OpportunityFilters = {
   search?: string;
   ownerId?: number;

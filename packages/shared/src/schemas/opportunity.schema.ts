@@ -14,6 +14,7 @@ import { lostReasons } from "./lostreason.schema";
 import { opportunityStages } from "./opportunitystage.schema";
 import { organizations } from "./organization.schema";
 import { users } from "./user.schema";
+import { vacancies } from "./vacancy.schema";
 
 export const opportunities = pgTable(
   "opportunities",
@@ -53,7 +54,7 @@ export const opportunities = pgTable(
   ],
 );
 
-export const opportunitiesRelations = relations(opportunities, ({ one }) => ({
+export const opportunitiesRelations = relations(opportunities, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [opportunities.organizationId],
     references: [organizations.id],
@@ -80,6 +81,7 @@ export const opportunitiesRelations = relations(opportunities, ({ one }) => ({
     references: [users.id],
     relationName: "opportunities_created_by",
   }),
+  vacancies: many(vacancies),
 }));
 
 export type Opportunity = typeof opportunities.$inferSelect;

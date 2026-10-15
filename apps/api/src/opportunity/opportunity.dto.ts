@@ -2,6 +2,7 @@ import { createZodDto } from 'nestjs-zod';
 import {
   ChangeOpportunityStageSchema,
   CreateOpportunitySchema,
+  CreateVacancyFromOpportunitySchema,
   OpportunityQueryParamsSchema,
   UpdateOpportunityCloseDateSchema,
   UpdateOpportunitySchema,
@@ -19,6 +20,9 @@ export class ChangeOpportunityStageDto extends createZodDto(
 ) {}
 export class UpdateOpportunityCloseDateDto extends createZodDto(
   UpdateOpportunityCloseDateSchema,
+) {}
+export class CreateVacancyFromOpportunityDto extends createZodDto(
+  CreateVacancyFromOpportunitySchema,
 ) {}
 export class OpportunityQueryParams extends createZodDto(
   OpportunityQueryParamsSchema,
