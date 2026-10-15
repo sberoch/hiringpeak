@@ -23,6 +23,7 @@ import {
   contactSources,
   type Contact,
 } from '@workspace/shared/schemas';
+import { CompanyStatus } from '@workspace/shared/enums';
 import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 import type {
   ContactDuplicate,
@@ -170,9 +171,10 @@ export class ContactService {
 
     const duplicates = await this.findDuplicates(dto, actor);
 
+    const { newCompanyName, ...fields } = dto;
     const values = {
       organizationId: actor.organizationId,
-      companyId: dto.companyId ?? null,
+      companyId: fields.companyId ?? null,
       name: dto.name,
       role: dto.role ?? '',
       email: dto.email ?? null,
@@ -183,7 +185,17 @@ export class ContactService {
       shortDescription: dto.shortDescription ?? null,
       createdBy: actor.userId,
     };
-    const [contact] = await this.db.insert(contacts).values(values).returning();
+    const contact = await this.db.transaction(async (tx) => {
+      if (newCompanyName) {
+        values.companyId = await this.createCompany(
+          tx,
+          newCompanyName,
+          actor.organizationId,
+        );
+      }
+      const [created] = await tx.insert(contacts).values(values).returning();
+      return created;
+    });
     return { ...this.toCreated(contact), duplicates };
   }
 
@@ -206,17 +218,28 @@ export class ContactService {
       await this.assertOwnerAllowed(dto.ownerId, actor.organizationId);
     }
 
-    const [contact] = await this.db
-      .update(contacts)
-      .set({ ...dto, updatedAt: new Date() } as Partial<Contact>)
-      .where(
-        and(
-          eq(contacts.id, id),
-          eq(contacts.organizationId, actor.organizationId),
-        ),
-      )
-      .returning();
-    return contact;
+    const { newCompanyName, ...fields } = dto;
+    return this.db.transaction(async (tx) => {
+      const set: Record<string, unknown> = { ...fields, updatedAt: new Date() };
+      if (newCompanyName) {
+        set.companyId = await this.createCompany(
+          tx,
+          newCompanyName,
+          actor.organizationId,
+        );
+      }
+      const [contact] = await tx
+        .update(contacts)
+        .set(set as Partial<Contact>)
+        .where(
+          and(
+            eq(contacts.id, id),
+            eq(contacts.organizationId, actor.organizationId),
+          ),
+        )
+        .returning();
+      return contact;
+    });
   }
 
   /** Vacancies pointing at the Contact lose their Vacancy Contact (FK set null). */
@@ -245,6 +268,24 @@ export class ContactService {
     });
     if (!contact) throw new NotFoundException('Not found');
     return contact;
+  }
+
+  /** "Pick or create": a new Company starts as a Prospect, with no description. */
+  private async createCompany(
+    tx: Pick<DrizzleDatabase, 'insert'>,
+    name: string,
+    organizationId: number,
+  ): Promise<number> {
+    const [company] = await tx
+      .insert(companies)
+      .values({
+        name,
+        description: '',
+        status: CompanyStatus.PROSPECT,
+        organizationId,
+      })
+      .returning({ id: companies.id });
+    return company.id;
   }
 
   private assertNoViolation(violation: string | null) {

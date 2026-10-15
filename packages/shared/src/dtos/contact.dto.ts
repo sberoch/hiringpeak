@@ -19,6 +19,8 @@ const optionalId = z.number().int().nullable().optional();
  */
 export const CreateContactSchema = z.object({
   companyId: optionalId,
+  /** Pick or create: a new Company with this name becomes the Contact's Company. */
+  newCompanyName: optionalText,
   name: z.string().trim().min(1),
   role: z.string().trim().optional(),
   email: z

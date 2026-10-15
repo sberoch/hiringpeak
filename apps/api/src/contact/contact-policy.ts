@@ -13,6 +13,8 @@ import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 
 type ContactWrite = {
   companyId?: number | null;
+  /** A new Company, created by name, becomes the Contact's Company. */
+  newCompanyName?: string | null;
   sourceId?: number | null;
   ownerId?: number | null;
   shortDescription?: string | null;
@@ -32,9 +34,9 @@ export function networkFieldViolation(
   if (existing && existing.companyId == null) {
     return 'Contacto no encontrado.';
   }
-  const companyCleared = existing
-    ? write.companyId === null
-    : write.companyId == null;
+  const companyCleared =
+    !write.newCompanyName &&
+    (existing ? write.companyId === null : write.companyId == null);
   if (companyCleared) {
     return 'Sin acceso comercial, el contacto tiene que pertenecer a una empresa.';
   }

@@ -54,6 +54,12 @@ describe('networkFieldViolation', () => {
     expect(networkFieldViolation({ companyId: 4 }, RECRUITER)).toBeNull();
   });
 
+  it('lets a recruiter create a Contact on a new Company', () => {
+    expect(
+      networkFieldViolation({ newCompanyName: 'Globex' }, RECRUITER),
+    ).toBeNull();
+  });
+
   it('stops a recruiter from creating a Contact without a Company', () => {
     expect(networkFieldViolation({}, RECRUITER)).not.toBeNull();
   });

@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionCode } from '@workspace/shared/enums';
+import { companies } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import { UserService } from '../user/user.service';
 import { ContactService } from './contact.service';
@@ -9,7 +10,8 @@ import { ContactService } from './contact.service';
 /**
  * Mocked Drizzle database (the boundary). `network` is the Organization's
  * existing Contacts, `commercialUsers` the users with commercial access; the
- * insert echoes back what the service wrote.
+ * insert echoes back what the service wrote (new Companies get id 50, new
+ * Contacts id 99).
  */
 function makeDb(state: {
   network: Record<string, unknown>[];
@@ -24,12 +26,14 @@ function makeDb(state: {
     node.then = (resolve: (value: unknown) => unknown) => resolve(result);
     return node;
   };
-  return {
+  const db: Record<string, unknown> = {
     select: vi.fn(() => chain(state.network)),
     selectDistinct: vi.fn(() => chain(state.commercialUsers)),
-    insert: vi.fn(() => ({
+    insert: vi.fn((table: unknown) => ({
       values: vi.fn((row: Record<string, unknown>) => ({
-        returning: vi.fn(async () => [{ id: 99, ...row }]),
+        returning: vi.fn(async () => [
+          { id: table === companies ? 50 : 99, ...row },
+        ]),
       })),
     })),
     query: {
@@ -37,6 +41,8 @@ function makeDb(state: {
       contactSources: { findFirst: vi.fn(async () => ({ id: 1 })) },
     },
   };
+  db.transaction = vi.fn(async (cb: (tx: unknown) => unknown) => cb(db));
+  return db;
 }
 
 const partner = {
@@ -93,6 +99,14 @@ describe('ContactService.create', () => {
   it('creates a Contact without a Company, owned by its creator', async () => {
     const created = await service.create({ name: 'Martín Gómez' }, partner);
     expect(created).toMatchObject({ id: 99, companyId: null, ownerId: 7 });
+  });
+
+  it('creates the Contact on a new Company created by name', async () => {
+    const created = await service.create(
+      { name: 'Martín Gómez', newCompanyName: 'Globex' },
+      partner,
+    );
+    expect(created.companyId).toBe(50);
   });
 
   it('rejects an owner without commercial access', async () => {

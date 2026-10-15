@@ -63,6 +63,8 @@ export type CreatedContact = Contact & {
 export type CreateContactDto = {
   /** Current employer; optional (commercial access needed to leave it empty). */
   companyId?: number | null;
+  /** Pick or create: a new Company with this name becomes their Company. */
+  newCompanyName?: string | null;
   name: string;
   role?: string;
   email?: string | null;
