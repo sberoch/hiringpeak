@@ -18,6 +18,12 @@ import { NotificationFindAllServiceParams } from './notification.dto';
 
 export type NotificationApiResponse = Notification;
 
+/** Who a Notification is for, and whether commercial Tasks reach them. */
+export type NotificationRecipient = {
+  userId: number;
+  commercialAccess: boolean;
+};
+
 @Injectable()
 export class NotificationService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
@@ -59,10 +65,7 @@ export class NotificationService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async unreadCount(
-    organizationId: number,
-    recipient: { userId: number; commercialAccess: boolean },
-  ) {
+  async unreadCount(organizationId: number, recipient: NotificationRecipient) {
     const [{ count: c }] = await this.db
       .select({ count: count(notifications.id) })
       .from(notifications)
@@ -79,8 +82,12 @@ export class NotificationService {
     return { count: c };
   }
 
-  async markRead(id: number, organizationId: number, recipientUserId: number) {
-    const existing = await this.findOwn(id, organizationId, recipientUserId);
+  async markRead(
+    id: number,
+    organizationId: number,
+    recipient: NotificationRecipient,
+  ) {
+    const existing = await this.findOwn(id, organizationId, recipient);
     if (existing.readAt) return existing;
     const readUpdate: Record<string, unknown> = { readAt: new Date() };
     const [updated] = await this.db
@@ -90,38 +97,46 @@ export class NotificationService {
         and(
           eq(notifications.id, id),
           eq(notifications.organizationId, organizationId),
-          eq(notifications.recipientUserId, recipientUserId),
+          eq(notifications.recipientUserId, recipient.userId),
         ),
       )
       .returning();
     return updated;
   }
 
-  async dismiss(id: number, organizationId: number, recipientUserId: number) {
-    await this.findOwn(id, organizationId, recipientUserId);
+  async dismiss(
+    id: number,
+    organizationId: number,
+    recipient: NotificationRecipient,
+  ) {
+    await this.findOwn(id, organizationId, recipient);
     const [deleted] = await this.db
       .delete(notifications)
       .where(
         and(
           eq(notifications.id, id),
           eq(notifications.organizationId, organizationId),
-          eq(notifications.recipientUserId, recipientUserId),
+          eq(notifications.recipientUserId, recipient.userId),
         ),
       )
       .returning();
     return deleted;
   }
 
+  /** The recipient's Notification, if it may reach them (see findAll). */
   private async findOwn(
     id: number,
     organizationId: number,
-    recipientUserId: number,
+    recipient: NotificationRecipient,
   ) {
     const found = await this.db.query.notifications.findFirst({
       where: and(
         eq(notifications.id, id),
         eq(notifications.organizationId, organizationId),
-        eq(notifications.recipientUserId, recipientUserId),
+        eq(notifications.recipientUserId, recipient.userId),
+        ...(recipient.commercialAccess
+          ? []
+          : [notOfCommercialTask(notifications.taskId)]),
       ),
     });
     if (!found) throw new NotFoundException('Not found');

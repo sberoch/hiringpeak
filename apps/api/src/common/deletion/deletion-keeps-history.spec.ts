@@ -108,7 +108,10 @@ describe('Deleting an Opportunity', () => {
     });
     await s.opportunities.remove(opportunity, org);
 
-    expect((await s.vacancies.findOne(vacancy, org)).opportunityId).toBeNull();
+    expect(
+      (await s.vacancies.findOne(vacancy, org, [PermissionCode.CRM_READ]))
+        .opportunityId,
+    ).toBeNull();
   });
 });
 
@@ -153,9 +156,7 @@ describe('Deleting a Contact', () => {
     await s.contacts.remove(paula, actor());
 
     expect(
-      (await s.opportunities.findAll({ organizationId: org })).map(
-        (o) => o.id,
-      ),
+      (await s.opportunities.findAll({ organizationId: org })).map((o) => o.id),
     ).toEqual([opportunity.id]);
   });
 
@@ -186,9 +187,7 @@ describe('Deleting a Contact', () => {
     await s.contacts.remove(paula, actor());
 
     expect(
-      (await s.interactions.findOne(call.id, org)).contacts.map(
-        (c) => c.name,
-      ),
+      (await s.interactions.findOne(call.id, org)).contacts.map((c) => c.name),
     ).toEqual(['Juan']);
   });
 });
@@ -209,7 +208,10 @@ describe('Deleting a Company', () => {
   });
 
   it('deletes its Vacancies', async () => {
-    const vacancy = await f.vacancy(org, { companyId: acme, createdBy: partner });
+    const vacancy = await f.vacancy(org, {
+      companyId: acme,
+      createdBy: partner,
+    });
     await s.companies.remove(acme, org);
 
     await expect(s.vacancies.findOne(vacancy, org)).rejects.toThrow(

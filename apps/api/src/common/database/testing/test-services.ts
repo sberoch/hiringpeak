@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { AuditLogService } from '../../../audit-log/audit-log.service';
+import { AuditService } from '../../../audit-log/audit.service';
 import { AuthzService } from '../../../auth/authz/authz.service';
 import { CompanyService } from '../../../company/company.service';
 import { ContactService } from '../../../contact/contact.service';
@@ -20,6 +21,7 @@ import type { DrizzleDatabase } from '../types/drizzle';
 
 const SERVICES = [
   AuditLogService,
+  AuditService,
   AuthzService,
   CompanyService,
   ContactService,
@@ -43,6 +45,7 @@ export async function testServices(db: DrizzleDatabase) {
     providers: [...SERVICES, { provide: DrizzleProvider, useValue: db }],
   }).compile();
   return {
+    audit: module.get(AuditService),
     auditLog: module.get(AuditLogService),
     authz: module.get(AuthzService),
     companies: module.get(CompanyService),

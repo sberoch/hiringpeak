@@ -1,6 +1,9 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PermissionCode } from '@workspace/shared/enums';
+import { InteractionType, PermissionCode } from '@workspace/shared/enums';
+import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import type { InteractionService } from '../interaction/interaction.service';
 import { fixtures } from '../common/database/testing/fixtures';
 import { createTestDatabase } from '../common/database/testing/test-database';
 import { testServices } from '../common/database/testing/test-services';
@@ -8,8 +11,10 @@ import type { TaskService } from '../task/task.service';
 import type { ContactActor } from './contact.dto';
 import type { ContactService } from './contact.service';
 
+let db: DrizzleDatabase;
 let contacts: ContactService;
 let tasks: TaskService;
+let interactions: InteractionService;
 let f: ReturnType<typeof fixtures>;
 let org: number;
 let lucia: number;
@@ -17,8 +22,8 @@ let tomas: number;
 let partner: ContactActor;
 
 beforeEach(async () => {
-  const db = await createTestDatabase();
-  ({ contacts, tasks } = await testServices(db));
+  db = await createTestDatabase();
+  ({ contacts, tasks, interactions } = await testServices(db));
   f = fixtures(db);
   org = await f.organization();
   lucia = await f.user(org, [PermissionCode.CRM_MANAGE], 'Lucía');
@@ -125,5 +130,148 @@ describe('ContactService.create', () => {
     await expect(
       contacts.create({ name: 'Martín Gómez', ownerId: recruiter }, partner),
     ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('What Contact writes return', () => {
+  let companyManager: ContactActor;
+  let acme: number;
+  beforeEach(async () => {
+    acme = await f.company(org, { name: 'Acme' });
+    companyManager = {
+      organizationId: org,
+      userId: await f.user(org, [PermissionCode.COMPANY_MANAGE]),
+      codes: [PermissionCode.COMPANY_MANAGE],
+    };
+  });
+
+  const basicFields = {
+    companyId: expect.any(Number),
+    name: 'Martín Gómez',
+    role: '',
+    email: null,
+    phone: null,
+    linkedin: null,
+  };
+
+  it('creating gives a Company manager without commercial access only the basic fields', async () => {
+    const created = await contacts.create(
+      { name: 'Martín Gómez', companyId: acme },
+      companyManager,
+    );
+    expect(created).toEqual({
+      id: expect.any(Number),
+      ...basicFields,
+      duplicates: [],
+    });
+  });
+
+  it('editing gives a Company manager without commercial access only the basic fields', async () => {
+    const contact = await f.contact(org, { name: 'Martín', companyId: acme });
+    const updated = await contacts.update(
+      contact,
+      { name: 'Martín Gómez' },
+      companyManager,
+    );
+    expect(updated).toEqual({ id: contact, ...basicFields });
+  });
+
+  it('deleting gives a Company manager without commercial access only the basic fields', async () => {
+    const contact = await f.contact(org, {
+      name: 'Martín Gómez',
+      companyId: acme,
+    });
+    expect(await contacts.remove(contact, companyManager)).toEqual({
+      id: contact,
+      ...basicFields,
+    });
+  });
+
+  it('editing gives a commercial user the network fields too', async () => {
+    const contact = await f.contact(org, { name: 'Martín', companyId: acme });
+    const updated = await contacts.update(
+      contact,
+      { shortDescription: 'Conocido de la feria' },
+      partner,
+    );
+    expect(updated).toMatchObject({
+      shortDescription: 'Conocido de la feria',
+      ownerId: null,
+      sourceId: null,
+    });
+  });
+});
+
+describe('Quick capture: a first Interaction with the new Contact', () => {
+  const firstInteraction = {
+    type: InteractionType.MEETING,
+    date: '2026-10-14',
+    summary: 'Nos conocimos en la feria',
+  };
+
+  it('is recorded with the Contact, at their Company', async () => {
+    const acme = await f.company(org, { name: 'Acme' });
+    const created = await contacts.create(
+      { name: 'Martín Gómez', companyId: acme, firstInteraction },
+      partner,
+    );
+    expect(await interactions.findAll({ contactId: created.id }, org)).toEqual([
+      expect.objectContaining({
+        ...firstInteraction,
+        company: { id: acme, name: 'Acme' },
+        contacts: [expect.objectContaining({ id: created.id })],
+      }),
+    ]);
+  });
+
+  it('is recorded at the Company created by name with the Contact', async () => {
+    const created = await contacts.create(
+      { name: 'Martín Gómez', newCompanyName: 'Globex', firstInteraction },
+      partner,
+    );
+    const [interaction] = await interactions.findAll(
+      { contactId: created.id },
+      org,
+    );
+    expect(interaction.company?.name).toBe('Globex');
+  });
+
+  it('saves neither when the Interaction cannot be saved', async () => {
+    // Fault injection at the database: recording any Interaction fails.
+    await db.execute(sql`
+      create function fail_insert() returns trigger language plpgsql
+        as $$ begin raise exception 'db down'; end $$
+    `);
+    await db.execute(sql`
+      create trigger fail_insert before insert on interactions
+        for each row execute function fail_insert()
+    `);
+
+    await expect(
+      contacts.create({ name: 'Martín Gómez', firstInteraction }, partner),
+    ).rejects.toThrow();
+    expect(
+      (
+        await contacts.findAll({
+          organizationId: org,
+          viewer: { userId: lucia, readsAllTasks: true },
+        })
+      ).items,
+    ).toEqual([]);
+  });
+
+  it('needs CRM_MANAGE', async () => {
+    const companyManager = {
+      organizationId: org,
+      userId: await f.user(org, [PermissionCode.COMPANY_MANAGE]),
+      codes: [PermissionCode.COMPANY_MANAGE],
+    };
+    const acme = await f.company(org);
+    await expect(
+      contacts.create(
+        { name: 'Martín Gómez', companyId: acme, firstInteraction },
+        companyManager,
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

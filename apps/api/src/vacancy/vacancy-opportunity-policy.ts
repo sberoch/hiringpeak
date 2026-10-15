@@ -1,3 +1,6 @@
+import { PermissionCode } from '@workspace/shared/enums';
+import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
+
 /**
  * Vacancy from Opportunity — pure, no I/O, no throw (callers decide how to
  * surface a violation). See CONTEXT.md (`Opportunity`).
@@ -33,3 +36,24 @@ export const VacancyOpportunityPolicy = {
     return { ok: true };
   },
 };
+
+/**
+ * Who may set or clear a Vacancy's Opportunity through the Vacancy API: only
+ * CRM_MANAGE. Anyone else is refused before the Opportunity is looked up, so
+ * its existence, stage and Company don't leak.
+ */
+export function canSetVacancyOpportunity(codes: readonly string[]): boolean {
+  return codes.includes(PermissionCode.CRM_MANAGE);
+}
+
+/** The Vacancy as the viewer may see it: its Opportunity only with commercial access. */
+export function vacancyForViewer<T extends object>(
+  vacancy: T,
+  codes: readonly string[],
+): T {
+  if (hasCommercialAccess(codes) || !('opportunityId' in vacancy)) {
+    return vacancy;
+  }
+  const { opportunityId: _hidden, ...rest } = vacancy;
+  return rest as T;
+}

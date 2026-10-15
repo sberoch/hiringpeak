@@ -45,6 +45,14 @@ import {
   AlertDialogTitle,
 } from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@workspace/ui/components/command";
 import { Input } from "@workspace/ui/components/input";
 import { LoadingSpinner } from "@workspace/ui/components/loading-spinner";
 import {
@@ -54,6 +62,7 @@ import {
 } from "@workspace/ui/components/popover";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { useCompanyOptions } from "@/components/contacts/contact-lookups";
 import { OpportunityInteractions } from "@/components/interactions/interaction-lists";
 import {
   apiErrorMessage,
@@ -462,12 +471,23 @@ function FactsCard({
           </FeePopover>
         </FactRow>
         <FactRow label="Empresa">
-          <Link
-            href={`/companies/${opportunity.company.id}`}
-            className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-electric"
-          >
-            {opportunity.company.name}
-          </Link>
+          {canManage ? (
+            <CompanyPopover opportunity={opportunity}>
+              <button type="button">
+                <EditableValue canManage>
+                  <Building2 className="h-3.5 w-3.5 text-muted-brand" />
+                  {opportunity.company.name}
+                </EditableValue>
+              </button>
+            </CompanyPopover>
+          ) : (
+            <Link
+              href={`/companies/${opportunity.company.id}`}
+              className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-electric"
+            >
+              {opportunity.company.name}
+            </Link>
+          )}
         </FactRow>
         {closed && opportunity.closeDate && (
           <FactRow label="Fecha de cierre">
@@ -529,6 +549,54 @@ function OwnerPopover({
             )}
           </button>
         ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Move the Opportunity to another Company (CRM_MANAGE only). */
+function CompanyPopover({
+  opportunity,
+  children,
+}: {
+  opportunity: Opportunity;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const companies = useCompanyOptions();
+  const mutation = useOpportunityUpdate(opportunity);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverContent align="end" className="w-72 p-0">
+        <Command>
+          <CommandInput placeholder="Buscar empresa…" />
+          <CommandList>
+            <CommandEmpty>No hay empresas con ese nombre.</CommandEmpty>
+            <CommandGroup>
+              {companies.map((company) => (
+                <CommandItem
+                  key={company.id}
+                  value={`${company.name} ${company.id}`}
+                  onSelect={() => {
+                    setOpen(false);
+                    if (company.id !== opportunity.companyId) {
+                      mutation.mutate({ companyId: company.id });
+                    }
+                  }}
+                >
+                  <span className="flex-1 truncate">{company.name}</span>
+                  {company.id === opportunity.companyId && (
+                    <Check className="h-4 w-4 text-electric" />
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+        <p className="border-t border-brand-border px-3 py-2 text-xs text-slate-brand">
+          Sus vacantes ya creadas siguen en su empresa.
+        </p>
       </PopoverContent>
     </Popover>
   );

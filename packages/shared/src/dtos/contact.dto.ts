@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FirstInteractionSchema } from "./interaction.dto.js";
 import { PaginationParamsSchema } from "./pagination.dto.js";
 
 /** Optional free text: blank becomes null. */
@@ -38,11 +39,17 @@ export const CreateContactSchema = z.object({
    * Contact, due today + X and owned by the Contact Owner. Create only.
    */
   followUpInDays: z.number().int().min(0).max(999).nullable().optional(),
+  /**
+   * Quick capture: an Interaction with the new Contact, saved with them (at
+   * their Company). Create only; needs CRM_MANAGE.
+   */
+  firstInteraction: FirstInteractionSchema.nullable().optional(),
 });
 
 /** A plain edit; changing the Company moves the person to their new employer. */
 export const UpdateContactSchema = CreateContactSchema.omit({
   followUpInDays: true,
+  firstInteraction: true,
 }).partial();
 
 /** `company`: "with" / "without" a Company, or a Company id. */

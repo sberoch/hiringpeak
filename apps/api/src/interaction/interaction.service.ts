@@ -59,6 +59,9 @@ type InteractionWithRelations = InteractionRow & {
  * from the Interaction's own inputs (see stampInteractionCompany) and never
  * rewritten afterwards, so a Contact moving keeps past history in place.
  */
+/** The database or the caller's transaction. */
+type Executor = Pick<DrizzleDatabase, 'query' | 'insert'>;
+
 @Injectable()
 export class InteractionService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
@@ -110,15 +113,31 @@ export class InteractionService {
     dto: CreateInteractionDto,
     actor: InteractionActor,
   ): Promise<Interaction> {
+    const id = await this.db.transaction((tx) =>
+      this.insertInteraction(tx, dto, actor),
+    );
+    return this.findOne(id, actor.organizationId);
+  }
+
+  /**
+   * Records an Interaction in the caller's transaction (so it sees records
+   * written earlier in it, e.g. a Contact being created) and returns its id.
+   */
+  async insertInteraction(
+    tx: Executor,
+    dto: CreateInteractionDto,
+    actor: InteractionActor,
+  ): Promise<number> {
     const { organizationId } = actor;
     const contactIds = unique(dto.contactIds ?? []);
-    const involved = await this.findContacts(contactIds, organizationId);
+    const involved = await this.findContacts(tx, contactIds, organizationId);
     const opportunityCompanyId = await this.findOpportunityCompany(
+      tx,
       dto.opportunityId,
       organizationId,
     );
     if (dto.companyId != null) {
-      await this.assertCompanyInOrganization(dto.companyId, organizationId);
+      await this.assertCompanyInOrganization(tx, dto.companyId, organizationId);
     }
 
     const stamp = stampInteractionCompany({
@@ -137,22 +156,19 @@ export class InteractionService {
       opportunityId: dto.opportunityId ?? null,
       createdBy: actor.userId,
     } as NewInteraction;
-    const id = await this.db.transaction(async (tx) => {
-      const [created] = await tx
-        .insert(interactions)
-        .values(values)
-        .returning({ id: interactions.id });
-      if (contactIds.length > 0) {
-        await tx.insert(interactionContacts).values(
-          contactIds.map((contactId) => ({
-            interactionId: created.id,
-            contactId,
-          })),
-        );
-      }
-      return created.id;
-    });
-    return this.findOne(id, organizationId);
+    const [created] = await tx
+      .insert(interactions)
+      .values(values)
+      .returning({ id: interactions.id });
+    if (contactIds.length > 0) {
+      await tx.insert(interactionContacts).values(
+        contactIds.map((contactId) => ({
+          interactionId: created.id,
+          contactId,
+        })),
+      );
+    }
+    return created.id;
   }
 
   /** Edits what happened and who it was with; the Company stays as recorded. */
@@ -166,7 +182,11 @@ export class InteractionService {
     const contactIds =
       dto.contactIds === undefined ? undefined : unique(dto.contactIds);
     if (contactIds !== undefined) {
-      const involved = await this.findContacts(contactIds, organizationId);
+      const involved = await this.findContacts(
+        this.db,
+        contactIds,
+        organizationId,
+      );
       const stamp = stampInteractionCompany({
         companyId: existing.companyId,
         contactCompanyIds: involved.map((contact) => contact.companyId),
@@ -218,9 +238,13 @@ export class InteractionService {
   }
 
   /** The involved Contacts with their current Company; all must exist here. */
-  private async findContacts(contactIds: number[], organizationId: number) {
+  private async findContacts(
+    db: Executor,
+    contactIds: number[],
+    organizationId: number,
+  ) {
     if (contactIds.length === 0) return [];
-    const found = await this.db.query.contacts.findMany({
+    const found = await db.query.contacts.findMany({
       columns: { id: true, companyId: true },
       where: and(
         eq(contacts.organizationId, organizationId),
@@ -234,11 +258,12 @@ export class InteractionService {
   }
 
   private async findOpportunityCompany(
+    db: Executor,
     opportunityId: number | null | undefined,
     organizationId: number,
   ): Promise<number | null> {
     if (opportunityId == null) return null;
-    const opportunity = await this.db.query.opportunities.findFirst({
+    const opportunity = await db.query.opportunities.findFirst({
       columns: { companyId: true },
       where: and(
         eq(opportunities.id, opportunityId),
@@ -252,10 +277,11 @@ export class InteractionService {
   }
 
   private async assertCompanyInOrganization(
+    db: Executor,
     companyId: number,
     organizationId: number,
   ) {
-    const company = await this.db.query.companies.findFirst({
+    const company = await db.query.companies.findFirst({
       columns: { id: true },
       where: and(
         eq(companies.id, companyId),

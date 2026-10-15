@@ -6,7 +6,18 @@ import type {
 } from '@workspace/shared/types/audit-log';
 import { auditEvents, users } from '@workspace/shared/schemas';
 import type { AnyColumn } from 'drizzle-orm';
-import { and, asc, count, desc, eq, gte, lte, SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  lte,
+  ne,
+  notInArray,
+  SQL,
+} from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import {
@@ -17,7 +28,24 @@ import type { PaginatedResponse } from '../common/pagination/pagination.params';
 
 export type AuditLogFindAllParams = AuditLogQueryParamsDto & {
   organizationId: number;
+  /** Without commercial access, commercial events are left out. */
+  commercialAccess: boolean;
 };
+
+/**
+ * Commercial events: everything about Opportunities, Contacts, Interactions
+ * and the commercial catalogs (Opportunity Stages, Lost Reasons, Contact
+ * Sources), plus Account Owner changes on Companies.
+ */
+const COMMERCIAL_ENTITY_TYPES = [
+  'opportunity',
+  'contact',
+  'interaction',
+  'opportunity_stage',
+  'lost_reason',
+  'contact_source',
+];
+const COMMERCIAL_EVENT_TYPES = ['set_company_account_owner'];
 
 const VALID_ORDER_COLUMNS = [
   'id',
@@ -155,7 +183,15 @@ export class AuditLogService {
         throw new BadRequestException('Invalid dateTo');
       conditions.push(lte(auditEvents.createdAt, date));
     }
-    return and(...conditions);
+    if (!params.commercialAccess) {
+      conditions.push(
+        notInArray(auditEvents.entityType, COMMERCIAL_ENTITY_TYPES),
+        ...COMMERCIAL_EVENT_TYPES.map((type) =>
+          ne(auditEvents.eventType, type),
+        ),
+      );
+    }
+    return and(...conditions)!;
   }
 
   private buildOrderBy(order: { key: string; direction: string }): SQL[] {
