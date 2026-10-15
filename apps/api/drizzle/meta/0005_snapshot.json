@@ -1,5 +1,5 @@
 {
-  "id": "719043f0-46ca-4bb7-9391-d35406669730",
+  "id": "ae8b3c78-de27-4df8-8382-e1690057beec",
   "prevId": "ec959172-da88-493d-b3e5-e9177ff3cdf2",
   "version": "7",
   "dialect": "postgresql",
@@ -64,28 +64,28 @@
         "ai_vacancy_run_documents_run_id_ai_vacancy_runs_id_fk": {
           "name": "ai_vacancy_run_documents_run_id_ai_vacancy_runs_id_fk",
           "tableFrom": "ai_vacancy_run_documents",
-          "tableTo": "ai_vacancy_runs",
           "columnsFrom": [
             "run_id"
           ],
+          "tableTo": "ai_vacancy_runs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "ai_vacancy_run_documents_organization_id_organizations_id_fk": {
           "name": "ai_vacancy_run_documents_organization_id_organizations_id_fk",
           "tableFrom": "ai_vacancy_run_documents",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -135,15 +135,15 @@
         "ai_vacancy_run_events_run_id_ai_vacancy_runs_id_fk": {
           "name": "ai_vacancy_run_events_run_id_ai_vacancy_runs_id_fk",
           "tableFrom": "ai_vacancy_run_events",
-          "tableTo": "ai_vacancy_runs",
           "columnsFrom": [
             "run_id"
           ],
+          "tableTo": "ai_vacancy_runs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -267,37 +267,37 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "ai_vacancy_runs_organization_id_organizations_id_fk": {
           "name": "ai_vacancy_runs_organization_id_organizations_id_fk",
           "tableFrom": "ai_vacancy_runs",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "ai_vacancy_runs_user_id_users_id_fk": {
           "name": "ai_vacancy_runs_user_id_users_id_fk",
           "tableFrom": "ai_vacancy_runs",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -334,15 +334,15 @@
         "areas_organization_id_organizations_id_fk": {
           "name": "areas_organization_id_organizations_id_fk",
           "tableFrom": "areas",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -410,28 +410,28 @@
         "audit_events_organization_id_organizations_id_fk": {
           "name": "audit_events_organization_id_organizations_id_fk",
           "tableFrom": "audit_events",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "audit_events_actor_user_id_users_id_fk": {
           "name": "audit_events_actor_user_id_users_id_fk",
           "tableFrom": "audit_events",
-          "tableTo": "users",
           "columnsFrom": [
             "actor_user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -487,41 +487,41 @@
         "blacklists_candidate_id_candidates_id_fk": {
           "name": "blacklists_candidate_id_candidates_id_fk",
           "tableFrom": "blacklists",
-          "tableTo": "candidates",
           "columnsFrom": [
             "candidate_id"
           ],
+          "tableTo": "candidates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "blacklists_user_id_users_id_fk": {
           "name": "blacklists_user_id_users_id_fk",
           "tableFrom": "blacklists",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "blacklists_organization_id_organizations_id_fk": {
           "name": "blacklists_organization_id_organizations_id_fk",
           "tableFrom": "blacklists",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -558,28 +558,28 @@
         "candidate_areas_candidate_id_candidates_id_fk": {
           "name": "candidate_areas_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_areas",
-          "tableTo": "candidates",
           "columnsFrom": [
             "candidate_id"
           ],
+          "tableTo": "candidates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_areas_area_id_areas_id_fk": {
           "name": "candidate_areas_area_id_areas_id_fk",
           "tableFrom": "candidate_areas",
-          "tableTo": "areas",
           "columnsFrom": [
             "area_id"
           ],
+          "tableTo": "areas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -616,28 +616,28 @@
         "candidate_candidate_files_candidate_id_candidates_id_fk": {
           "name": "candidate_candidate_files_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_candidate_files",
-          "tableTo": "candidates",
           "columnsFrom": [
             "candidate_id"
           ],
+          "tableTo": "candidates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_candidate_files_file_id_candidate_files_id_fk": {
           "name": "candidate_candidate_files_file_id_candidate_files_id_fk",
           "tableFrom": "candidate_candidate_files",
-          "tableTo": "candidate_files",
           "columnsFrom": [
             "file_id"
           ],
+          "tableTo": "candidate_files",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -674,28 +674,28 @@
         "candidate_industries_candidate_id_candidates_id_fk": {
           "name": "candidate_industries_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_industries",
-          "tableTo": "candidates",
           "columnsFrom": [
             "candidate_id"
           ],
+          "tableTo": "candidates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_industries_industry_id_industries_id_fk": {
           "name": "candidate_industries_industry_id_industries_id_fk",
           "tableFrom": "candidate_industries",
-          "tableTo": "industries",
           "columnsFrom": [
             "industry_id"
           ],
+          "tableTo": "industries",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -732,28 +732,28 @@
         "candidate_seniorities_candidate_id_candidates_id_fk": {
           "name": "candidate_seniorities_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_seniorities",
-          "tableTo": "candidates",
           "columnsFrom": [
             "candidate_id"
           ],
+          "tableTo": "candidates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_seniorities_seniority_id_seniorities_id_fk": {
           "name": "candidate_seniorities_seniority_id_seniorities_id_fk",
           "tableFrom": "candidate_seniorities",
-          "tableTo": "seniorities",
           "columnsFrom": [
             "seniority_id"
           ],
+          "tableTo": "seniorities",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -898,39 +898,39 @@
         "candidates_source_id_candidate_sources_id_fk": {
           "name": "candidates_source_id_candidate_sources_id_fk",
           "tableFrom": "candidates",
-          "tableTo": "candidate_sources",
           "columnsFrom": [
             "source_id"
           ],
+          "tableTo": "candidate_sources",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidates_organization_id_organizations_id_fk": {
           "name": "candidates_organization_id_organizations_id_fk",
           "tableFrom": "candidates",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "candidates_name_organization_id_unique": {
           "name": "candidates_name_organization_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "name",
             "organization_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -971,15 +971,15 @@
         "candidate_files_organization_id_organizations_id_fk": {
           "name": "candidate_files_organization_id_organizations_id_fk",
           "tableFrom": "candidate_files",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1016,15 +1016,15 @@
         "candidate_sources_organization_id_organizations_id_fk": {
           "name": "candidate_sources_organization_id_organizations_id_fk",
           "tableFrom": "candidate_sources",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1112,9 +1112,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "candidate_vacancies_candidate_id_idx": {
           "name": "candidate_vacancies_candidate_id_idx",
@@ -1127,76 +1127,76 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "candidate_vacancies_candidate_id_candidates_id_fk": {
           "name": "candidate_vacancies_candidate_id_candidates_id_fk",
           "tableFrom": "candidate_vacancies",
-          "tableTo": "candidates",
           "columnsFrom": [
             "candidate_id"
           ],
+          "tableTo": "candidates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_vacancies_vacancy_id_vacancies_id_fk": {
           "name": "candidate_vacancies_vacancy_id_vacancies_id_fk",
           "tableFrom": "candidate_vacancies",
-          "tableTo": "vacancies",
           "columnsFrom": [
             "vacancy_id"
           ],
+          "tableTo": "vacancies",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_vacancies_candidate_vacancy_status_id_candidate_vacancy_statuses_id_fk": {
           "name": "candidate_vacancies_candidate_vacancy_status_id_candidate_vacancy_statuses_id_fk",
           "tableFrom": "candidate_vacancies",
-          "tableTo": "candidate_vacancy_statuses",
           "columnsFrom": [
             "candidate_vacancy_status_id"
           ],
+          "tableTo": "candidate_vacancy_statuses",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_vacancies_organization_id_organizations_id_fk": {
           "name": "candidate_vacancies_organization_id_organizations_id_fk",
           "tableFrom": "candidate_vacancies",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "candidate_vacancies_rejection_reason_id_rejection_reasons_id_fk": {
           "name": "candidate_vacancies_rejection_reason_id_rejection_reasons_id_fk",
           "tableFrom": "candidate_vacancies",
-          "tableTo": "rejection_reasons",
           "columnsFrom": [
             "rejection_reason_id"
           ],
+          "tableTo": "rejection_reasons",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1252,15 +1252,15 @@
         "candidate_vacancy_statuses_organization_id_organizations_id_fk": {
           "name": "candidate_vacancy_statuses_organization_id_organizations_id_fk",
           "tableFrom": "candidate_vacancy_statuses",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1316,41 +1316,41 @@
         "comments_candidate_id_candidates_id_fk": {
           "name": "comments_candidate_id_candidates_id_fk",
           "tableFrom": "comments",
-          "tableTo": "candidates",
           "columnsFrom": [
             "candidate_id"
           ],
+          "tableTo": "candidates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "comments_user_id_users_id_fk": {
           "name": "comments_user_id_users_id_fk",
           "tableFrom": "comments",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "comments_organization_id_organizations_id_fk": {
           "name": "comments_organization_id_organizations_id_fk",
           "tableFrom": "comments",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1425,15 +1425,15 @@
         "companies_organization_id_organizations_id_fk": {
           "name": "companies_organization_id_organizations_id_fk",
           "tableFrom": "companies",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1470,15 +1470,15 @@
         "industries_organization_id_organizations_id_fk": {
           "name": "industries_organization_id_organizations_id_fk",
           "tableFrom": "industries",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1540,41 +1540,41 @@
         "notifications_recipient_user_id_users_id_fk": {
           "name": "notifications_recipient_user_id_users_id_fk",
           "tableFrom": "notifications",
-          "tableTo": "users",
           "columnsFrom": [
             "recipient_user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "notifications_organization_id_organizations_id_fk": {
           "name": "notifications_organization_id_organizations_id_fk",
           "tableFrom": "notifications",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "notifications_task_id_tasks_id_fk": {
           "name": "notifications_task_id_tasks_id_fk",
           "tableFrom": "notifications",
-          "tableTo": "tasks",
           "columnsFrom": [
             "task_id"
           ],
+          "tableTo": "tasks",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1671,10 +1671,10 @@
       "uniqueConstraints": {
         "permissions_code_unique": {
           "name": "permissions_code_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1715,15 +1715,15 @@
         "rejection_reasons_organization_id_organizations_id_fk": {
           "name": "rejection_reasons_organization_id_organizations_id_fk",
           "tableFrom": "rejection_reasons",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1754,28 +1754,28 @@
         "role_permissions_role_id_roles_id_fk": {
           "name": "role_permissions_role_id_roles_id_fk",
           "tableFrom": "role_permissions",
-          "tableTo": "roles",
           "columnsFrom": [
             "role_id"
           ],
+          "tableTo": "roles",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "role_permissions_permission_id_permissions_id_fk": {
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
-          "tableTo": "permissions",
           "columnsFrom": [
             "permission_id"
           ],
+          "tableTo": "permissions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {
@@ -1841,15 +1841,15 @@
         "roles_organization_id_organizations_id_fk": {
           "name": "roles_organization_id_organizations_id_fk",
           "tableFrom": "roles",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1886,322 +1886,18 @@
         "seniorities_organization_id_organizations_id_fk": {
           "name": "seniorities_organization_id_organizations_id_fk",
           "tableFrom": "seniorities",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.task_candidacies": {
-      "name": "task_candidacies",
-      "schema": "",
-      "columns": {
-        "task_id": {
-          "name": "task_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "candidacy_id": {
-          "name": "candidacy_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "task_candidacies_candidacy_id_idx": {
-          "name": "task_candidacies_candidacy_id_idx",
-          "columns": [
-            {
-              "expression": "candidacy_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_candidacies_task_id_tasks_id_fk": {
-          "name": "task_candidacies_task_id_tasks_id_fk",
-          "tableFrom": "task_candidacies",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "task_candidacies_candidacy_id_candidate_vacancies_id_fk": {
-          "name": "task_candidacies_candidacy_id_candidate_vacancies_id_fk",
-          "tableFrom": "task_candidacies",
-          "tableTo": "candidate_vacancies",
-          "columnsFrom": [
-            "candidacy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "task_candidacies_task_id_candidacy_id_pk": {
-          "name": "task_candidacies_task_id_candidacy_id_pk",
-          "columns": [
-            "task_id",
-            "candidacy_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.task_candidates": {
-      "name": "task_candidates",
-      "schema": "",
-      "columns": {
-        "task_id": {
-          "name": "task_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "candidate_id": {
-          "name": "candidate_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "task_candidates_candidate_id_idx": {
-          "name": "task_candidates_candidate_id_idx",
-          "columns": [
-            {
-              "expression": "candidate_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_candidates_task_id_tasks_id_fk": {
-          "name": "task_candidates_task_id_tasks_id_fk",
-          "tableFrom": "task_candidates",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "task_candidates_candidate_id_candidates_id_fk": {
-          "name": "task_candidates_candidate_id_candidates_id_fk",
-          "tableFrom": "task_candidates",
-          "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "task_candidates_task_id_candidate_id_pk": {
-          "name": "task_candidates_task_id_candidate_id_pk",
-          "columns": [
-            "task_id",
-            "candidate_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.task_companies": {
-      "name": "task_companies",
-      "schema": "",
-      "columns": {
-        "task_id": {
-          "name": "task_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "company_id": {
-          "name": "company_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "task_companies_company_id_idx": {
-          "name": "task_companies_company_id_idx",
-          "columns": [
-            {
-              "expression": "company_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_companies_task_id_tasks_id_fk": {
-          "name": "task_companies_task_id_tasks_id_fk",
-          "tableFrom": "task_companies",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "task_companies_company_id_companies_id_fk": {
-          "name": "task_companies_company_id_companies_id_fk",
-          "tableFrom": "task_companies",
-          "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "task_companies_task_id_company_id_pk": {
-          "name": "task_companies_task_id_company_id_pk",
-          "columns": [
-            "task_id",
-            "company_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.task_vacancies": {
-      "name": "task_vacancies",
-      "schema": "",
-      "columns": {
-        "task_id": {
-          "name": "task_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "vacancy_id": {
-          "name": "vacancy_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "task_vacancies_vacancy_id_idx": {
-          "name": "task_vacancies_vacancy_id_idx",
-          "columns": [
-            {
-              "expression": "vacancy_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_vacancies_task_id_tasks_id_fk": {
-          "name": "task_vacancies_task_id_tasks_id_fk",
-          "tableFrom": "task_vacancies",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "task_vacancies_vacancy_id_vacancies_id_fk": {
-          "name": "task_vacancies_vacancy_id_vacancies_id_fk",
-          "tableFrom": "task_vacancies",
-          "tableTo": "vacancies",
-          "columnsFrom": [
-            "vacancy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "task_vacancies_task_id_vacancy_id_pk": {
-          "name": "task_vacancies_task_id_vacancy_id_pk",
-          "columns": [
-            "task_id",
-            "vacancy_id"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -2266,6 +1962,24 @@
           "primaryKey": false,
           "notNull": true
         },
+        "candidate_id": {
+          "name": "candidate_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vacancy_id": {
+          "name": "vacancy_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2286,54 +2000,93 @@
         "tasks_completed_by_users_id_fk": {
           "name": "tasks_completed_by_users_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "users",
           "columnsFrom": [
             "completed_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "tasks_created_by_users_id_fk": {
           "name": "tasks_created_by_users_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "tasks_assigned_to_users_id_fk": {
           "name": "tasks_assigned_to_users_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "users",
           "columnsFrom": [
             "assigned_to"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "tasks_organization_id_organizations_id_fk": {
           "name": "tasks_organization_id_organizations_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "tasks_candidate_id_candidates_id_fk": {
+          "name": "tasks_candidate_id_candidates_id_fk",
+          "tableFrom": "tasks",
+          "columnsFrom": [
+            "candidate_id"
+          ],
+          "tableTo": "candidates",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "tasks_vacancy_id_vacancies_id_fk": {
+          "name": "tasks_vacancy_id_vacancies_id_fk",
+          "tableFrom": "tasks",
+          "columnsFrom": [
+            "vacancy_id"
+          ],
+          "tableTo": "vacancies",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "tasks_company_id_companies_id_fk": {
+          "name": "tasks_company_id_companies_id_fk",
+          "tableFrom": "tasks",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "tableTo": "companies",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2423,39 +2176,39 @@
         "users_organization_id_organizations_id_fk": {
           "name": "users_organization_id_organizations_id_fk",
           "tableFrom": "users",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "users_role_id_roles_id_fk": {
           "name": "users_role_id_roles_id_fk",
           "tableFrom": "users",
-          "tableTo": "roles",
           "columnsFrom": [
             "role_id"
           ],
+          "tableTo": "roles",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "users_email_organization_id_unique": {
           "name": "users_email_organization_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "email",
             "organization_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2565,9 +2318,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vacancies_status_id_idx": {
           "name": "vacancies_status_id_idx",
@@ -2580,9 +2333,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vacancies_company_id_idx": {
           "name": "vacancies_company_id_idx",
@@ -2595,9 +2348,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vacancies_vacancy_filters_id_idx": {
           "name": "vacancies_vacancy_filters_id_idx",
@@ -2610,9 +2363,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vacancies_created_at_idx": {
           "name": "vacancies_created_at_idx",
@@ -2625,102 +2378,102 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "vacancies_status_id_vacancy_statuses_id_fk": {
           "name": "vacancies_status_id_vacancy_statuses_id_fk",
           "tableFrom": "vacancies",
-          "tableTo": "vacancy_statuses",
           "columnsFrom": [
             "status_id"
           ],
+          "tableTo": "vacancy_statuses",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vacancies_vacancy_filters_id_vacancy_filters_id_fk": {
           "name": "vacancies_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancies",
-          "tableTo": "vacancy_filters",
           "columnsFrom": [
             "vacancy_filters_id"
           ],
+          "tableTo": "vacancy_filters",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vacancies_company_id_companies_id_fk": {
           "name": "vacancies_company_id_companies_id_fk",
           "tableFrom": "vacancies",
-          "tableTo": "companies",
           "columnsFrom": [
             "company_id"
           ],
+          "tableTo": "companies",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vacancies_created_by_users_id_fk": {
           "name": "vacancies_created_by_users_id_fk",
           "tableFrom": "vacancies",
-          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "vacancies_assigned_to_users_id_fk": {
           "name": "vacancies_assigned_to_users_id_fk",
           "tableFrom": "vacancies",
-          "tableTo": "users",
           "columnsFrom": [
             "assigned_to"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "vacancies_organization_id_organizations_id_fk": {
           "name": "vacancies_organization_id_organizations_id_fk",
           "tableFrom": "vacancies",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vacancies_ai_vacancy_run_id_ai_vacancy_runs_id_fk": {
           "name": "vacancies_ai_vacancy_run_id_ai_vacancy_runs_id_fk",
           "tableFrom": "vacancies",
-          "tableTo": "ai_vacancy_runs",
           "columnsFrom": [
             "ai_vacancy_run_id"
           ],
+          "tableTo": "ai_vacancy_runs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -2793,15 +2546,15 @@
         "vacancy_filters_organization_id_organizations_id_fk": {
           "name": "vacancy_filters_organization_id_organizations_id_fk",
           "tableFrom": "vacancy_filters",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2845,9 +2598,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vacancy_filters_areas_area_id_idx": {
           "name": "vacancy_filters_areas_area_id_idx",
@@ -2860,37 +2613,37 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "vacancy_filters_areas_vacancy_filters_id_vacancy_filters_id_fk": {
           "name": "vacancy_filters_areas_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancy_filters_areas",
-          "tableTo": "vacancy_filters",
           "columnsFrom": [
             "vacancy_filters_id"
           ],
+          "tableTo": "vacancy_filters",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vacancy_filters_areas_area_id_areas_id_fk": {
           "name": "vacancy_filters_areas_area_id_areas_id_fk",
           "tableFrom": "vacancy_filters_areas",
-          "tableTo": "areas",
           "columnsFrom": [
             "area_id"
           ],
+          "tableTo": "areas",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2934,9 +2687,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vacancy_filters_industries_industry_id_idx": {
           "name": "vacancy_filters_industries_industry_id_idx",
@@ -2949,37 +2702,37 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "vacancy_filters_industries_vacancy_filters_id_vacancy_filters_id_fk": {
           "name": "vacancy_filters_industries_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancy_filters_industries",
-          "tableTo": "vacancy_filters",
           "columnsFrom": [
             "vacancy_filters_id"
           ],
+          "tableTo": "vacancy_filters",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vacancy_filters_industries_industry_id_industries_id_fk": {
           "name": "vacancy_filters_industries_industry_id_industries_id_fk",
           "tableFrom": "vacancy_filters_industries",
-          "tableTo": "industries",
           "columnsFrom": [
             "industry_id"
           ],
+          "tableTo": "industries",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -3023,9 +2776,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "vacancy_filters_seniorities_seniority_id_idx": {
           "name": "vacancy_filters_seniorities_seniority_id_idx",
@@ -3038,37 +2791,37 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "vacancy_filters_seniorities_vacancy_filters_id_vacancy_filters_id_fk": {
           "name": "vacancy_filters_seniorities_vacancy_filters_id_vacancy_filters_id_fk",
           "tableFrom": "vacancy_filters_seniorities",
-          "tableTo": "vacancy_filters",
           "columnsFrom": [
             "vacancy_filters_id"
           ],
+          "tableTo": "vacancy_filters",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "vacancy_filters_seniorities_seniority_id_seniorities_id_fk": {
           "name": "vacancy_filters_seniorities_seniority_id_seniorities_id_fk",
           "tableFrom": "vacancy_filters_seniorities",
-          "tableTo": "seniorities",
           "columnsFrom": [
             "seniority_id"
           ],
+          "tableTo": "seniorities",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -3112,15 +2865,15 @@
         "vacancy_statuses_organization_id_organizations_id_fk": {
           "name": "vacancy_statuses_organization_id_organizations_id_fk",
           "tableFrom": "vacancy_statuses",
-          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
+          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -3149,10 +2902,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
