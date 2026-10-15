@@ -21,4 +21,6 @@ export type UpdateTaskServiceDto = UpdateTaskDto & {
 };
 export type TaskFindAllServiceParams = TaskQueryParams & {
   organizationId: number;
+  /** Whether the caller has commercial access; without it, commercial Tasks are left out. */
+  commercialAccess: boolean;
 };

@@ -4,9 +4,13 @@ import {
   candidateVacancies,
   candidates,
   companies,
+  contacts,
+  opportunities,
   taskCandidacies,
   taskCandidates,
   taskCompanies,
+  taskContacts,
+  taskOpportunities,
   tasks,
   taskVacancies,
   vacancies,
@@ -22,6 +26,8 @@ describe.each([
   ['Vacancy', taskVacancies, vacancies],
   ['Candidacy', taskCandidacies, candidateVacancies],
   ['Company', taskCompanies, companies],
+  ['Contact', taskContacts, contacts],
+  ['Opportunity', taskOpportunities, opportunities],
 ] as const)('a Task attached to a %s', (_name, linkTable, targetTable) => {
   const foreignKeys = getTableConfig(linkTable).foreignKeys.map((fk) => ({
     target: fk.reference().foreignTable,

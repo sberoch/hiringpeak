@@ -26,12 +26,17 @@ import {
 } from './task.dto';
 import {
   attachedToFilters,
+  attachmentClassFilters,
   flattenTaskAttachments,
   withTaskAttachments,
   writeTaskAttachments,
 } from './task-attachments';
+import { isCommercialTask } from './task-access';
 
 export type TaskApiResponse = TaskWithRelations;
+
+/** The User a Task query is for, and whether commercial Tasks reach them. */
+export type TaskViewer = { userId: number; commercialAccess: boolean };
 
 @Injectable()
 export class TaskService {
@@ -80,7 +85,7 @@ export class TaskService {
 
   async dueSoonForUser(
     organizationId: number,
-    ownerUserId: number,
+    owner: TaskViewer,
     withinDays = 7,
     now: Date = new Date(),
   ) {
@@ -91,10 +96,11 @@ export class TaskService {
     const items = await this.db.query.tasks.findMany({
       where: and(
         eq(tasks.organizationId, organizationId),
-        eq(tasks.assignedTo, ownerUserId),
+        eq(tasks.assignedTo, owner.userId),
         eq(tasks.completed, false),
         isNotNull(tasks.dueDate),
         lte(tasks.dueDate, upperStr),
+        ...attachmentClassFilters(owner),
       ),
       orderBy: [asc(tasks.dueDate)],
       with: {
@@ -110,15 +116,16 @@ export class TaskService {
     }));
   }
 
-  async openCountFor(organizationId: number, ownerUserId: number) {
+  async openCountFor(organizationId: number, owner: TaskViewer) {
     const [{ count: c }] = await this.db
       .select({ count: count(tasks.id) })
       .from(tasks)
       .where(
         and(
           eq(tasks.organizationId, organizationId),
-          eq(tasks.assignedTo, ownerUserId),
+          eq(tasks.assignedTo, owner.userId),
           eq(tasks.completed, false),
+          ...attachmentClassFilters(owner),
         ),
       );
     return { count: c };
@@ -152,12 +159,26 @@ export class TaskService {
     return task;
   }
 
+  /**
+   * The Task with what decides its visibility: its Opportunity and Contact
+   * ids and whether it is commercial.
+   */
   async findOne(id: number, organizationId: number) {
-    const task = await this.db.query.tasks.findFirst({
+    const row = await this.db.query.tasks.findFirst({
       where: and(eq(tasks.id, id), eq(tasks.organizationId, organizationId)),
+      with: {
+        taskOpportunities: { columns: { opportunityId: true } },
+        taskContacts: { columns: { contactId: true } },
+      },
     });
-    if (!task) throw new NotFoundException('Not found');
-    return task;
+    if (!row) throw new NotFoundException('Not found');
+    const { taskOpportunities = [], taskContacts = [], ...task } = row;
+    const facts = {
+      opportunityIds: taskOpportunities.map((l) => l.opportunityId),
+      contactIds: taskContacts.map((l) => l.contactId),
+      stayedCommercial: task.stayedCommercial,
+    };
+    return { ...task, ...facts, commercial: isCommercialTask(facts) };
   }
 
   async update(id: number, dto: UpdateTaskServiceDto) {
@@ -260,6 +281,7 @@ export class TaskService {
     if (params.completed != null)
       filters.push(eq(tasks.completed, params.completed));
     filters.push(...attachedToFilters(this.db, params));
+    filters.push(...attachmentClassFilters(params));
     return and(...filters);
   }
 }

@@ -14,7 +14,16 @@ const TaskAttachmentIdsShape = {
   vacancyIds: AttachmentIdsSchema,
   candidacyIds: AttachmentIdsSchema,
   companyIds: AttachmentIdsSchema,
+  contactIds: AttachmentIdsSchema,
+  opportunityIds: AttachmentIdsSchema,
 };
+
+/**
+ * Tasks page pills, as attachment classes: `commercial` = any Opportunity or
+ * Contact attached, or stayed commercial; `vacancies` = any Vacancy,
+ * Candidate or Candidacy attached.
+ */
+export const TaskAttachmentClassSchema = z.enum(["commercial", "vacancies"]);
 
 export const CreateTaskSchema = z.object({
   title: z.string().min(1),
@@ -49,8 +58,12 @@ export const TaskQueryParamsSchema = PaginationParamsSchema.extend({
   vacancyId: z.coerce.number().optional(),
   candidacyId: z.coerce.number().optional(),
   companyId: z.coerce.number().optional(),
+  contactId: z.coerce.number().optional(),
+  opportunityId: z.coerce.number().optional(),
+  attachmentClass: TaskAttachmentClassSchema.optional(),
 });
 
 export type CreateTaskDto = z.infer<typeof CreateTaskSchema>;
 export type UpdateTaskDto = z.infer<typeof UpdateTaskSchema>;
+export type TaskAttachmentClass = z.infer<typeof TaskAttachmentClassSchema>;
 export type TaskQueryParamsDto = z.infer<typeof TaskQueryParamsSchema>;

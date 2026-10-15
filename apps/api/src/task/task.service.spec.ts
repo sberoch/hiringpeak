@@ -1,9 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import {
   taskCandidacies,
   taskCandidates,
   taskCompanies,
+  taskContacts,
+  taskOpportunities,
   tasks,
   taskVacancies,
 } from '@workspace/shared/schemas';
@@ -153,6 +157,33 @@ describe('TaskService.create', () => {
     expect(m.rowsInsertedInto(taskCompanies)).toEqual([
       { taskId: 9, companyId: 5 },
       { taskId: 9, companyId: 6 },
+    ]);
+  });
+
+  it('attaches a Task to Opportunities and Contacts alongside the other types', async () => {
+    m.insertReturning.mockResolvedValueOnce([
+      { id: 9, assignedTo: 7, organizationId: 42 },
+    ]);
+
+    await service.create({
+      title: 'Llamar a Juan por la búsqueda de CFO',
+      assignedTo: 7,
+      createdBy: 7,
+      organizationId: 42,
+      companyIds: [5],
+      opportunityIds: [12],
+      contactIds: [30, 31],
+    });
+
+    expect(m.rowsInsertedInto(taskOpportunities)).toEqual([
+      { taskId: 9, opportunityId: 12 },
+    ]);
+    expect(m.rowsInsertedInto(taskContacts)).toEqual([
+      { taskId: 9, contactId: 30 },
+      { taskId: 9, contactId: 31 },
+    ]);
+    expect(m.rowsInsertedInto(taskCompanies)).toEqual([
+      { taskId: 9, companyId: 5 },
     ]);
   });
 
@@ -329,6 +360,15 @@ const expectedAttachments = {
   companies: [],
 };
 
+const dialect = new PgDialect();
+/** The SQL `where` of the Tasks a query listed. */
+function listedWhere(m: ReturnType<typeof makeDb>): string {
+  return dialect.sqlToQuery(m.findMany.mock.calls[0][0].where as SQL).sql;
+}
+/** "not (stayed commercial, or any Opportunity, or any Contact attached)". */
+const EXCLUDES_COMMERCIAL =
+  /not \(.*"stayed_commercial".*"task_opportunities".*"task_contacts".*\)/;
+
 describe('TaskService.findAll', () => {
   let m: ReturnType<typeof makeDb>;
   let service: TaskService;
@@ -342,7 +382,10 @@ describe('TaskService.findAll', () => {
     m.findMany.mockResolvedValueOnce([loadedTaskRow]);
     m.selectWhere.mockResolvedValueOnce([{ count: 1 }]);
 
-    const page = await service.findAll({ organizationId: 42 });
+    const page = await service.findAll({
+      organizationId: 42,
+      commercialAccess: true,
+    });
 
     expect(page.items[0]).toMatchObject(expectedAttachments);
     expect(page.items[0]).not.toHaveProperty('taskCandidates');
@@ -352,10 +395,52 @@ describe('TaskService.findAll', () => {
     m.findMany.mockResolvedValueOnce([loadedTaskRow]);
     m.selectWhere.mockResolvedValueOnce([{ count: 1 }]);
 
-    const page = await service.findAll({ organizationId: 42 });
+    const page = await service.findAll({
+      organizationId: 42,
+      commercialAccess: true,
+    });
 
     expect(page.items[0].assignedToUser).not.toHaveProperty('password');
     expect(page.items[0].createdByUser).not.toHaveProperty('password');
+  });
+
+  it('lists the Opportunities and Contacts a Task is attached to', async () => {
+    m.findMany.mockResolvedValueOnce([
+      {
+        ...loadedTaskRow,
+        taskOpportunities: [{ opportunity: { id: 12, title: 'CFO Acme' } }],
+        taskContacts: [{ contact: { id: 30, name: 'Juan Pérez' } }],
+      },
+    ]);
+    m.selectWhere.mockResolvedValueOnce([{ count: 1 }]);
+
+    const page = await service.findAll({
+      organizationId: 42,
+      commercialAccess: true,
+    });
+
+    expect(page.items[0]).toMatchObject({
+      opportunities: [{ id: 12, title: 'CFO Acme' }],
+      contacts: [{ id: 30, name: 'Juan Pérez' }],
+    });
+  });
+
+  it('leaves commercial Tasks out for a caller without commercial access', async () => {
+    m.findMany.mockResolvedValueOnce([]);
+    m.selectWhere.mockResolvedValueOnce([{ count: 0 }]);
+
+    await service.findAll({ organizationId: 42, commercialAccess: false });
+
+    expect(listedWhere(m)).toMatch(EXCLUDES_COMMERCIAL);
+  });
+
+  it('keeps commercial Tasks for a caller with commercial access', async () => {
+    m.findMany.mockResolvedValueOnce([]);
+    m.selectWhere.mockResolvedValueOnce([{ count: 0 }]);
+
+    await service.findAll({ organizationId: 42, commercialAccess: true });
+
+    expect(listedWhere(m)).not.toMatch(EXCLUDES_COMMERCIAL);
   });
 });
 
@@ -371,7 +456,12 @@ describe('TaskService.dueSoonForUser', () => {
   it('returns at most 10 Tasks', async () => {
     m.findMany.mockResolvedValueOnce([]);
 
-    await service.dueSoonForUser(42, 7, 7, new Date('2026-05-20T10:00:00Z'));
+    await service.dueSoonForUser(
+      42,
+      { userId: 7, commercialAccess: true },
+      7,
+      new Date('2026-05-20T10:00:00Z'),
+    );
 
     expect(m.findMany.mock.calls[0][0].limit).toBe(10);
   });
@@ -379,11 +469,40 @@ describe('TaskService.dueSoonForUser', () => {
   it('returns each Task with its attachments and without the owner password', async () => {
     m.findMany.mockResolvedValueOnce([loadedTaskRow]);
 
-    const items = await service.dueSoonForUser(42, 7);
+    const items = await service.dueSoonForUser(42, {
+      userId: 7,
+      commercialAccess: true,
+    });
 
     expect(items[0]).toMatchObject(expectedAttachments);
     expect(items[0].assignedToUser).not.toHaveProperty('password');
     expect(items[0].assignedToUser).toMatchObject({ id: 7, name: 'Ana' });
+  });
+});
+
+describe('TaskService.dueSoonForUser — commercial Tasks', () => {
+  let m: ReturnType<typeof makeDb>;
+  let service: TaskService;
+
+  beforeEach(async () => {
+    m = makeDb();
+    service = await buildService(m.db);
+  });
+
+  it('leaves commercial Tasks out for an owner without commercial access', async () => {
+    m.findMany.mockResolvedValueOnce([]);
+
+    await service.dueSoonForUser(42, { userId: 7, commercialAccess: false });
+
+    expect(listedWhere(m)).toMatch(EXCLUDES_COMMERCIAL);
+  });
+
+  it('includes commercial follow-ups for an owner with commercial access', async () => {
+    m.findMany.mockResolvedValueOnce([]);
+
+    await service.dueSoonForUser(42, { userId: 7, commercialAccess: true });
+
+    expect(listedWhere(m)).not.toMatch(EXCLUDES_COMMERCIAL);
   });
 });
 
@@ -399,13 +518,17 @@ describe('TaskService.openCountFor', () => {
   it("returns the count of the User's open owned Tasks for the Organization", async () => {
     m.selectWhere.mockResolvedValueOnce([{ count: 3 }]);
 
-    expect(await service.openCountFor(42, 7)).toEqual({ count: 3 });
+    expect(
+      await service.openCountFor(42, { userId: 7, commercialAccess: true }),
+    ).toEqual({ count: 3 });
   });
 
   it('returns zero when the User has no open owned Tasks', async () => {
     m.selectWhere.mockResolvedValueOnce([{ count: 0 }]);
 
-    expect(await service.openCountFor(42, 7)).toEqual({ count: 0 });
+    expect(
+      await service.openCountFor(42, { userId: 7, commercialAccess: true }),
+    ).toEqual({ count: 0 });
   });
 });
 
