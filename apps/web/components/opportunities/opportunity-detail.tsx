@@ -60,6 +60,7 @@ import {
   useCommercialUsers,
   useOpportunityStages,
 } from "./opportunity-ui";
+import { OpportunityNextStepSection } from "./opportunity-next-step";
 import { OpportunityVacanciesCard } from "./opportunity-vacancies";
 import { useStageChange } from "./stage-change";
 
@@ -177,6 +178,8 @@ export function OpportunityDetail({ id }: { id: string }) {
         </div>
         <aside className="min-w-0 space-y-5">
           <FactsCard opportunity={opportunity} canManage={canManage} />
+
+          <OpportunityNextStepSection opportunity={opportunity} />
 
           <OpportunityVacanciesCard
             opportunity={opportunity}

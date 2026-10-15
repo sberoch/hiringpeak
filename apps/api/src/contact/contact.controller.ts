@@ -30,6 +30,7 @@ import {
   CreateContactDto,
   UpdateContactDto,
 } from './contact.dto';
+import { hasTaskReadAll } from '../task/task-access';
 import { ContactService } from './contact.service';
 
 /**
@@ -66,8 +67,17 @@ export class ContactController {
   async findAll(
     @Query() query: ContactQueryParams,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
-    return this.contactService.findAll({ ...query, organizationId });
+    const actor = await this.actor(user, organizationId);
+    return this.contactService.findAll({
+      ...query,
+      organizationId,
+      viewer: {
+        userId: actor.userId,
+        readsAllTasks: hasTaskReadAll([...actor.codes]),
+      },
+    });
   }
 
   /** Probable duplicates of a Contact being typed in (warning only). */

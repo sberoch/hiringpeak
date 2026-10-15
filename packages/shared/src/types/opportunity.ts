@@ -54,6 +54,21 @@ export type Opportunity = {
   stage: OpportunityStage;
   owner: { id: number; name: string };
   lostReason: { id: number; name: string } | null;
+  /** The earliest open attached Task by due date, undated last; null if none. */
+  nextStep: OpportunityNextStep | null;
+  /** Open (neither won nor lost) and no open Task attached. Derived, never stored. */
+  noNextStep: boolean;
+};
+
+/** An Opportunity's next step: an open Task attached to it. */
+export type OpportunityNextStep = {
+  id: number;
+  title: string;
+  /** `YYYY-MM-DD`, or null when undated. */
+  dueDate: string | null;
+  /** Task Owner. */
+  assignedTo: number;
+  owner: { id: number; name: string };
 };
 
 /**
@@ -95,6 +110,8 @@ export type OpportunityFilters = {
   contactId?: number;
   /** Only Opportunities at Prospect (or Client) Companies. */
   companyStatus?: CompanyStatus;
+  /** "Solo sin próximo paso": only open Opportunities with No Next Step. */
+  noNextStep?: boolean;
 };
 
 export type CreateOpportunityPayload = {

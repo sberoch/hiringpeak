@@ -49,7 +49,10 @@ function ContactsList({ canManage }: { canManage: boolean }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const { filters, params, setFilters, onPaginationChange, onSortingChange } =
-    useContactFilters({ initialValues: { limit: 50, order: "name:asc" } });
+    useContactFilters({
+      // Opens on "Seguimiento: Para contactar", sorted by due date.
+      initialValues: { limit: 50, order: "followUp:asc", followUp: "mine" },
+    });
 
   const { data, isLoading } = useQuery({
     queryKey: [CONTACT_API_KEY, params],

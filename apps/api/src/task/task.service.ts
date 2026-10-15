@@ -9,6 +9,7 @@ import {
   excludePassword,
   tasks,
   type NewTask,
+  type Task,
 } from '@workspace/shared/schemas';
 import type { TaskWithRelations } from '@workspace/shared/types/task';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -132,31 +133,42 @@ export class TaskService {
   }
 
   async create(dto: CreateTaskServiceDto) {
-    const task = await this.db.transaction(async (tx) => {
-      const [created] = await tx
-        .insert(tasks)
-        .values({
-          title: dto.title,
-          dueDate: dto.dueDate ?? null,
-          assignedTo: dto.assignedTo,
-          createdBy: dto.createdBy,
-          organizationId: dto.organizationId,
-        } as NewTask)
-        .returning();
-      await writeTaskAttachments(tx, created.id, dto, { isNew: true });
-      return created;
-    });
-
-    if (task.assignedTo !== dto.createdBy) {
-      await this.notificationFactory.ensure({
-        recipientUserId: task.assignedTo,
-        organizationId: task.organizationId,
-        kind: 'assigned',
-        taskId: task.id,
-      });
-    }
-
+    const task = await this.db.transaction((tx) => this.insertTask(tx, dto));
+    await this.notifyNewOwner(task, dto.createdBy);
     return task;
+  }
+
+  /**
+   * Inserts a Task with its attachments in the caller's transaction. Once it
+   * commits, call `notifyNewOwner` (as `create` does).
+   */
+  async insertTask(
+    tx: Pick<DrizzleDatabase, 'insert' | 'delete' | 'select'>,
+    dto: CreateTaskServiceDto,
+  ): Promise<Task> {
+    const [created] = await tx
+      .insert(tasks)
+      .values({
+        title: dto.title,
+        dueDate: dto.dueDate ?? null,
+        assignedTo: dto.assignedTo,
+        createdBy: dto.createdBy,
+        organizationId: dto.organizationId,
+      } as NewTask)
+      .returning();
+    await writeTaskAttachments(tx, created.id, dto, { isNew: true });
+    return created;
+  }
+
+  /** Tells the Task Owner about a Task someone else created for them. */
+  async notifyNewOwner(task: Task, createdBy: number): Promise<void> {
+    if (task.assignedTo === createdBy) return;
+    await this.notificationFactory.ensure({
+      recipientUserId: task.assignedTo,
+      organizationId: task.organizationId,
+      kind: 'assigned',
+      taskId: task.id,
+    });
   }
 
   /**
@@ -286,7 +298,8 @@ export class TaskService {
   }
 }
 
-function formatLocalDay(d: Date): string {
+/** A Date as its local day, `YYYY-MM-DD`. */
+export function formatLocalDay(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
