@@ -6,6 +6,8 @@ import { CurrentUserStore } from '../auth/auth.currentuser.store';
 import { OrganizationService } from '../organization/organization.service';
 import { RoleService } from '../role/role.service';
 import { UserService } from '../user/user.service';
+import { OpportunityStageService } from '../opportunitystage/opportunitystage.service';
+import { LostReasonService } from '../lostreason/lostreason.service';
 import { OnboardOrganizationDto } from './onboard.dto';
 
 @Injectable()
@@ -14,6 +16,8 @@ export class OnboardService {
     private readonly organizationService: OrganizationService,
     private readonly userService: UserService,
     private readonly roleService: RoleService,
+    private readonly opportunityStageService: OpportunityStageService,
+    private readonly lostReasonService: LostReasonService,
     private readonly cls: ClsService<CurrentUserStore>,
     @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
   ) {}
@@ -32,6 +36,15 @@ export class OnboardService {
           organization.id,
           { tx },
         );
+
+      await this.opportunityStageService.createDefaultsForOrganization(
+        organization.id,
+        { tx },
+      );
+      await this.lostReasonService.createDefaultsForOrganization(
+        organization.id,
+        { tx },
+      );
 
       const user = await this.userService.create(
         {

@@ -1,7 +1,13 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { PermissionCode } from '@workspace/shared/enums';
-import { organizations } from '@workspace/shared/schemas';
-import { eq } from 'drizzle-orm';
+import { COMMERCIAL_ACCESS_CODES } from '@workspace/shared/lib/commercial-access';
+import {
+  organizations,
+  permissions,
+  rolePermissions,
+  users,
+} from '@workspace/shared/schemas';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { DrizzleProvider } from '../../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../../common/database/types/drizzle';
 import { PermissionService } from '../../permission/permission.service';
@@ -63,7 +69,10 @@ export class AuthzService {
     }
 
     try {
-      const role = await this.roleService.findOne(user.roleId, user.organizationId);
+      const role = await this.roleService.findOne(
+        user.roleId,
+        user.organizationId,
+      );
       const permissionCodes = await this.permissionService.getCodesByIds(
         role.permissionIds,
       );
@@ -94,5 +103,35 @@ export class AuthzService {
     if (codes.length === 0) return true;
     const userCodes = await this.getPermissionCodesForUser(userId);
     return codes.some((c) => userCodes.includes(c));
+  }
+
+  /**
+   * Active Users of the Organization whose Role grants commercial access
+   * (`CRM_READ` or `CRM_MANAGE`): the only Users who can own commercial records.
+   */
+  async listCommercialUsers(
+    organizationId: number,
+  ): Promise<{ id: number; name: string; email: string }[]> {
+    return this.db
+      .selectDistinct({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .innerJoin(rolePermissions, eq(rolePermissions.roleId, users.roleId))
+      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          eq(users.active, true),
+          inArray(permissions.code, [...COMMERCIAL_ACCESS_CODES]),
+        ),
+      )
+      .orderBy(asc(users.name), asc(users.id));
+  }
+
+  async isCommercialUser(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean> {
+    const commercialUsers = await this.listCommercialUsers(organizationId);
+    return commercialUsers.some((u) => u.id === userId);
   }
 }
