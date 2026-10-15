@@ -37,7 +37,7 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
-import { UserService } from '../user/user.service';
+import { AuthzService } from '../auth/authz/authz.service';
 import {
   findLikelyDuplicates,
   type DuplicateProbe,
@@ -64,7 +64,7 @@ const NETWORK_WITH = {
 export class ContactService {
   constructor(
     @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
-    private readonly userService: UserService,
+    private readonly authzService: AuthzService,
   ) {}
 
   /** The Organization's network (commercial access only, see controller). */
@@ -327,7 +327,7 @@ export class ContactService {
   ) {
     if (ownerId == null) return;
     const commercialUsers =
-      await this.userService.findCommercialUsers(organizationId);
+      await this.authzService.listCommercialUsers(organizationId);
     this.assertNoViolation(
       contactOwnerViolation(
         ownerId,

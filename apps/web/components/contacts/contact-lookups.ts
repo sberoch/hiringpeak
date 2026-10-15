@@ -9,7 +9,10 @@ import {
   CONTACT_SOURCE_API_KEY,
   getContactSources,
 } from "@/lib/api/contact-source";
-import { getCommercialUsers, USERS_API_KEY } from "@/lib/api/user";
+import {
+  COMMERCIAL_USERS_API_KEY,
+  getCommercialUsers,
+} from "@/lib/api/opportunity";
 
 const ALL_COMPANIES = { limit: 1e9, page: 1, order: "name:asc" } as const;
 
@@ -25,7 +28,7 @@ export function useContactSources() {
 /** Users with commercial access: the only valid Contact Owners. */
 export function useCommercialUsers() {
   const { data } = useQuery({
-    queryKey: [USERS_API_KEY, "commercial"],
+    queryKey: [COMMERCIAL_USERS_API_KEY],
     queryFn: getCommercialUsers,
   });
   return data ?? [];

@@ -37,7 +37,7 @@ import {
   CreateContactSourceServiceDto,
   UpdateContactSourceServiceDto,
 } from './contactsource.dto';
-import { DEFAULT_CONTACT_SOURCES } from './contactsource.defaults';
+import { DEFAULT_CONTACT_SOURCES } from '@workspace/shared/static/commercial-defaults';
 
 @Injectable()
 export class ContactSourceService {
@@ -45,7 +45,7 @@ export class ContactSourceService {
 
   async findAll(
     params: ContactSourceFindAllServiceParams,
-  ): Promise<PaginatedResponse<ContactSource>> {
+  ): Promise<PaginatedResponse<ContactSource & { contactCount: number }>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = eq(
       contactSources.organizationId,
@@ -63,11 +63,26 @@ export class ContactSourceService {
       .from(contactSources)
       .where(whereClause);
 
-    const [items, [{ count: totalItems }]] = await Promise.all([
+    const usageQuery = this.db
+      .select({ sourceId: contacts.sourceId, count: count(contacts.id) })
+      .from(contacts)
+      .where(eq(contacts.organizationId, params.organizationId))
+      .groupBy(contacts.sourceId);
+
+    const [items, [{ count: totalItems }], usage] = await Promise.all([
       itemsQuery,
       countQuery,
+      usageQuery,
     ]);
-    return paginatedResponse(items, totalItems, paginationQuery);
+    const usageBySource = new Map(usage.map((u) => [u.sourceId, u.count]));
+    return paginatedResponse(
+      items.map((item) => ({
+        ...item,
+        contactCount: usageBySource.get(item.id) ?? 0,
+      })),
+      totalItems,
+      paginationQuery,
+    );
   }
 
   async findOne(id: number, organizationId: number) {
@@ -88,7 +103,7 @@ export class ContactSourceService {
   ) {
     const db = options?.tx ?? this.db;
     await db.insert(contactSources).values(
-      DEFAULT_CONTACT_SOURCES.map((name, sort) => ({
+      DEFAULT_CONTACT_SOURCES.map(({ name, sort }) => ({
         name,
         sort,
         organizationId,

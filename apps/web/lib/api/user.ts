@@ -16,15 +16,6 @@ export async function getAllUsers(params: UserParams) {
   return response.data;
 }
 
-/** A user who can own commercial records (has CRM_READ or CRM_MANAGE). */
-export type CommercialUser = { id: number; name: string; email: string };
-
-/** Users with commercial access: the only valid owners of commercial records. */
-export async function getCommercialUsers() {
-  const response = await api.get<CommercialUser[]>("/user/commercial");
-  return response.data;
-}
-
 export async function getUserById(id: string) {
   const response = await api.get<User>(`/user/${id}`);
   return response.data;

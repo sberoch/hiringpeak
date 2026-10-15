@@ -61,8 +61,22 @@
     {
       "idx": 8,
       "version": "7",
-      "when": 1792090830393,
-      "tag": "0008_crm_contact_network",
+      "when": 1792090565973,
+      "tag": "0008_crm_opportunities",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792090845295,
+      "tag": "0009_crm_vacancies_from_opportunities",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792091712994,
+      "tag": "0010_crm_contact_network",
       "breakpoints": true
     }
   ]

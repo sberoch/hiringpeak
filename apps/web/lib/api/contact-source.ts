@@ -2,6 +2,7 @@ import { PaginatedResponse } from "@workspace/shared/types/api";
 import {
   ContactSource,
   ContactSourceParams,
+  ContactSourceWithUsage,
   CreateContactSourceDto,
   UpdateContactSourceDto,
 } from "@workspace/shared/types/contact-source";
@@ -16,7 +17,7 @@ export const ALL_CONTACT_SOURCES = { order: "sort:asc", limit: 1e9, page: 1 };
 
 export async function getContactSources(params: ContactSourceParams) {
   const searchParams = filtersToSearchParams(params);
-  const response = await api.get<PaginatedResponse<ContactSource>>(
+  const response = await api.get<PaginatedResponse<ContactSourceWithUsage>>(
     `/contactSource${searchParams}`,
   );
   return response.data;

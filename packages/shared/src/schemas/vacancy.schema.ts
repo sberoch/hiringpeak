@@ -16,6 +16,7 @@ import { users } from "./user.schema";
 import { organizations } from "./organization.schema";
 import { aiVacancyRuns } from "./ai-vacancy-run.schema";
 import { contacts } from "./contact.schema";
+import { opportunities } from "./opportunity.schema";
 
 export const vacancies = pgTable("vacancies", {
   id: serial("id").primaryKey(),
@@ -49,6 +50,10 @@ export const vacancies = pgTable("vacancies", {
   vacancyContactId: integer("vacancy_contact_id").references(() => contacts.id, {
     onDelete: "set null",
   }),
+  /** The won Opportunity this Vacancy came from, if any. Survives its deletion unlinked. */
+  opportunityId: integer("opportunity_id").references(() => opportunities.id, {
+    onDelete: "set null",
+  }),
   salary: text("salary"),
   closedAt: timestamp("closed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -59,6 +64,7 @@ export const vacancies = pgTable("vacancies", {
   index("vacancies_company_id_idx").on(table.companyId),
   index("vacancies_vacancy_filters_id_idx").on(table.vacancyFiltersId),
   index("vacancies_created_at_idx").on(table.createdAt),
+  index("vacancies_opportunity_id_idx").on(table.opportunityId),
 ]);
 
 export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
@@ -85,6 +91,10 @@ export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
   vacancyContact: one(contacts, {
     fields: [vacancies.vacancyContactId],
     references: [contacts.id],
+  }),
+  opportunity: one(opportunities, {
+    fields: [vacancies.opportunityId],
+    references: [opportunities.id],
   }),
   candidateVacancies: many(candidateVacancies),
   createdBy: one(users, {

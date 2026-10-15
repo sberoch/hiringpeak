@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionCode } from '@workspace/shared/enums';
 import { companies } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
+import { AuthzService } from '../auth/authz/authz.service';
+import { PermissionService } from '../permission/permission.service';
+import { RoleService } from '../role/role.service';
 import { UserService } from '../user/user.service';
 import { ContactService } from './contact.service';
 
@@ -73,7 +76,11 @@ describe('ContactService.create', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContactService,
-        UserService,
+        AuthzService,
+        // AuthzService's own collaborators; listing commercial users only reads the db.
+        { provide: UserService, useValue: {} },
+        { provide: RoleService, useValue: {} },
+        { provide: PermissionService, useValue: {} },
         { provide: DrizzleProvider, useValue: db },
       ],
     }).compile();

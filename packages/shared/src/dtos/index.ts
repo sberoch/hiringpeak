@@ -23,3 +23,5 @@ export * from "./contact.dto.js";
 export * from "./contactsource.dto.js";
 export * from "./task.dto.js";
 export * from "./notification.dto.js";
+export * from "./opportunity.dto.js";
+export * from "./commercial-settings.dto.js";

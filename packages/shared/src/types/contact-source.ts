@@ -6,6 +6,9 @@ export type ContactSource = {
   sort: number;
 };
 
+/** As listed in Settings: with how many Contacts use it. */
+export type ContactSourceWithUsage = ContactSource & { contactCount: number };
+
 export type ContactSourceParams = PaginationFilters;
 
 export type CreateContactSourceDto = { name: string; sort?: number };

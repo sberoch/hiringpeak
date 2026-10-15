@@ -82,6 +82,18 @@ export const AUDIT_EVENT_LABELS: Record<string, string> = {
   create_area: "Área creada",
   update_area: "Área actualizada",
   delete_area: "Área eliminada",
+  create_opportunity: "Oportunidad creada",
+  update_opportunity: "Oportunidad actualizada",
+  change_opportunity_stage: "Etapa de oportunidad cambiada",
+  update_opportunity_close_date: "Fecha de cierre de oportunidad cambiada",
+  delete_opportunity: "Oportunidad eliminada",
+  create_opportunity_stage: "Etapa de oportunidad creada",
+  update_opportunity_stage: "Etapa de oportunidad actualizada",
+  set_opportunity_stage_outcome: "Etapa ganada/perdida cambiada",
+  delete_opportunity_stage: "Etapa de oportunidad eliminada",
+  create_lost_reason: "Motivo de pérdida creado",
+  update_lost_reason: "Motivo de pérdida actualizado",
+  delete_lost_reason: "Motivo de pérdida eliminado",
 };
 
 /** Spanish display label for each audited entity type. */
@@ -100,6 +112,9 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   candidate_file: "Archivo de postulante",
   blacklist: "Lista negra",
   area: "Área",
+  opportunity: "Oportunidad",
+  opportunity_stage: "Etapa de oportunidad",
+  lost_reason: "Motivo de pérdida",
 };
 
 /**

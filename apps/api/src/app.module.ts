@@ -37,6 +37,9 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { TaskModule } from './task/task.module';
 import { NotificationModule } from './notification/notification.module';
+import { OpportunityStageModule } from './opportunitystage/opportunitystage.module';
+import { LostReasonModule } from './lostreason/lostreason.module';
+import { OpportunityModule } from './opportunity/opportunity.module';
 
 @Module({
   imports: [
@@ -78,6 +81,9 @@ import { NotificationModule } from './notification/notification.module';
     OnboardModule,
     TaskModule,
     NotificationModule,
+    OpportunityStageModule,
+    LostReasonModule,
+    OpportunityModule,
   ],
   controllers: [AppController],
   providers: [

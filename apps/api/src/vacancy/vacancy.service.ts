@@ -31,6 +31,7 @@ import {
   candidateVacancyStatuses,
   Comment,
   contacts,
+  opportunities,
   RejectionReason,
   Company,
   User,
@@ -53,6 +54,7 @@ import {
   type VacancyContactPatch,
   type VacancyContactState,
 } from './vacancy-contact-policy';
+import { VacancyOpportunityPolicy } from './vacancy-opportunity-policy';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -751,8 +753,52 @@ export class VacancyService {
     });
   }
 
+  /**
+   * "Crear vacante" from a won Opportunity: a Vacancy on the Opportunity's
+   * Company, linked back to it, in the Organization's first open status and
+   * with an empty Search Brief (filled in later from the Vacancy page).
+   */
+  async createFromOpportunity(dto: {
+    organizationId: number;
+    opportunityId: number;
+    companyId: number;
+    title: string;
+    assignedTo: number;
+    vacancyContactId?: number | null;
+    createdBy: number;
+  }) {
+    return this.db.transaction(async (tx) => {
+      const status = await tx.query.vacancyStatuses.findFirst({
+        where: and(
+          eq(vacancyStatuses.organizationId, dto.organizationId),
+          eq(vacancyStatuses.isFinal, false),
+        ),
+        orderBy: asc(vacancyStatuses.id),
+      });
+      if (!status) {
+        throw new BadRequestException(
+          'No hay estados de vacante abiertos configurados.',
+        );
+      }
+      return this.createRecord(tx, {
+        ...dto,
+        statusId: status.id,
+        filters: {},
+      });
+    });
+  }
+
   async createRecord(tx: DrizzleDatabase, dto: CreateVacancyRecordDto) {
     const { organizationId, aiVacancyRunId, ...createVacancyDto } = dto;
+
+    if (createVacancyDto.opportunityId != null) {
+      await this.assertOpportunityLinkable(
+        tx,
+        organizationId,
+        createVacancyDto.opportunityId,
+        createVacancyDto.companyId,
+      );
+    }
 
     const [filters] = await tx
       .insert(vacancyFilters)
@@ -814,6 +860,7 @@ export class VacancyService {
       vacancyFiltersId: filters.id,
       companyId: createVacancyDto.companyId,
       vacancyContactId: vacancyContactId ?? null,
+      opportunityId: createVacancyDto.opportunityId ?? null,
       createdBy: createVacancyDto.createdBy,
       assignedTo: createVacancyDto.assignedTo,
       organizationId,
@@ -862,6 +909,22 @@ export class VacancyService {
         if (vacancyContactId !== undefined) {
           setFields.vacancyContactId = vacancyContactId;
         }
+      }
+      if (updateVacancyDto.opportunityId != null) {
+        const current = await tx.query.vacancies.findFirst({
+          columns: { companyId: true },
+          where: and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        });
+        if (!current) throw new NotFoundException('Vacancy not found');
+        await this.assertOpportunityLinkable(
+          tx,
+          organizationId,
+          updateVacancyDto.opportunityId,
+          updateVacancyDto.companyId ?? current.companyId,
+        );
       }
       if (updateVacancyDto.statusId != null) {
         const newStatus = await tx.query.vacancyStatuses.findFirst({
@@ -966,6 +1029,38 @@ export class VacancyService {
       return vacancy;
     });
     return vacancy;
+  }
+
+  /**
+   * Applies the Vacancy-from-Opportunity rule (see VacancyOpportunityPolicy):
+   * only a won Opportunity of the Vacancy's Company can be linked.
+   */
+  private async assertOpportunityLinkable(
+    tx: DrizzleDatabase,
+    organizationId: number,
+    opportunityId: number,
+    vacancyCompanyId: number | null,
+  ) {
+    const opportunity = await tx.query.opportunities.findFirst({
+      columns: { companyId: true },
+      where: and(
+        eq(opportunities.id, opportunityId),
+        eq(opportunities.organizationId, organizationId),
+      ),
+      with: { stage: { columns: { isWon: true } } },
+    });
+    if (!opportunity) throw new NotFoundException('Opportunity not found');
+    const result = VacancyOpportunityPolicy.canLink({
+      opportunity,
+      vacancyCompanyId,
+    });
+    if ('reason' in result) {
+      throw new BadRequestException(
+        result.reason === 'opportunity_not_won'
+          ? 'Solo una oportunidad ganada puede generar vacantes.'
+          : 'La vacante tiene que ser de la empresa de la oportunidad.',
+      );
+    }
   }
 
   /**

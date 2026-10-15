@@ -1,4 +1,8 @@
-import { Dashboard, RecruiterStats } from "@workspace/shared/types/dashboard";
+import {
+  CommercialSummary,
+  Dashboard,
+  RecruiterStats,
+} from "@workspace/shared/types/dashboard";
 
 import api from ".";
 
@@ -12,8 +16,16 @@ export async function getDashboardSummary() {
 
 export async function getRecruiterStats() {
   const { data } = await api.get<RecruiterStats[]>(
-    "/dashboard/recruiter-stats"
+    "/dashboard/recruiter-stats",
   );
+
+  return data;
+}
+
+export const COMMERCIAL_SUMMARY_API_KEY = "commercial-summary";
+
+export async function getCommercialSummary() {
+  const { data } = await api.get<CommercialSummary>("/dashboard/commercial");
 
   return data;
 }
