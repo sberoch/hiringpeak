@@ -155,39 +155,32 @@ export const columns: ColumnDef<Company>[] = [
     },
   },
   {
-    accessorKey: "clientName",
+    id: "contacts",
     header: () => (
-      <span className="pl-4 font-semibold text-slate-brand">Cliente</span>
+      <span className="pl-4 font-semibold text-slate-brand">Contactos</span>
     ),
     cell: ({ row }) => {
-      const clientName = row.getValue("clientName") as string | undefined;
-      return <div className="text-ink">{clientName || "-"}</div>;
-    },
-  },
-  {
-    accessorKey: "clientEmail",
-    header: () => (
-      <span className="pl-4 font-semibold text-slate-brand">Email cliente</span>
-    ),
-    cell: ({ row }) => {
-      const clientEmail = row.getValue("clientEmail") as string | undefined;
+      const [first, ...others] = row.original.contacts;
+      if (!first) return <div className="text-muted-brand">-</div>;
       return (
-        <div className="truncate max-w-[200px] text-slate-brand">
-          {clientEmail || "-"}
+        <div className="max-w-[240px] min-w-0">
+          <p className="truncate text-ink">
+            {first.name}
+            {first.role && (
+              <span className="text-muted-brand"> · {first.role}</span>
+            )}
+          </p>
+          <p className="truncate text-xs text-slate-brand">
+            {first.email || first.phone || ""}
+            {others.length > 0 && (
+              <span className="text-muted-brand">
+                {first.email || first.phone ? " · " : ""}+{others.length}{" "}
+                {others.length === 1 ? "contacto" : "contactos"}
+              </span>
+            )}
+          </p>
         </div>
       );
-    },
-  },
-  {
-    accessorKey: "clientPhone",
-    header: () => (
-      <span className="pl-4 font-semibold text-slate-brand">
-        Teléfono cliente
-      </span>
-    ),
-    cell: ({ row }) => {
-      const clientPhone = row.getValue("clientPhone") as string | undefined;
-      return <div className="text-slate-brand">{clientPhone || "-"}</div>;
     },
   },
   {

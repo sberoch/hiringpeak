@@ -29,6 +29,7 @@ import {
   COMPANY_STATUS_NAMES,
 } from "@workspace/shared/types/company";
 import { COMPANIES_API_KEY, createCompany } from "@/lib/api/company";
+import { createContact } from "@/lib/api/contact";
 
 import { companyFormSchema, type CompanyFormSchema } from "./new-company.schema";
 
@@ -44,9 +45,10 @@ export function CompanyForm({
     name: "",
     description: "",
     status: CompanyStatusEnum.PROSPECT,
-    clientName: "",
-    clientEmail: "",
-    clientPhone: "",
+    contactName: "",
+    contactRole: "",
+    contactEmail: "",
+    contactPhone: "",
   },
   submitLabel = "Crear empresa",
 }: CompanyFormProps) {
@@ -57,7 +59,26 @@ export function CompanyForm({
   });
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: (values: CompanyFormSchema) => createCompany(values),
+    mutationFn: async (values: CompanyFormSchema) => {
+      const {
+        contactName,
+        contactRole,
+        contactEmail,
+        contactPhone,
+        ...companyValues
+      } = values;
+      const company = await createCompany(companyValues);
+      if (contactName?.trim()) {
+        await createContact({
+          companyId: company.id,
+          name: contactName.trim(),
+          role: contactRole?.trim() ?? "",
+          email: contactEmail?.trim() || null,
+          phone: contactPhone?.trim() || null,
+        });
+      }
+      return company;
+    },
     onSuccess: (values) => {
       toast.success("Empresa creada exitosamente");
       queryClient
@@ -105,51 +126,83 @@ export function CompanyForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="clientName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nombre del cliente</FormLabel>
-              <FormControl>
-                <Input placeholder="Nombre del cliente" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="clientEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email del cliente</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="cliente@empresa.com"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="clientPhone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Teléfono del cliente</FormLabel>
-              <FormControl>
-                <Input placeholder="Teléfono" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-4 rounded-xl border border-brand-border p-4">
+          <div>
+            <p className="text-sm font-semibold text-ink">
+              Primer contacto{" "}
+              <span className="font-normal text-muted-brand">(opcional)</span>
+            </p>
+            <p className="text-xs text-muted-brand">
+              Una persona de la empresa con la que tratamos. Podés agregar más
+              desde la pestaña Contactos.
+            </p>
+          </div>
+          <FormField
+            control={form.control}
+            name="contactName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nombre</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nombre y apellido"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="contactRole"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cargo</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Ej. Gerente de RR.HH."
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="contactEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="nombre@empresa.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="contactPhone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Teléfono</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="+54 11 5555-0000"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

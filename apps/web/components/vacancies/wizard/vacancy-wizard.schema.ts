@@ -57,6 +57,8 @@ export const vacancyWizardFormSchema = z.object({
   salary: z.string().optional().or(z.literal("")),
   status: vacancyStatusSchema,
   company: companySchema,
+  /** Vacancy Contact: one of the Company's current Contacts, or none. */
+  vacancyContactId: z.number().nullable().optional(),
   createdBy: userSchema,
   assignedTo: userSchema,
   filters: vacancyWizardFiltersSchema.optional(),
@@ -71,6 +73,7 @@ export const STEP_FIELDS = {
     "salary",
     "status",
     "company",
+    "vacancyContactId",
     "createdBy",
     "assignedTo",
   ],
@@ -86,6 +89,7 @@ export function wizardFormToCreate(
     salary: form.salary || null,
     statusId: form.status.id,
     companyId: form.company.id,
+    vacancyContactId: form.vacancyContactId ?? null,
     createdBy: form.createdBy.id,
     assignedTo: form.assignedTo.id,
     filters: {
@@ -112,6 +116,7 @@ export function wizardFormToUpdate(
     salary: form.salary || null,
     statusId: form.status.id,
     companyId: form.company.id,
+    vacancyContactId: form.vacancyContactId ?? null,
     createdBy: form.createdBy.id,
     assignedTo: form.assignedTo.id,
     filters: {
