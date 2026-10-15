@@ -23,6 +23,8 @@ export const CreateVacancySchema = z.object({
   companyId: z.number().int(),
   /** Vacancy Contact: one of the Company's current Contacts, or none. */
   vacancyContactId: z.number().int().nullable().optional(),
+  /** The won Opportunity this Vacancy comes from, on the same Company; null unlinks. */
+  opportunityId: z.number().int().nullable().optional(),
   createdBy: z.number().int(),
   assignedTo: z.number().int(),
 });
