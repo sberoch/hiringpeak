@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { CalendarPlus, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -30,7 +30,9 @@ import {
   createContact,
   updateContact,
 } from "@/lib/api/contact";
+import { TASK_API_KEY } from "@/lib/api/tasks";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
+import { FollowUpDaysPicker } from "./contact-follow-ups";
 import { createInteraction, INTERACTION_API_KEY } from "@/lib/api/interaction";
 import { usePermissions } from "@/contexts/permission-context";
 import {
@@ -63,6 +65,8 @@ type Draft = {
   /** Untouched (`undefined`) means "me": the API defaults it to the creator. */
   ownerId: number | null | undefined;
   shortDescription: string;
+  /** "Abordar en X días" (new Contacts only); null = no follow-up. */
+  followUpInDays: number | null;
 };
 
 function emptyDraft(): Draft {
@@ -76,6 +80,7 @@ function emptyDraft(): Draft {
     sourceId: null,
     ownerId: undefined,
     shortDescription: "",
+    followUpInDays: null,
   };
 }
 
@@ -93,6 +98,7 @@ function draftFromContact(contact: NetworkContact): Draft {
     sourceId: contact.sourceId,
     ownerId: contact.ownerId,
     shortDescription: contact.shortDescription ?? "",
+    followUpInDays: null,
   };
 }
 
@@ -118,6 +124,11 @@ function draftPayload(draft: Draft): CreateContactDto {
     ownerId: draft.ownerId,
     shortDescription: draft.shortDescription.trim() || null,
   };
+}
+
+/** A new Contact's payload: the edit fields plus "Abordar en X días". */
+function createPayload(draft: Draft): CreateContactDto {
+  return { ...draftPayload(draft), followUpInDays: draft.followUpInDays };
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -187,6 +198,7 @@ export function ContactCaptureSheet({
     void queryClient.invalidateQueries({ queryKey: [CONTACT_API_KEY] });
     void queryClient.invalidateQueries({ queryKey: [COMPANIES_API_KEY] });
     void queryClient.invalidateQueries({ queryKey: [VACANCY_API_KEY] });
+    void queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
     void queryClient.invalidateQueries({ queryKey: [INTERACTION_API_KEY] });
   };
 
@@ -255,7 +267,7 @@ export function ContactCaptureSheet({
     if (isEdit) update(payload);
     else
       create({
-        payload,
+        payload: createPayload(draft),
         meet: canLogInteractions && meet.open ? meet : null,
         another,
       });
@@ -371,6 +383,28 @@ export function ContactCaptureSheet({
               placeholder="Quién es y por qué nos interesa"
             />
           </Field>
+
+          {!isEdit && (
+            <div
+              key={`follow-up-${formKey}`}
+              className="rounded-xl border border-electric/20 bg-electric/[0.04] p-3"
+            >
+              <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <CalendarPlus className="h-4 w-4 text-electric" />
+                Abordar en…
+              </p>
+              <FollowUpDaysPicker
+                optional
+                value={draft.followUpInDays}
+                onChange={(followUpInDays) => set({ followUpInDays })}
+              />
+              {draft.followUpInDays != null && (
+                <p className="mt-1 text-xs text-muted-brand">
+                  Crea una tarea a cargo del responsable del contacto.
+                </p>
+              )}
+            </div>
+          )}
           {canLogInteractions && (
             <MeetSection value={meet} onChange={setMeet} />
           )}

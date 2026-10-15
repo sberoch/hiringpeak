@@ -68,6 +68,7 @@ describe('networkFieldViolation', () => {
     ['Origen', { sourceId: 1 }],
     ['Responsable', { ownerId: 2 }],
     ['descripción corta', { shortDescription: 'CFO de fintech' }],
+    ['seguimiento', { followUpInDays: 7 }],
   ])('stops a recruiter from setting the %s', (_field, write) => {
     expect(
       networkFieldViolation({ companyId: 4, ...write }, RECRUITER),

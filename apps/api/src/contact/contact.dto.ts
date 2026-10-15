@@ -25,4 +25,6 @@ export type ContactActor = {
 
 export type ContactFindAllServiceParams = ContactQueryParams & {
   organizationId: number;
+  /** Who is listing; without TASK_READ_ALL they only see their own follow-ups. */
+  viewer: { userId: number; readsAllTasks: boolean };
 };

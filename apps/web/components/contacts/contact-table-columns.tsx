@@ -28,6 +28,11 @@ import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
 import { usePermissions } from "@/contexts/permission-context";
 import { ContactAvatar } from "./contact-atoms";
 import { ContactCaptureSheet } from "./contact-capture-sheet";
+import {
+  AddFollowUpDialog,
+  NextFollowUpCell,
+  useCanAddFollowUp,
+} from "./contact-follow-ups";
 import { useCurrentUserId } from "./contact-lookups";
 import { DeleteContactDialog } from "./delete-contact-dialog";
 
@@ -61,6 +66,8 @@ function CellActions({ contact }: { contact: NetworkContact }) {
   const router = useRouter();
   const { permissionCodes } = usePermissions();
   const canManage = canManageContacts(permissionCodes);
+  const canAddFollowUp = useCanAddFollowUp();
+  const [followUpOpen, setFollowUpOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -102,6 +109,14 @@ function CellActions({ contact }: { contact: NetworkContact }) {
           >
             Abrir LinkedIn
           </DropdownMenuItem>
+          {canAddFollowUp && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => setFollowUpOpen(true)}
+            >
+              Agregar seguimiento
+            </DropdownMenuItem>
+          )}
           {canManage && (
             <>
               <DropdownMenuSeparator />
@@ -126,6 +141,13 @@ function CellActions({ contact }: { contact: NetworkContact }) {
           open={editOpen}
           onOpenChange={setEditOpen}
           contact={contact}
+        />
+      )}
+      {canAddFollowUp && (
+        <AddFollowUpDialog
+          contact={contact}
+          open={followUpOpen}
+          onOpenChange={setFollowUpOpen}
         />
       )}
       <DeleteContactDialog
@@ -228,6 +250,13 @@ export const columns: ColumnDef<NetworkContactListItem>[] = [
     header: () => <PlainHeader label="Últ. interacción" />,
     cell: ({ row }) => (
       <LastInteractionLabel last={row.original.lastInteraction} />
+    ),
+  },
+  {
+    id: "followUp",
+    header: () => <PlainHeader label="Próximo seguimiento" />,
+    cell: ({ row }) => (
+      <NextFollowUpCell followUp={row.original.nextFollowUp} />
     ),
   },
   {
