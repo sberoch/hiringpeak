@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { DataTable } from "@workspace/ui/components/data-table";
 import { PageHeading } from "@workspace/ui/components/page-heading";
@@ -25,13 +24,9 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
-import {
-  COMPANY_STATUS_NAMES,
-  CompanyStatusEnum,
-} from "@workspace/shared/types/company";
 import { PermissionCode } from "@workspace/shared/enums";
 import { downloadFile } from "@/lib/download";
-import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import { useVacancyFilters } from "@/hooks/use-vacancy-filters";
 import { companyDetailColumns as vacancyColumns } from "@/components/vacancies/vacancy-table-columns";
 import { PermissionGuard } from "@/components/auth/permission-guard";
@@ -40,6 +35,12 @@ import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
 import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
 import { CompanyContactsTab } from "@/components/companies/company-contacts-tab";
 import { CompanyInteractionsTab } from "@/components/interactions/interaction-lists";
+import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
+import { CompanyOpportunitiesTab } from "@/components/companies/company-opportunities-tab";
+import {
+  AccountOwnerControl,
+  CompanyStatusBadge,
+} from "@/components/companies/company-ui";
 import { useCommercialAccess } from "@/components/opportunities/opportunity-ui";
 import {
   COMPANIES_API_KEY,
@@ -51,6 +52,7 @@ import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
 type CompanyTab =
   | "resumen"
   | "contactos"
+  | "oportunidades"
   | "interacciones"
   | "vacantes"
   | "tareas";
@@ -181,18 +183,7 @@ export default function CompanyDetailPage({
             title={
               <span className="flex items-center gap-2.5">
                 {company.name}
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "rounded-lg text-xs font-semibold",
-                    company.status === CompanyStatusEnum.ACTIVE &&
-                      "bg-emerald-50 text-emerald-700 hover:bg-emerald-50",
-                    company.status === CompanyStatusEnum.PROSPECT &&
-                      "bg-amber-50 text-amber-700 hover:bg-amber-50",
-                  )}
-                >
-                  {COMPANY_STATUS_NAMES[company.status]}
-                </Badge>
+                <CompanyStatusBadge status={company.status} />
               </span>
             }
           />
@@ -249,6 +240,12 @@ export default function CompanyDetailPage({
                 count: company.contacts.length,
               },
               {
+                key: "oportunidades",
+                label: "Oportunidades",
+                count: company.commercial?.openOpportunityCount,
+                commercial: true,
+              },
+              {
                 key: "interacciones",
                 label: "Interacciones",
                 commercial: true,
@@ -294,6 +291,16 @@ export default function CompanyDetailPage({
                 <h3 className="text-sm font-semibold text-ink">Detalles</h3>
               </div>
               <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-brand">Estado</span>
+                  <CompanyStatusBadge status={company.status} />
+                </div>
+                <div className="h-px bg-brand-border-light" />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-brand">Responsable de cuenta</span>
+                  <AccountOwnerControl company={company} />
+                </div>
+                <div className="h-px bg-brand-border-light" />
                 <button
                   type="button"
                   className="flex w-full justify-between text-left"
@@ -305,12 +312,52 @@ export default function CompanyDetailPage({
                   </span>
                 </button>
                 <div className="h-px bg-brand-border-light" />
-                <div className="flex justify-between">
-                  <span className="text-muted-brand">Vacantes</span>
-                  <span className="text-ink font-medium">
-                    {company.vacancyCount ?? 0}
+                <button
+                  type="button"
+                  className="flex w-full justify-between text-left"
+                  onClick={() => setTab("vacantes")}
+                >
+                  <span className="text-muted-brand">Vacantes activas</span>
+                  <span className="text-ink font-medium hover:text-electric">
+                    {company.activeVacancyCount}
+                    <span className="ml-1 text-xs font-normal text-muted-brand">
+                      de {company.vacancyCount ?? 0}
+                    </span>
                   </span>
-                </div>
+                </button>
+                {company.commercial && (
+                  <>
+                    <div className="h-px bg-brand-border-light" />
+                    <button
+                      type="button"
+                      className="flex w-full justify-between text-left"
+                      onClick={() => setTab("oportunidades")}
+                    >
+                      <span className="text-muted-brand">
+                        Negocio abierto ·{" "}
+                        {company.commercial.openOpportunityCount} oport.
+                      </span>
+                      <span className="text-ink font-medium tabular-nums hover:text-electric">
+                        {company.commercial.openOpportunityFee > 0
+                          ? formatMoney(company.commercial.openOpportunityFee)
+                          : "Sin fee en juego"}
+                      </span>
+                    </button>
+                    <div className="h-px bg-brand-border-light" />
+                    <button
+                      type="button"
+                      className="flex w-full justify-between text-left"
+                      onClick={() => setTab("interacciones")}
+                    >
+                      <span className="text-muted-brand">
+                        Última interacción
+                      </span>
+                      <LastInteractionLabel
+                        last={company.commercial.lastInteraction}
+                      />
+                    </button>
+                  </>
+                )}
                 {company.createdAt && (
                   <>
                     <div className="h-px bg-brand-border-light" />
@@ -351,6 +398,12 @@ export default function CompanyDetailPage({
         <TabsContent value="contactos">
           <CompanyContactsTab company={company} />
         </TabsContent>
+
+        {hasCommercialAccess && (
+          <TabsContent value="oportunidades">
+            <CompanyOpportunitiesTab company={company} />
+          </TabsContent>
+        )}
 
         {hasCommercialAccess && (
           <TabsContent value="interacciones">

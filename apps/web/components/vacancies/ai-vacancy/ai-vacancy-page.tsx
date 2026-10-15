@@ -37,7 +37,6 @@ import {
   VACANCY_STATUS_API_KEY,
 } from "@/lib/api/vacancy-status";
 import { aiDraftToCandidateParams, normalizeAiVacancyDraft } from "@/lib/vacancy-ai";
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type {
   AiVacancyDraft,
   AiVacancyRunSummary,
@@ -99,13 +98,12 @@ export function AiVacancyPage() {
   const { data: companiesData } = useQuery({
     queryKey: [
       COMPANIES_API_KEY,
-      { limit: 1e9, page: 1, status: CompanyStatusEnum.ACTIVE },
+      { limit: 1e9, page: 1 },
     ],
     queryFn: () =>
       getAllCompanies({
         limit: 1e9,
         page: 1,
-        status: CompanyStatusEnum.ACTIVE,
       }),
     enabled: hasDraft,
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Building2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -26,7 +26,7 @@ import {
 } from "@workspace/ui/components/select";
 import type { NetworkContact } from "@workspace/shared/types/contact";
 
-import { COMPANIES_API_KEY } from "@/lib/api/company";
+import { COMPANIES_API_KEY, getCompanyById } from "@/lib/api/company";
 import { CONTACT_API_KEY } from "@/lib/api/contact";
 import {
   createOpportunityFromContact,
@@ -34,6 +34,7 @@ import {
 } from "@/lib/api/opportunity";
 import {
   apiErrorMessage,
+  defaultOpportunityOwnerId,
   opportunityHref,
   parseMoneyInput,
   useCommercialUsers,
@@ -99,8 +100,23 @@ function CreateOpportunityForm({
   const [ownerId, setOwnerId] = useState<number | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
 
-  // Opportunity Owner defaults to the creator.
-  const defaultOwnerId = commercialUsers.some((u) => u.id === me) ? me : null;
+  // Opportunity Owner defaults to the Company's Account Owner, else the creator.
+  const targetCompanyId =
+    contact.company?.id ?? (company.kind === "existing" ? company.id : null);
+  const { data: targetCompany } = useQuery({
+    queryKey: [COMPANIES_API_KEY, String(targetCompanyId)],
+    queryFn: () => getCompanyById(String(targetCompanyId)),
+    enabled: targetCompanyId != null,
+  });
+  const accountOwnerId =
+    targetCompanyId != null && targetCompany?.id === targetCompanyId
+      ? targetCompany.accountOwnerId
+      : null;
+  const defaultOwnerId = defaultOpportunityOwnerId(
+    accountOwnerId,
+    me,
+    commercialUsers,
+  );
   const effectiveOwnerId = ownerId ?? defaultOwnerId;
   const fee = parseMoneyInput(amount);
   const feeInvalid = fee != null && (!Number.isFinite(fee) || fee < 0);

@@ -16,18 +16,7 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select";
-import {
-  Company,
-  CompanyStatusEnum,
-  COMPANY_STATUS_NAMES,
-} from "@workspace/shared/types/company";
+import { Company } from "@workspace/shared/types/company";
 import { COMPANIES_API_KEY, createCompany } from "@/lib/api/company";
 import { createContact } from "@/lib/api/contact";
 
@@ -44,7 +33,6 @@ export function CompanyForm({
   defaultValues = {
     name: "",
     description: "",
-    status: CompanyStatusEnum.PROSPECT,
     contactName: "",
     contactRole: "",
     contactEmail: "",
@@ -203,33 +191,6 @@ export function CompanyForm({
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Estado</FormLabel>
-              <FormControl>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione un estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(COMPANY_STATUS_NAMES).map(
-                      ([status, name]) => (
-                        <SelectItem value={status} key={status}>
-                          {name}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <div className="pt-4">
           <Button type="submit" disabled={isPending} className="w-full bg-electric hover:bg-electric-light text-white rounded-md py-2.5 font-semibold shadow-none hover:shadow-[0_8px_24px_-6px_rgba(0,102,255,0.3)] transition-all cursor-pointer">
