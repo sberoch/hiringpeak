@@ -78,11 +78,10 @@ export class NotificationController {
   ) {
     const recipientUserId =
       typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    return this.notificationService.markRead(
-      +id,
-      organizationId,
-      recipientUserId,
-    );
+    return this.notificationService.markRead(+id, organizationId, {
+      userId: recipientUserId,
+      commercialAccess: await this.commercialAccess(recipientUserId),
+    });
   }
 
   @ApiOkResponse()
@@ -95,10 +94,9 @@ export class NotificationController {
   ) {
     const recipientUserId =
       typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    return this.notificationService.dismiss(
-      +id,
-      organizationId,
-      recipientUserId,
-    );
+    return this.notificationService.dismiss(+id, organizationId, {
+      userId: recipientUserId,
+      commercialAccess: await this.commercialAccess(recipientUserId),
+    });
   }
 }

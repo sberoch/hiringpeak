@@ -14,47 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { cn } from "@workspace/ui/lib/utils";
-import {
-  COMPANY_STATUS_NAMES,
-  CompanyStatusEnum,
-  type Company,
-} from "@workspace/shared/types/company";
+import { type Company } from "@workspace/shared/types/company";
 
 import { COMPANIES_API_KEY, setCompanyAccountOwner } from "@/lib/api/company";
-import { OwnerAvatar } from "@/components/tasks/_shared";
-import {
-  apiErrorMessage,
-  useCommercialAccess,
-  useCommercialUsers,
-} from "@/components/opportunities/opportunity-ui";
-
-/** Derived Company Status: Prospecto (amber) or Cliente (emerald). */
-export function CompanyStatusBadge({
-  status,
-  className,
-}: {
-  status: CompanyStatusEnum;
-  className?: string;
-}) {
-  return (
-    <span
-      title={
-        status === CompanyStatusEnum.CLIENT
-          ? "Tiene una oportunidad ganada o alguna vacante."
-          : "Todavía sin oportunidades ganadas ni vacantes."
-      }
-      className={cn(
-        "inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold",
-        status === CompanyStatusEnum.CLIENT
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-amber-50 text-amber-700",
-        className,
-      )}
-    >
-      {COMPANY_STATUS_NAMES[status]}
-    </span>
-  );
-}
+import { OwnerAvatar } from "@/components/tasks/task-row";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
+import { useCommercialUsers } from "@/components/opportunities/commercial-queries";
 
 /**
  * The Company's Account Owner ("Responsable de cuenta"). Read-only for

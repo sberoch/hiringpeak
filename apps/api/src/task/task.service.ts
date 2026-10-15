@@ -61,7 +61,7 @@ export class TaskService {
       with: {
         assignedToUser: true,
         createdByUser: true,
-        ...withTaskAttachments,
+        ...withTaskAttachments(params.organizationId),
       },
     });
 
@@ -106,7 +106,7 @@ export class TaskService {
       orderBy: [asc(tasks.dueDate)],
       with: {
         assignedToUser: true,
-        ...withTaskAttachments,
+        ...withTaskAttachments(organizationId),
       },
       limit: 10,
     });
@@ -156,7 +156,10 @@ export class TaskService {
         organizationId: dto.organizationId,
       } as NewTask)
       .returning();
-    await writeTaskAttachments(tx, created.id, dto, { isNew: true });
+    await writeTaskAttachments(tx, created.id, dto, {
+      organizationId: dto.organizationId,
+      isNew: true,
+    });
     return created;
   }
 
@@ -209,7 +212,9 @@ export class TaskService {
           and(eq(tasks.id, id), eq(tasks.organizationId, dto.organizationId)),
         )
         .returning();
-      await writeTaskAttachments(tx, id, dto);
+      await writeTaskAttachments(tx, id, dto, {
+        organizationId: dto.organizationId,
+      });
       return updated;
     });
 

@@ -31,7 +31,12 @@ import type {
 } from "@workspace/shared/types/task";
 
 import { NotificationsList } from "./notifications-list";
-import { TaskRow, dueBucket, todayIsoDay, type DueBucket } from "./_shared";
+import { TaskRow } from "@/components/tasks/task-row";
+import {
+  dueBucket,
+  todayIsoDay,
+  type DueBucket,
+} from "@/components/tasks/task-due-dates";
 import { TaskSheet } from "./task-sheet";
 
 /**

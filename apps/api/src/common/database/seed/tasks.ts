@@ -192,7 +192,7 @@ export async function seedTasks(
         vacancyIds: vacancyId ? [vacancyId] : [],
         companyIds: companyId ? [companyId] : [],
       },
-      { isNew: true },
+      { organizationId: opts.organizationId, isNew: true },
     );
     created++;
   }

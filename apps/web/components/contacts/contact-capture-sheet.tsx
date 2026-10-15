@@ -33,7 +33,7 @@ import {
 import { TASK_API_KEY } from "@/lib/api/tasks";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
 import { FollowUpDaysPicker } from "./contact-follow-ups";
-import { createInteraction, INTERACTION_API_KEY } from "@/lib/api/interaction";
+import { INTERACTION_API_KEY } from "@/lib/api/interaction";
 import { usePermissions } from "@/contexts/permission-context";
 import {
   emptyMeetDraft,
@@ -41,7 +41,7 @@ import {
   MeetSection,
   type InteractionDraft,
   type MeetDraft,
-} from "@/components/interactions/interaction-ui";
+} from "@/components/interactions/interaction-draft-fields";
 import { PermissionCode } from "@workspace/shared/enums";
 import { useCurrentUserId } from "./contact-lookups";
 import {
@@ -203,26 +203,20 @@ export function ContactCaptureSheet({
   };
 
   const { mutate: create, isPending: isCreating } = useMutation({
-    /** The Contact first, so the first Interaction stamps their Company. */
-    mutationFn: async (args: {
+    /** The first Interaction is saved with the Contact, at their Company. */
+    mutationFn: (args: {
       payload: CreateContactDto;
       meet: InteractionDraft | null;
       another: boolean;
-    }) => {
-      const created = await createContact(args.payload);
-      if (args.meet) {
-        await createInteraction({
-          ...args.meet,
+    }) =>
+      createContact({
+        ...args.payload,
+        firstInteraction: args.meet && {
+          type: args.meet.type,
+          date: args.meet.date,
           summary: args.meet.summary.trim(),
-          contactIds: [created.id],
-        }).catch(() =>
-          toast.error(
-            "El contacto se guardó, pero no se pudo registrar la primera interacción.",
-          ),
-        );
-      }
-      return created;
-    },
+        },
+      }),
     onSuccess: (created, { another, meet: firstInteraction }) => {
       toast.success(`${created.name} guardado`, {
         description: firstInteraction

@@ -1,5 +1,12 @@
-import { AnyColumn, eq, inArray, not, or, SQL } from 'drizzle-orm';
+import { NotFoundException } from '@nestjs/common';
+import { AnyColumn, and, eq, inArray, not, or, SQL } from 'drizzle-orm';
 import {
+  candidates,
+  candidateVacancies,
+  companies,
+  contacts,
+  opportunities,
+  vacancies,
   taskCandidacies,
   taskCandidates,
   taskCompanies,
@@ -40,40 +47,49 @@ export type TaskAttachedToParams = {
 
 type Executor = Pick<DrizzleDatabase, 'insert' | 'delete' | 'select'>;
 
-/** Per type: the request list, the link table, its target column, the filter param. */
+/**
+ * Per type: the request list, the attached records' table, the link table,
+ * its target column, the filter param.
+ */
 const LINKS = [
   {
     ids: 'candidateIds',
+    record: candidates,
     filter: 'candidateId',
     table: taskCandidates,
     target: taskCandidates.candidateId,
   },
   {
     ids: 'vacancyIds',
+    record: vacancies,
     filter: 'vacancyId',
     table: taskVacancies,
     target: taskVacancies.vacancyId,
   },
   {
     ids: 'candidacyIds',
+    record: candidateVacancies,
     filter: 'candidacyId',
     table: taskCandidacies,
     target: taskCandidacies.candidacyId,
   },
   {
     ids: 'companyIds',
+    record: companies,
     filter: 'companyId',
     table: taskCompanies,
     target: taskCompanies.companyId,
   },
   {
     ids: 'contactIds',
+    record: contacts,
     filter: 'contactId',
     table: taskContacts,
     target: taskContacts.contactId,
   },
   {
     ids: 'opportunityIds',
+    record: opportunities,
     filter: 'opportunityId',
     table: taskOpportunities,
     target: taskOpportunities.opportunityId,
@@ -86,17 +102,24 @@ function linkRows(link: (typeof LINKS)[number], taskId: number, ids: number[]) {
 }
 
 /**
- * Attaches a Task to records. Each list present in `ids` replaces that
- * type's attachments (an empty list clears them); absent lists leave that
- * type untouched. Pass `{ isNew: true }` for a Task just inserted, which has
- * nothing to replace.
+ * Attaches a Task to records of its Organization. Each list present in `ids`
+ * replaces that type's attachments (an empty list clears them); absent lists
+ * leave that type untouched. Pass `{ isNew: true }` for a Task just inserted,
+ * which has nothing to replace. Throws NotFoundException, before writing
+ * anything, when an id is not a record of `organizationId`.
  */
 export async function writeTaskAttachments(
   db: Executor,
   taskId: number,
   ids: TaskAttachmentIds,
-  options: { isNew?: boolean } = {},
+  options: { organizationId: number; isNew?: boolean },
 ): Promise<void> {
+  for (const link of LINKS) {
+    const list = ids[link.ids];
+    if (list?.length) {
+      await assertInOrganization(db, link, list, options.organizationId);
+    }
+  }
   for (const link of LINKS) {
     const list = ids[link.ids];
     if (list === undefined) continue;
@@ -107,6 +130,27 @@ export async function writeTaskAttachments(
     if (rows.length) {
       await db.insert(link.table).values(rows as never);
     }
+  }
+}
+
+async function assertInOrganization(
+  db: Executor,
+  link: (typeof LINKS)[number],
+  ids: number[],
+  organizationId: number,
+) {
+  const unique = [...new Set(ids)];
+  const found = await db
+    .select({ id: link.record.id })
+    .from(link.record)
+    .where(
+      and(
+        inArray(link.record.id, unique),
+        eq(link.record.organizationId, organizationId),
+      ),
+    );
+  if (found.length !== unique.length) {
+    throw new NotFoundException('Attached record not found');
   }
 }
 
@@ -195,35 +239,60 @@ export function attachmentClassFilters(params: {
   return filters;
 }
 
-/** Relational-query `with` that loads every attachment with its display fields. */
-export const withTaskAttachments = {
-  taskCandidates: {
-    with: { candidate: { columns: { id: true, name: true } } },
-  },
-  taskVacancies: {
-    with: { vacancy: { columns: { id: true, title: true } } },
-  },
-  taskCandidacies: {
-    with: {
-      candidacy: {
-        columns: { id: true },
-        with: {
-          candidate: { columns: { name: true } },
-          vacancy: { columns: { title: true } },
+/** Only the links whose record belongs to the Organization. */
+function ofOrganization(link: (typeof LINKS)[number], organizationId: number) {
+  return inArray(
+    link.target,
+    qb
+      .select({ id: link.record.id })
+      .from(link.record)
+      .where(eq(link.record.organizationId, organizationId)),
+  );
+}
+
+const [CANDIDATES, VACANCIES, CANDIDACIES, COMPANIES, CONTACTS, OPPORTUNITIES] =
+  LINKS;
+
+/**
+ * Relational-query `with` that loads every attachment of the Organization
+ * with its display fields.
+ */
+export function withTaskAttachments(organizationId: number) {
+  return {
+    taskCandidates: {
+      where: ofOrganization(CANDIDATES, organizationId),
+      with: { candidate: { columns: { id: true, name: true } } },
+    },
+    taskVacancies: {
+      where: ofOrganization(VACANCIES, organizationId),
+      with: { vacancy: { columns: { id: true, title: true } } },
+    },
+    taskCandidacies: {
+      where: ofOrganization(CANDIDACIES, organizationId),
+      with: {
+        candidacy: {
+          columns: { id: true },
+          with: {
+            candidate: { columns: { name: true } },
+            vacancy: { columns: { title: true } },
+          },
         },
       },
     },
-  },
-  taskCompanies: {
-    with: { company: { columns: { id: true, name: true } } },
-  },
-  taskContacts: {
-    with: { contact: { columns: { id: true, name: true } } },
-  },
-  taskOpportunities: {
-    with: { opportunity: { columns: { id: true, title: true } } },
-  },
-} as const;
+    taskCompanies: {
+      where: ofOrganization(COMPANIES, organizationId),
+      with: { company: { columns: { id: true, name: true } } },
+    },
+    taskContacts: {
+      where: ofOrganization(CONTACTS, organizationId),
+      with: { contact: { columns: { id: true, name: true } } },
+    },
+    taskOpportunities: {
+      where: ofOrganization(OPPORTUNITIES, organizationId),
+      with: { opportunity: { columns: { id: true, title: true } } },
+    },
+  } as const;
+}
 
 type LoadedAttachments = {
   taskCandidates?: { candidate: TaskAttachedCandidate | null }[];

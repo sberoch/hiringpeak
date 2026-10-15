@@ -10,7 +10,8 @@ import type { NetworkContact } from "@workspace/shared/types/contact";
 
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
-import { opportunityHref, StageBadge } from "../opportunities/opportunity-ui";
+import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import { StageBadge } from "@/components/opportunities/stage-badge";
 
 /** The Opportunities the Contact is part of, at any Company. */
 export function ContactOpportunitiesTab({

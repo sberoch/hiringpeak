@@ -22,7 +22,11 @@ import type { NetworkContact } from "@workspace/shared/types/contact";
 import { ContactInteractionsTab } from "@/components/interactions/interaction-lists";
 import { usePermissions } from "@/contexts/permission-context";
 import { CONTACT_API_KEY, getContactById } from "@/lib/api/contact";
-import { ContactAvatar, CopyChip, LinkedinLink } from "./contact-atoms";
+import {
+  ContactAvatar,
+  CopyChip,
+  LinkedinLink,
+} from "@/components/contacts/contact-avatar-and-links";
 import { ContactCaptureSheet } from "./contact-capture-sheet";
 import { ContactFollowUpsTab } from "./contact-follow-ups";
 import { ContactOpportunitiesTab } from "./contact-opportunities-tab";

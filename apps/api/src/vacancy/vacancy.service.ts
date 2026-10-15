@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -54,7 +55,11 @@ import {
   type VacancyContactPatch,
   type VacancyContactState,
 } from './vacancy-contact-policy';
-import { VacancyOpportunityPolicy } from './vacancy-opportunity-policy';
+import {
+  canSetVacancyOpportunity,
+  VacancyOpportunityPolicy,
+  vacancyForViewer,
+} from './vacancy-opportunity-policy';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -204,8 +209,10 @@ export type VacancyReportFullResponse = Omit<
 export class VacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
+  /** `viewerCodes`: the caller's permission codes (see vacancyForViewer). */
   async findAll(
     params: VacancyFindAllServiceParams,
+    viewerCodes: readonly string[] = [],
   ): Promise<PaginatedResponse<VacancyListItemApiResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -260,10 +267,13 @@ export class VacancyService {
     ]);
 
     const parsedItems = items.map((item) =>
-      this.transformListQueryResult(
-        item,
-        statusCounts.get(item.id) ?? [],
-        recentCandidacies.get(item.id) ?? [],
+      vacancyForViewer(
+        this.transformListQueryResult(
+          item,
+          statusCounts.get(item.id) ?? [],
+          recentCandidacies.get(item.id) ?? [],
+        ),
+        viewerCodes,
       ),
     );
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
@@ -347,9 +357,9 @@ export class VacancyService {
         vacancyId: candidateVacancies.vacancyId,
         candidateId: sql<number>`${candidates.id}`.as('candidate_id'),
         candidateName: sql<string>`${candidates.name}`.as('candidate_name'),
-        candidateImage: sql<
-          string | null
-        >`${candidates.image}`.as('candidate_image'),
+        candidateImage: sql<string | null>`${candidates.image}`.as(
+          'candidate_image',
+        ),
         statusId: sql<number>`${candidateVacancyStatuses.id}`.as('status_id'),
         statusName: sql<string>`${candidateVacancyStatuses.name}`.as(
           'status_name',
@@ -490,7 +500,11 @@ export class VacancyService {
     return counts;
   }
 
-  async findOne(id: number, organizationId: number) {
+  async findOne(
+    id: number,
+    organizationId: number,
+    viewerCodes: readonly string[] = [],
+  ) {
     const vacancy = await this.db.query.vacancies.findFirst({
       where: and(
         eq(vacancies.id, id),
@@ -538,7 +552,7 @@ export class VacancyService {
       },
     });
     if (!vacancy) throw new NotFoundException('Vacancy not found');
-    return this.transformQueryResult(vacancy);
+    return vacancyForViewer(this.transformQueryResult(vacancy), viewerCodes);
   }
 
   async findAllByCompanyId(
@@ -747,10 +761,27 @@ export class VacancyService {
     };
   }
 
-  async create(dto: CreateVacancyServiceDto) {
-    return this.db.transaction(async (tx) => {
+  /** `actorCodes`: the caller's permission codes (see canSetVacancyOpportunity). */
+  async create(dto: CreateVacancyServiceDto, actorCodes: readonly string[]) {
+    this.assertMaySetOpportunity(dto, actorCodes);
+    const vacancy = await this.db.transaction(async (tx) => {
       return this.createRecord(tx, dto);
     });
+    return vacancyForViewer(vacancy, actorCodes);
+  }
+
+  private assertMaySetOpportunity(
+    dto: { opportunityId?: number | null },
+    actorCodes: readonly string[],
+  ) {
+    if (
+      dto.opportunityId !== undefined &&
+      !canSetVacancyOpportunity(actorCodes)
+    ) {
+      throw new ForbiddenException(
+        'Solo el área comercial puede vincular una vacante a una oportunidad.',
+      );
+    }
   }
 
   /**
@@ -868,14 +899,30 @@ export class VacancyService {
       aiVacancyRunId: aiVacancyRunId ?? null,
     };
 
-    const [vacancy] = await tx.insert(vacancies).values(vacancyValues).returning();
+    const [vacancy] = await tx
+      .insert(vacancies)
+      .values(vacancyValues)
+      .returning();
 
     if (!vacancy) throw new Error('Error creating vacancy');
 
     return vacancy;
   }
 
-  async update(id: number, dto: UpdateVacancyServiceDto) {
+  /**
+   * `actorCodes`: the caller's permission codes (see canSetVacancyOpportunity).
+   *
+   * The "same Company" rule (VacancyOpportunityPolicy) is checked only when a
+   * link is made. Moving the Vacancy to another Company unlinks it from an
+   * Opportunity of a different Company; moving the Opportunity leaves its
+   * Vacancies alone (state changes don't cascade).
+   */
+  async update(
+    id: number,
+    dto: UpdateVacancyServiceDto,
+    actorCodes: readonly string[],
+  ) {
+    this.assertMaySetOpportunity(dto, actorCodes);
     const { organizationId, ...updateVacancyDto } = dto;
     const { filters: _filters, ...vacancyFields } = updateVacancyDto;
     const vacancy = await this.db.transaction(async (tx) => {
@@ -909,6 +956,18 @@ export class VacancyService {
         if (vacancyContactId !== undefined) {
           setFields.vacancyContactId = vacancyContactId;
         }
+      }
+      if (
+        updateVacancyDto.opportunityId === undefined &&
+        updateVacancyDto.companyId !== undefined
+      ) {
+        const unlink = await this.opportunityOfAnotherCompany(
+          tx,
+          id,
+          organizationId,
+          updateVacancyDto.companyId,
+        );
+        if (unlink) setFields.opportunityId = null;
       }
       if (updateVacancyDto.opportunityId != null) {
         const current = await tx.query.vacancies.findFirst({
@@ -1028,7 +1087,28 @@ export class VacancyService {
 
       return vacancy;
     });
-    return vacancy;
+    return vacancyForViewer(vacancy, actorCodes);
+  }
+
+  /** Whether the Vacancy is linked to an Opportunity that is not on `companyId`. */
+  private async opportunityOfAnotherCompany(
+    tx: DrizzleDatabase,
+    id: number,
+    organizationId: number,
+    companyId: number,
+  ): Promise<boolean> {
+    const current = await tx.query.vacancies.findFirst({
+      columns: { id: true },
+      where: and(
+        eq(vacancies.id, id),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      with: { opportunity: { columns: { companyId: true } } },
+    });
+    return (
+      current?.opportunity != null &&
+      current.opportunity.companyId !== companyId
+    );
   }
 
   /**
@@ -1106,9 +1186,13 @@ export class VacancyService {
    * by design — see CloseVacancySchema. Returns the updated row plus `closeChange`
    * (old/new date) for the audit trail.
    */
-  async close(id: number, dto: CloseVacancyServiceDto) {
+  async close(
+    id: number,
+    dto: CloseVacancyServiceDto,
+    viewerCodes: readonly string[] = [],
+  ) {
     const { organizationId, statusId, closedAt } = dto;
-    return this.db.transaction(async (tx) => {
+    const closed = await this.db.transaction(async (tx) => {
       const existing = await tx.query.vacancies.findFirst({
         where: and(
           eq(vacancies.id, id),
@@ -1155,6 +1239,7 @@ export class VacancyService {
         },
       };
     });
+    return vacancyForViewer(closed, viewerCodes);
   }
 
   /**
@@ -1163,8 +1248,13 @@ export class VacancyService {
    * non-final status (ordered by id). Returns the updated row plus `closeChange`
    * (old date → null) for the audit trail.
    */
-  async reopen(id: number, organizationId: number, statusId?: number) {
-    return this.db.transaction(async (tx) => {
+  async reopen(
+    id: number,
+    organizationId: number,
+    statusId?: number,
+    viewerCodes: readonly string[] = [],
+  ) {
+    const reopened = await this.db.transaction(async (tx) => {
       const existing = await tx.query.vacancies.findFirst({
         where: and(
           eq(vacancies.id, id),
@@ -1228,6 +1318,7 @@ export class VacancyService {
         },
       };
     });
+    return vacancyForViewer(reopened, viewerCodes);
   }
 
   /**
@@ -1248,14 +1339,15 @@ export class VacancyService {
     return date ? date.toISOString().slice(0, 10) : null;
   }
 
-  async remove(id: number, organizationId: number) {
+  async remove(
+    id: number,
+    organizationId: number,
+    viewerCodes: readonly string[] = [],
+  ) {
     const [vacancy] = await this.db
       .delete(vacancies)
       .where(
-        and(
-          eq(vacancies.id, id),
-          eq(vacancies.organizationId, organizationId),
-        ),
+        and(eq(vacancies.id, id), eq(vacancies.organizationId, organizationId)),
       )
       .returning();
 
@@ -1265,7 +1357,7 @@ export class VacancyService {
       .delete(vacancyFilters)
       .where(eq(vacancyFilters.id, vacancy.vacancyFiltersId));
 
-    return vacancy;
+    return vacancyForViewer(vacancy, viewerCodes);
   }
 
   /**
@@ -1342,12 +1434,10 @@ export class VacancyService {
             ...rest,
             candidate: {
               ...candidateRest,
-              areas:
-                candidateAreas?.map((ca) => ca.area).filter(Boolean) ?? [],
+              areas: candidateAreas?.map((ca) => ca.area).filter(Boolean) ?? [],
               industries:
-                candidateIndustries
-                  ?.map((ci) => ci.industry)
-                  .filter(Boolean) ?? [],
+                candidateIndustries?.map((ci) => ci.industry).filter(Boolean) ??
+                [],
               seniorities:
                 candidateSeniorities
                   ?.map((cs) => cs.seniority)

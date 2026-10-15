@@ -32,13 +32,11 @@ import {
   createOpportunityFromContact,
   OPPORTUNITY_API_KEY,
 } from "@/lib/api/opportunity";
-import {
-  apiErrorMessage,
-  defaultOpportunityOwnerId,
-  opportunityHref,
-  parseMoneyInput,
-  useCommercialUsers,
-} from "../opportunities/opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { defaultOpportunityOwnerId } from "@/components/opportunities/opportunity-owner-default";
+import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import { parseMoneyInput } from "@/lib/money";
+import { useCommercialUsers } from "@/components/opportunities/commercial-queries";
 import { useCurrentUserId } from "./contact-lookups";
 import {
   CompanyPicker,
@@ -96,7 +94,7 @@ function CreateOpportunityForm({
 
   const [company, setCompany] = useState<CompanyChoice>({ kind: "none" });
   const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+  const [estimatedFeeInput, setEstimatedFeeInput] = useState("");
   const [ownerId, setOwnerId] = useState<number | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
 
@@ -118,7 +116,7 @@ function CreateOpportunityForm({
     commercialUsers,
   );
   const effectiveOwnerId = ownerId ?? defaultOwnerId;
-  const fee = parseMoneyInput(amount);
+  const fee = parseMoneyInput(estimatedFeeInput);
   const feeInvalid = fee != null && (!Number.isFinite(fee) || fee < 0);
   const companyReady = hasCompany || company.kind !== "none";
   const canSubmit =
@@ -248,9 +246,9 @@ function CreateOpportunityForm({
               <Input
                 id="opportunity-from-contact-fee"
                 inputMode="numeric"
-                value={amount}
+                value={estimatedFeeInput}
                 onChange={(e) =>
-                  setAmount(e.target.value.replace(/[^\d.,]/g, ""))
+                  setEstimatedFeeInput(e.target.value.replace(/[^\d.,]/g, ""))
                 }
                 placeholder="Sin estimar"
                 className="pl-7 tabular-nums"

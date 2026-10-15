@@ -13,8 +13,8 @@ import { NewOpportunityButton } from "../opportunities/new-opportunity-sheet";
 import {
   formatDay,
   opportunityHref,
-  StageBadge,
-} from "../opportunities/opportunity-ui";
+} from "@/components/opportunities/opportunity-format";
+import { StageBadge } from "@/components/opportunities/stage-badge";
 
 /** The Company's Opportunities, open first (commercial access only). */
 export function CompanyOpportunitiesTab({ company }: { company: Company }) {

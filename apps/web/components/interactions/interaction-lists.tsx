@@ -16,7 +16,7 @@ import type {
 } from "@workspace/shared/types/interaction";
 import type { Opportunity } from "@workspace/shared/types/opportunity";
 
-import { useCommercialAccess } from "@/components/opportunities/opportunity-ui";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import { getInteractions, INTERACTION_API_KEY } from "@/lib/api/interaction";
 import {
   CompanyInteractionDialog,
@@ -26,10 +26,10 @@ import {
 import {
   formatInteractionDay,
   INTERACTION_TYPES,
-  InteractionEntry,
   interactionMeta,
   sinceLabel,
-} from "./interaction-ui";
+} from "@/components/interactions/interaction-format";
+import { InteractionEntry } from "@/components/interactions/interaction-entry";
 
 function useInteractions(filters: InteractionFilters) {
   return useQuery({

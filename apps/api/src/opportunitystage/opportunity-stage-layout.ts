@@ -1,3 +1,13 @@
+import {
+  isOpenStage,
+  stageOutcome,
+} from '@workspace/shared/lib/opportunity-stage';
+import {
+  byPosition,
+  moveTo,
+  renumber,
+} from '../common/ordered-catalog/ordered-catalog';
+
 /**
  * Opportunity Stage layout: the rules that keep an Organization's stages
  * well-formed while they are configured — exactly one won and one lost stage,
@@ -31,23 +41,17 @@ export type OutcomeReassignmentViolation =
   | { violation: 'holds_other_outcome' }
   | { violation: 'stage_in_use'; busy: BusyStage[] };
 
-const isOpen = (stage: StageSlot) => !stage.isWon && !stage.isLost;
-
-const bySortThenId = (a: StageSlot, b: StageSlot) =>
-  a.sort - b.sort || a.id - b.id;
+const isOpen = (stage: StageSlot) => isOpenStage(stage);
 
 /** Re-numbers sort as: open stages in the given order, then won, then lost. */
 function arrange(open: StageSlot[], all: StageSlot[]): StageSlot[] {
-  const won = all.filter((stage) => stage.isWon);
-  const lost = all.filter((stage) => stage.isLost);
-  return [...open, ...won, ...lost].map((stage, sort) => ({
-    ...stage,
-    sort,
-  }));
+  const won = all.filter((stage) => stageOutcome(stage) === 'won');
+  const lost = all.filter((stage) => stageOutcome(stage) === 'lost');
+  return renumber([...open, ...won, ...lost]);
 }
 
 function openInOrder(stages: StageSlot[]): StageSlot[] {
-  return stages.filter(isOpen).sort(bySortThenId);
+  return stages.filter(isOpen).sort(byPosition);
 }
 
 export type PlacementViolation =
@@ -68,9 +72,7 @@ export function placeOpenStage(
   if (!stage) return { ok: false, violation: 'stage_not_found' };
   if (!isOpen(stage)) return { ok: false, violation: 'outcome_stage_pinned' };
 
-  const open = openInOrder(stages.filter((s) => s.id !== id));
-  const at = Math.max(0, Math.min(index ?? open.length, open.length));
-  open.splice(at, 0, stage);
+  const open = moveTo(openInOrder([...stages]), id, index);
   return { ok: true, stages: arrange(open, [...stages]) };
 }
 
@@ -115,8 +117,7 @@ export function reassignOutcome(
 ): LayoutResult<OutcomeReassignmentViolation> {
   const target = stages.find((stage) => stage.id === targetId);
   if (!target) return { ok: false, violation: 'stage_not_found' };
-  const holds = (stage: StageSlot) =>
-    outcome === 'won' ? stage.isWon : stage.isLost;
+  const holds = (stage: StageSlot) => stageOutcome(stage) === outcome;
 
   if (holds(target)) {
     return { ok: true, stages: arrange(openInOrder([...stages]), [...stages]) };

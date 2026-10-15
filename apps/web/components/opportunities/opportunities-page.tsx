@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
 import { CompanyStatus } from "@workspace/shared/enums";
-import { summarizePipeline } from "@workspace/shared/lib/opportunity-pipeline";
+import { groupOpportunitiesByStage } from "@workspace/shared/lib/opportunities-by-stage";
 import type {
   OpportunityFilters,
   OpportunityListItem,
@@ -29,18 +29,17 @@ import {
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 
-import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
+import { LastInteractionLabel } from "@/components/interactions/interaction-format";
 import { NewOpportunityButton } from "./new-opportunity-sheet";
 import { NextStepCell } from "./opportunity-next-step";
+import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import { StageBadge, stageTone } from "@/components/opportunities/stage-badge";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import {
-  opportunityHref,
-  StageBadge,
-  stageTone,
-  useCommercialAccess,
   useCommercialUsers,
   useLostReasons,
   useOpportunityStages,
-} from "./opportunity-ui";
+} from "@/components/opportunities/commercial-queries";
 import { useStageChange } from "./stage-change";
 
 const ALL = "all";
@@ -95,7 +94,7 @@ export function OpportunitiesPage() {
   });
   const { requestMove, dialog } = useStageChange();
 
-  const summary = summarizePipeline(stages ?? [], opportunities ?? []);
+  const summary = groupOpportunitiesByStage(stages ?? [], opportunities ?? []);
   const filtering =
     !!filters.search ||
     owner !== ALL ||
@@ -287,7 +286,7 @@ export function OpportunitiesPage() {
                         <span className="ml-3 text-sm text-slate-brand">
                           Subtotal{" "}
                           <FeeTotal
-                            total={group.feeTotal}
+                            total={group.estimatedFeeTotal}
                             className="font-semibold text-ink"
                           />
                         </span>
@@ -339,7 +338,7 @@ export function OpportunitiesPage() {
         <span className="text-slate-brand">
           Total:{" "}
           <span className="font-bold tabular-nums text-ink">
-            {formatMoney(summary.open.feeTotal)}
+            {formatMoney(summary.open.estimatedFeeTotal)}
           </span>
         </span>
         <span className="text-xs text-muted-brand">

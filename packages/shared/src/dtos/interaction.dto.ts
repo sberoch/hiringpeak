@@ -26,6 +26,16 @@ export const CreateInteractionSchema = z.object({
   opportunityId: z.number().int().positive().nullable().optional(),
 });
 
+/**
+ * What happened, without who or where: the first Interaction recorded with a
+ * Contact being created (Quick capture), with them and at their Company.
+ */
+export const FirstInteractionSchema = CreateInteractionSchema.pick({
+  type: true,
+  date: true,
+  summary: true,
+});
+
 /** Edit what happened and who it was with; the Company stays as recorded. */
 export const UpdateInteractionSchema = z.object({
   type: InteractionTypeSchema.optional(),
@@ -42,6 +52,7 @@ export const InteractionQueryParamsSchema = z.object({
 });
 
 export type CreateInteractionDto = z.infer<typeof CreateInteractionSchema>;
+export type FirstInteractionDto = z.infer<typeof FirstInteractionSchema>;
 export type UpdateInteractionDto = z.infer<typeof UpdateInteractionSchema>;
 export type InteractionQueryParamsDto = z.infer<
   typeof InteractionQueryParamsSchema

@@ -1,3 +1,4 @@
+import { stageOutcome } from '@workspace/shared/lib/opportunity-stage';
 import { Inject, Injectable } from '@nestjs/common';
 import { count, eq, inArray, gte, lt, and, sql, avg } from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -263,7 +264,7 @@ export class DashboardService {
     return computeCommercialSummary(
       rows.map(({ isWon, isLost, ...row }) => ({
         ...row,
-        outcome: isWon ? 'won' : isLost ? 'lost' : 'open',
+        outcome: stageOutcome({ isWon, isLost }),
       })),
       now,
     );

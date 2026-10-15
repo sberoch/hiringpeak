@@ -11,7 +11,11 @@ import type {
   TaskWithRelations,
 } from "@workspace/shared/types/task";
 
-import { dueTone, formatDue, todayIsoDay } from "./_shared";
+import {
+  dueTone,
+  formatDue,
+  todayIsoDay,
+} from "@/components/tasks/task-due-dates";
 import { ATTACH_META, type Attachment } from "./attachments";
 import { TaskSheet } from "./task-sheet";
 

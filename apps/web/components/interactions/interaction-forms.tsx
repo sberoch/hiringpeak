@@ -1,5 +1,6 @@
 "use client";
 
+import { isOpenStage } from "@workspace/shared/lib/opportunity-stage";
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
@@ -31,15 +32,17 @@ import { useCompanyOptions } from "@/components/contacts/contact-lookups";
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import {
   ContactChips,
+  NetworkContactAdder,
+  useCompanyContacts,
+  type ContactOption,
+} from "@/components/interactions/interaction-contact-pickers";
+import {
   emptyInteractionDraft,
   interactionDraftProblem,
   InteractionFields,
-  NetworkContactAdder,
-  useCompanyContacts,
-  useCreateInteraction,
-  type ContactOption,
   type InteractionDraft,
-} from "./interaction-ui";
+} from "@/components/interactions/interaction-draft-fields";
+import { useCreateInteraction } from "@/components/interactions/interaction-mutations";
 
 function toggle(ids: number[], id: number) {
   return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
@@ -64,8 +67,8 @@ function OpportunitySelect({
   value: number | null;
   onChange: (id: number | null) => void;
 }) {
-  const open = opportunities.filter((o) => !o.stage.isWon && !o.stage.isLost);
-  const closed = opportunities.filter((o) => o.stage.isWon || o.stage.isLost);
+  const open = opportunities.filter((o) => isOpenStage(o.stage));
+  const closed = opportunities.filter((o) => !isOpenStage(o.stage));
   return (
     <Select
       value={value == null ? "none" : String(value)}

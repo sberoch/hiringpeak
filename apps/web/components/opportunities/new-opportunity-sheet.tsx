@@ -41,14 +41,12 @@ import {
 } from "@workspace/ui/components/sheet";
 import { cn } from "@workspace/ui/lib/utils";
 
-import {
-  apiErrorMessage,
-  defaultOpportunityOwnerId,
-  opportunityHref,
-  parseMoneyInput,
-  useCommercialAccess,
-  useCommercialUsers,
-} from "./opportunity-ui";
+import { apiErrorMessage } from "@/lib/api/api-error";
+import { defaultOpportunityOwnerId } from "@/components/opportunities/opportunity-owner-default";
+import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import { parseMoneyInput } from "@/lib/money";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
+import { useCommercialUsers } from "@/components/opportunities/commercial-queries";
 
 /** "Nueva oportunidad"; on a Company page, pass its id to preselect it. */
 export function NewOpportunityButton({
@@ -133,7 +131,7 @@ function NewOpportunityForm({
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+  const [estimatedFeeInput, setEstimatedFeeInput] = useState("");
   const [ownerId, setOwnerId] = useState<number | null>(null);
 
   const company = companies?.items.find((c) => c.id === companyId) ?? null;
@@ -143,7 +141,7 @@ function NewOpportunityForm({
     commercialUsers,
   );
   const effectiveOwnerId = ownerId ?? defaultOwnerId;
-  const fee = parseMoneyInput(amount);
+  const fee = parseMoneyInput(estimatedFeeInput);
   const feeInvalid = fee != null && (!Number.isFinite(fee) || fee < 0);
   const canSubmit =
     company != null && title.trim() !== "" && !feeInvalid && !!effectiveOwnerId;
@@ -255,8 +253,10 @@ function NewOpportunityForm({
           <Input
             id="new-opportunity-fee"
             inputMode="numeric"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
+            value={estimatedFeeInput}
+            onChange={(e) =>
+              setEstimatedFeeInput(e.target.value.replace(/[^\d.,]/g, ""))
+            }
             placeholder="15.000.000"
             className="bg-surface pl-7 tabular-nums"
           />

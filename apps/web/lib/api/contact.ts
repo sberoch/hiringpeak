@@ -1,6 +1,5 @@
 import type { PaginatedResponse } from "@workspace/shared/types/api";
 import type {
-  Contact,
   ContactDuplicate,
   ContactDuplicatesProbe,
   ContactFilters,
@@ -9,6 +8,7 @@ import type {
   NetworkContact,
   NetworkContactListItem,
   UpdateContactDto,
+  WrittenContact,
 } from "@workspace/shared/types/contact";
 
 import api from ".";
@@ -46,11 +46,11 @@ export async function createContact(contact: CreateContactDto) {
 }
 
 export async function updateContact(id: number, contact: UpdateContactDto) {
-  const response = await api.patch<Contact>(`/contact/${id}`, contact);
+  const response = await api.patch<WrittenContact>(`/contact/${id}`, contact);
   return response.data;
 }
 
 export async function deleteContact(id: number) {
-  const response = await api.delete<Contact>(`/contact/${id}`);
+  const response = await api.delete<WrittenContact>(`/contact/${id}`);
   return response.data;
 }

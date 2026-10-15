@@ -4,16 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, inArray, SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, SQL } from 'drizzle-orm';
 import {
   companies,
   contacts,
-  interactions,
   type Company as CompanyRecord,
   type Contact as ContactRecord,
 } from '@workspace/shared/schemas';
 import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 import { contactForViewer } from '@workspace/shared/lib/contact-access';
+import { isOpenStage } from '@workspace/shared/lib/opportunity-stage';
 import type { Company as CompanyResponse } from '@workspace/shared/types/company';
 import type { LastInteraction } from '@workspace/shared/types/interaction';
 import { AuthzService } from '../auth/authz/authz.service';
@@ -31,7 +31,7 @@ import {
   CreateCompanyServiceDto,
   UpdateCompanyServiceDto,
 } from './company.dto';
-import { lastInteractionByKey } from '../interaction/last-interaction';
+import { findLastInteractions } from '../interaction/last-interactions.query';
 import { deriveCompanyStatus } from './company-status';
 import { companyStatusCondition } from './company-status-filter';
 
@@ -45,9 +45,6 @@ interface CompanyQueryResult extends CompanyRecord {
     stage: { isWon: boolean; isLost: boolean };
   }[];
 }
-
-const ACCOUNT_OWNER_WITHOUT_COMMERCIAL_ACCESS =
-  'El responsable de cuenta debe tener acceso al área comercial.';
 
 @Injectable()
 export class CompanyService {
@@ -154,15 +151,10 @@ export class CompanyService {
     accountOwnerId: number | null,
   ) {
     const existing = await this.findOne(id, organizationId);
-    if (
-      accountOwnerId != null &&
-      !(await this.authzService.isCommercialUser(
-        accountOwnerId,
-        organizationId,
-      ))
-    ) {
-      throw new BadRequestException(ACCOUNT_OWNER_WITHOUT_COMMERCIAL_ACCESS);
-    }
+    await this.authzService.assertCommercialOwner(
+      accountOwnerId,
+      organizationId,
+    );
     await this.db
       .update(companies)
       .set({ accountOwnerId } as Partial<CompanyRecord>)
@@ -185,28 +177,8 @@ export class CompanyService {
     organizationId: number,
     viewerCodes: readonly string[],
   ): Promise<Map<number, LastInteraction>> {
-    if (!hasCommercialAccess(viewerCodes) || companyIds.length === 0) {
-      return new Map();
-    }
-    const rows = await this.db
-      .select({
-        id: interactions.id,
-        type: interactions.type,
-        date: interactions.date,
-        key: interactions.companyId,
-      })
-      .from(interactions)
-      .where(
-        and(
-          eq(interactions.organizationId, organizationId),
-          inArray(interactions.companyId, companyIds),
-        ),
-      );
-    return lastInteractionByKey(
-      rows.filter(
-        (row): row is typeof row & { key: number } => row.key != null,
-      ),
-    );
+    if (!hasCommercialAccess(viewerCodes)) return new Map();
+    return findLastInteractions(this.db, organizationId, { companyIds });
   }
 
   async create(dto: CreateCompanyServiceDto) {
@@ -272,7 +244,7 @@ export class CompanyService {
     };
     if (!hasCommercialAccess(viewerCodes)) return response;
 
-    const open = opportunities.filter((o) => !o.stage.isWon && !o.stage.isLost);
+    const open = opportunities.filter((o) => isOpenStage(o.stage));
     return {
       ...response,
       commercial: {

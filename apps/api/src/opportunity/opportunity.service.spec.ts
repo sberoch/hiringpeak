@@ -1,277 +1,188 @@
 import { BadRequestException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { PermissionCode } from '@workspace/shared/enums';
+import type { CompanyService } from '../company/company.service';
+import type { ContactService } from '../contact/contact.service';
+import { fixtures } from '../common/database/testing/fixtures';
 import {
-  companies,
-  contacts,
-  opportunities,
-  opportunityContacts,
-} from '@workspace/shared/schemas';
-import { AuthzService } from '../auth/authz/authz.service';
-import { DrizzleProvider } from '../common/database/drizzle.module';
-import { LostReasonService } from '../lostreason/lostreason.service';
-import { OpportunityStageService } from '../opportunitystage/opportunitystage.service';
-import { PermissionService } from '../permission/permission.service';
-import { RoleService } from '../role/role.service';
-import { UserService } from '../user/user.service';
-import { VacancyService } from '../vacancy/vacancy.service';
-import { OpportunityService } from './opportunity.service';
+  createTestDatabase,
+  failInsertsInto,
+} from '../common/database/testing/test-database';
+import { testServices } from '../common/database/testing/test-services';
+import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import type { OpportunityService } from './opportunity.service';
 
-type Row = Record<string, unknown>;
-type Store = {
-  companies: Row[];
-  contacts: Row[];
-  opportunities: Row[];
-  opportunityContacts: Row[];
-};
+let db: DrizzleDatabase;
+let opportunities: OpportunityService;
+let contacts: ContactService;
+let companies: CompanyService;
+let f: ReturnType<typeof fixtures>;
+let org: number;
+let creator: number;
+let accountOwner: number;
+let acme: number;
+let initech: number;
+let actor: { organizationId: number; createdBy: number };
 
-/**
- * In-memory stand-in for the Drizzle database (the boundary). Each fixture
- * holds a single Contact, so updates apply to every row of their table. A
- * transaction rolls the store back when its callback throws. `failInsertInto`
- * makes inserts into that table fail, to observe atomicity.
- */
-function makeDb(
-  store: Store,
-  options: { failInsertInto?: unknown; commercialUserIds?: number[] } = {},
-) {
-  const tables = new Map<unknown, keyof Store>([
-    [companies, 'companies'],
-    [contacts, 'contacts'],
-    [opportunities, 'opportunities'],
-    [opportunityContacts, 'opportunityContacts'],
-  ]);
-  let nextId = 100;
-  const stage = { id: 1, name: 'Primer contacto', isWon: false, isLost: false };
+beforeEach(async () => {
+  db = await createTestDatabase();
+  ({ opportunities, contacts, companies } = await testServices(db));
+  f = fixtures(db);
+  org = await f.organization();
+  creator = await f.user(org, [PermissionCode.CRM_MANAGE]);
+  accountOwner = await f.user(org, [PermissionCode.CRM_READ]);
+  await f.stages(org);
+  acme = await f.company(org, { name: 'Acme' });
+  initech = await f.company(org, { name: 'Initech' });
+  actor = { organizationId: org, createdBy: creator };
+});
 
-  const db: Record<string, unknown> = {
-    insert: vi.fn((table: unknown) => ({
-      values: vi.fn((row: Row) => {
-        const write = () => {
-          if (table === options.failInsertInto) throw new Error('db down');
-          const saved = { id: nextId++, ...row };
-          store[tables.get(table)!].push(saved);
-          return [saved];
-        };
-        return {
-          returning: vi.fn(async () => write()),
-          then: (
-            resolve: (v: unknown) => unknown,
-            reject: (e: unknown) => unknown,
-          ) => {
-            try {
-              return resolve(write());
-            } catch (error) {
-              return reject(error);
-            }
-          },
-        };
-      }),
-    })),
-    update: vi.fn((table: unknown) => ({
-      set: vi.fn((set: Row) => ({
-        where: vi.fn(() => {
-          const rows = store[tables.get(table)!];
-          rows.forEach((row) => Object.assign(row, set));
-          return {
-            returning: vi.fn(async () => rows),
-            then: (r: (v: unknown) => unknown) => r(rows),
-          };
-        }),
-      })),
-    })),
-    selectDistinct: vi.fn(() => {
-      const node: Record<string, unknown> = {};
-      for (const step of ['from', 'innerJoin', 'where']) {
-        node[step] = vi.fn(() => node);
-      }
-      node.orderBy = vi.fn(async () =>
-        (options.commercialUserIds ?? [7]).map((id) => ({
-          id,
-          name: `User ${id}`,
-          email: `u${id}@x.com`,
-        })),
-      );
-      return node;
-    }),
-    // Open Tasks attached to Opportunities (next step): none in these fixtures.
-    select: vi.fn(() => {
-      const node: Record<string, unknown> = {};
-      for (const step of ['from', 'innerJoin']) {
-        node[step] = vi.fn(() => node);
-      }
-      node.where = vi.fn(async () => []);
-      return node;
-    }),
-    query: {
-      contacts: { findFirst: vi.fn(async () => store.contacts[0]) },
-      companies: {
-        findFirst: vi.fn(async () =>
-          store.companies.find((company) => company.id === 9),
-        ),
-      },
-      opportunityStages: { findFirst: vi.fn(async () => stage) },
-      opportunities: {
-        findFirst: vi.fn(async () => {
-          const opportunity = store.opportunities.at(-1);
-          return opportunity && { ...opportunity, stage, estimatedFee: null };
-        }),
-      },
-    },
-  };
-  db.transaction = vi.fn(async (callback: (tx: unknown) => unknown) => {
-    const snapshot = structuredClone(store);
-    try {
-      return await callback(db);
-    } catch (error) {
-      Object.assign(store, snapshot);
-      throw error;
-    }
+const companyNames = async () =>
+  (await companies.findAll({ organizationId: org })).items
+    .map((c) => c.name)
+    .sort();
+
+describe('OpportunityService.create — Default owners', () => {
+  it("is owned by the Company's Account Owner by default", async () => {
+    const withOwner = await f.company(org, { accountOwnerId: accountOwner });
+    const created = await opportunities.create({
+      title: 'CFO search',
+      companyId: withOwner,
+      ...actor,
+    });
+    expect(created.ownerId).toBe(accountOwner);
   });
-  return db;
-}
 
-async function makeService(db: Record<string, unknown>) {
-  const module: TestingModule = await Test.createTestingModule({
-    providers: [
-      OpportunityService,
-      AuthzService,
-      OpportunityStageService,
-      LostReasonService,
-      { provide: VacancyService, useValue: {} },
-      { provide: UserService, useValue: {} },
-      { provide: RoleService, useValue: {} },
-      { provide: PermissionService, useValue: {} },
-      { provide: DrizzleProvider, useValue: db },
-    ],
-  }).compile();
-  return module.get(OpportunityService);
-}
+  it('is owned by the creator when the Company has no Account Owner', async () => {
+    const created = await opportunities.create({
+      title: 'CFO search',
+      companyId: acme,
+      ...actor,
+    });
+    expect(created.ownerId).toBe(creator);
+  });
 
-const actor = { organizationId: 1, createdBy: 7 };
+  it('keeps an explicitly chosen owner', async () => {
+    const withOwner = await f.company(org, { accountOwnerId: accountOwner });
+    const created = await opportunities.create({
+      title: 'CFO search',
+      companyId: withOwner,
+      ownerId: creator,
+      ...actor,
+    });
+    expect(created.ownerId).toBe(creator);
+  });
+});
 
 describe('OpportunityService.createFromContact', () => {
-  let store: Store;
-
-  beforeEach(() => {
-    store = {
-      companies: [
-        { id: 4, name: 'Acme' },
-        { id: 9, name: 'Initech' },
-      ],
-      contacts: [],
-      opportunities: [],
-      opportunityContacts: [],
-    };
-  });
-
   describe('from a Contact with a Company', () => {
-    beforeEach(() => {
-      store.contacts.push({ id: 3, name: 'Paula', companyId: 4 });
+    let paula: number;
+    beforeEach(async () => {
+      paula = await f.contact(org, { name: 'Paula', companyId: acme });
     });
 
     it("creates the Opportunity at the Contact's Company", async () => {
-      const service = await makeService(makeDb(store));
-      await service.createFromContact(3, { title: 'CFO search' }, actor);
-      expect(store.opportunities[0]).toMatchObject({
+      const created = await opportunities.createFromContact(
+        paula,
+        { title: 'CFO search' },
+        actor,
+      );
+      expect(await opportunities.findOne(created.id, org)).toMatchObject({
         title: 'CFO search',
-        companyId: 4,
+        company: { id: acme, name: 'Acme' },
       });
     });
 
     it('adds the Contact to the new Opportunity', async () => {
-      const service = await makeService(makeDb(store));
-      const created = await service.createFromContact(
-        3,
+      const created = await opportunities.createFromContact(
+        paula,
         { title: 'CFO search' },
         actor,
       );
-      expect(store.opportunityContacts).toEqual([
-        { id: expect.any(Number), opportunityId: created.id, contactId: 3 },
-      ]);
+      const ofPaula = await opportunities.findAll({
+        organizationId: org,
+        contactId: paula,
+      });
+      expect(ofPaula.map((o) => o.id)).toEqual([created.id]);
     });
 
     it("is owned by the Company's Account Owner by default", async () => {
-      store.contacts[0].companyId = 9;
-      store.companies[1].accountOwnerId = 8;
-      const service = await makeService(
-        makeDb(store, { commercialUserIds: [7, 8] }),
+      const globex = await f.company(org, { accountOwnerId: accountOwner });
+      const ana = await f.contact(org, { companyId: globex });
+      const created = await opportunities.createFromContact(
+        ana,
+        { title: 'CFO search' },
+        actor,
       );
-      await service.createFromContact(3, { title: 'CFO search' }, actor);
-      expect(store.opportunities[0].ownerId).toBe(8);
-    });
-
-    it('is owned by the creator when the Company has no Account Owner', async () => {
-      const service = await makeService(makeDb(store));
-      await service.createFromContact(3, { title: 'CFO search' }, actor);
-      expect(store.opportunities[0].ownerId).toBe(actor.createdBy);
+      expect(created.ownerId).toBe(accountOwner);
     });
 
     it('rejects another Company', async () => {
-      const service = await makeService(makeDb(store));
       await expect(
-        service.createFromContact(3, { title: 'CFO', companyId: 9 }, actor),
+        opportunities.createFromContact(
+          paula,
+          { title: 'CFO', companyId: initech },
+          actor,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('from a Contact without a Company', () => {
-    beforeEach(() => {
-      store.contacts.push({ id: 3, name: 'Paula', companyId: null });
+    let paula: number;
+    beforeEach(async () => {
+      paula = await f.contact(org, { name: 'Paula' });
     });
 
     it('makes the chosen Company theirs and creates the Opportunity there', async () => {
-      const service = await makeService(makeDb(store));
-      await service.createFromContact(
-        3,
-        { title: 'CFO search', companyId: 9 },
+      const created = await opportunities.createFromContact(
+        paula,
+        { title: 'CFO search', companyId: initech },
         actor,
       );
       expect({
-        contactCompany: store.contacts[0].companyId,
-        opportunityCompany: store.opportunities[0].companyId,
-      }).toEqual({ contactCompany: 9, opportunityCompany: 9 });
+        contactCompany: (await contacts.findOne(paula, org)).companyId,
+        opportunityCompany: created.companyId,
+      }).toEqual({ contactCompany: initech, opportunityCompany: initech });
     });
 
     it('makes a new Company theirs and creates the Opportunity there', async () => {
-      const service = await makeService(makeDb(store));
-      await service.createFromContact(
-        3,
+      const created = await opportunities.createFromContact(
+        paula,
         { title: 'CFO search', newCompanyName: 'Globex' },
         actor,
       );
-      const globex = store.companies.find((c) => c.name === 'Globex');
       expect({
-        contactCompany: store.contacts[0].companyId,
-        opportunityCompany: store.opportunities[0].companyId,
-      }).toEqual({
-        contactCompany: globex?.id,
-        opportunityCompany: globex?.id,
-      });
+        contactCompany: (await contacts.findOne(paula, org)).company?.name,
+        opportunityCompany: created.company.name,
+      }).toEqual({ contactCompany: 'Globex', opportunityCompany: 'Globex' });
     });
 
     it('leaves the Contact and Companies untouched when the Opportunity cannot be saved', async () => {
-      const service = await makeService(
-        makeDb(store, { failInsertInto: opportunityContacts }),
-      );
+      // Fault injection at the database: adding any Opportunity Contact fails.
+      await failInsertsInto('opportunity_contacts');
+
       await expect(
-        service.createFromContact(
-          3,
+        opportunities.createFromContact(
+          paula,
           { title: 'CFO search', newCompanyName: 'Globex' },
           actor,
         ),
       ).rejects.toThrow();
       expect({
-        contactCompany: store.contacts[0].companyId,
-        companies: store.companies.length,
-        opportunities: store.opportunities.length,
-      }).toEqual({ contactCompany: null, companies: 2, opportunities: 0 });
+        contactCompany: (await contacts.findOne(paula, org)).companyId,
+        companies: await companyNames(),
+        opportunities: await opportunities.findAll({ organizationId: org }),
+      }).toEqual({
+        contactCompany: null,
+        companies: ['Acme', 'Initech'],
+        opportunities: [],
+      });
     });
 
     it('requires a Company', async () => {
-      const service = await makeService(makeDb(store));
       await expect(
-        service.createFromContact(3, { title: 'CFO search' }, actor),
+        opportunities.createFromContact(paula, { title: 'CFO search' }, actor),
       ).rejects.toThrow(BadRequestException);
     });
   });

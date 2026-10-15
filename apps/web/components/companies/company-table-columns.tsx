@@ -26,11 +26,9 @@ import { DeleteCompanyDialog } from "@/components/companies/delete-company-dialo
 import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { PermissionCode } from "@workspace/shared/enums";
-import { LastInteractionLabel } from "@/components/interactions/interaction-ui";
-import {
-  AccountOwnerControl,
-  CompanyStatusBadge,
-} from "@/components/companies/company-ui";
+import { LastInteractionLabel } from "@/components/interactions/interaction-format";
+import { AccountOwnerControl } from "@/components/companies/account-owner-control";
+import { CompanyStatusBadge } from "@/components/companies/company-status-badge";
 
 interface CellActionsProps {
   company: Company;

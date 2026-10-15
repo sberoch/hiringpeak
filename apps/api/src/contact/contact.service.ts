@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -31,7 +32,9 @@ import {
   interactions,
   type Contact,
 } from '@workspace/shared/schemas';
+import { PermissionCode } from '@workspace/shared/enums';
 import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
+import { contactForViewer } from '@workspace/shared/lib/contact-access';
 import {
   defaultFollowUpOwner,
   followUpDueDate,
@@ -41,12 +44,16 @@ import {
 import type {
   ContactDuplicate,
   ContactFollowUp,
+  Contact as ContactFields,
+  ContactNetworkFields,
   CreatedContact,
   NetworkContact,
   NetworkContactListItem,
+  WrittenContact,
 } from '@workspace/shared/types/contact';
-import type { LastInteraction } from '@workspace/shared/types/interaction';
-import { lastInteractionByKey } from '../interaction/last-interaction';
+import { InteractionService } from '../interaction/interaction.service';
+import { findLastInteractions } from '../interaction/last-interactions.query';
+import { findCompanyInOrganization } from '../company/company-in-organization';
 import { insertProspectCompany } from '../company/prospect-company';
 import { releaseContact } from '../common/deletion/deletion-keeps-history';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -63,17 +70,15 @@ import {
   findLikelyDuplicates,
   type DuplicateProbe,
 } from './contact-duplicates';
-import {
-  contactOwnerViolation,
-  defaultContactOwner,
-  networkFieldViolation,
-} from './contact-policy';
+import { defaultContactOwner, networkFieldViolation } from './contact-policy';
 import type {
   ContactActor,
   ContactFindAllServiceParams,
   CreateContactDto,
   UpdateContactDto,
 } from './contact.dto';
+
+type NetworkContactFields = ContactFields & ContactNetworkFields;
 
 const NETWORK_WITH = {
   company: { columns: { id: true, name: true } },
@@ -87,6 +92,7 @@ export class ContactService {
     @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
     private readonly authzService: AuthzService,
     private readonly taskService: TaskService,
+    private readonly interactionService: InteractionService,
   ) {}
 
   /** The Organization's network (commercial access only, see controller). */
@@ -112,8 +118,10 @@ export class ContactService {
       itemsQuery,
       countQuery,
     ]);
-    const lastInteractions = await this.findLastInteractions(
-      items.map((item) => item.id),
+    const lastInteractions = await findLastInteractions(
+      this.db,
+      params.organizationId,
+      { contactIds: items.map((item) => item.id) },
     );
     return paginatedResponse(
       await this.withNextFollowUps(
@@ -201,25 +209,6 @@ export class ContactService {
       );
   }
 
-  /** Each Contact's latest Interaction ("Última interacción"). */
-  private async findLastInteractions(contactIds: number[]) {
-    if (contactIds.length === 0) return new Map<number, LastInteraction>();
-    const rows = await this.db
-      .select({
-        key: interactionContacts.contactId,
-        id: interactions.id,
-        type: interactions.type,
-        date: interactions.date,
-      })
-      .from(interactionContacts)
-      .innerJoin(
-        interactions,
-        eq(interactions.id, interactionContacts.interactionId),
-      )
-      .where(inArray(interactionContacts.contactId, contactIds));
-    return lastInteractionByKey(rows);
-  }
-
   async findOne(id: number, organizationId: number): Promise<NetworkContact> {
     const contact = await this.db.query.contacts.findFirst({
       where: and(
@@ -278,8 +267,17 @@ export class ContactService {
     actor: ContactActor,
   ): Promise<CreatedContact> {
     this.assertNoViolation(networkFieldViolation(dto, actor.codes));
+    if (
+      dto.firstInteraction &&
+      !actor.codes.includes(PermissionCode.CRM_MANAGE)
+    ) {
+      throw new ForbiddenException(
+        'Registrar una interacción requiere permisos comerciales.',
+      );
+    }
     if (dto.companyId != null) {
-      await this.assertCompanyInOrganization(
+      await findCompanyInOrganization(
+        this.db,
         dto.companyId,
         actor.organizationId,
       );
@@ -290,11 +288,14 @@ export class ContactService {
       id: actor.userId,
       codes: actor.codes,
     });
-    await this.assertOwnerAllowed(ownerId, actor.organizationId);
+    await this.authzService.assertCommercialOwner(
+      ownerId,
+      actor.organizationId,
+    );
 
     const duplicates = await this.findDuplicates(dto, actor);
 
-    const { newCompanyName, followUpInDays, ...fields } = dto;
+    const { newCompanyName, followUpInDays, firstInteraction, ...fields } = dto;
     const values = {
       organizationId: actor.organizationId,
       companyId: fields.companyId ?? null,
@@ -317,6 +318,14 @@ export class ContactService {
         );
       }
       const [created] = await tx.insert(contacts).values(values).returning();
+      // After the Contact, so it is stamped with their Company.
+      if (firstInteraction) {
+        await this.interactionService.insertInteraction(
+          tx,
+          { ...firstInteraction, contactIds: [created.id] },
+          actor,
+        );
+      }
       const followUp =
         followUpInDays != null
           ? await this.taskService.insertTask(
@@ -329,7 +338,7 @@ export class ContactService {
     if (contact.followUp) {
       await this.taskService.notifyNewOwner(contact.followUp, actor.userId);
     }
-    return { ...this.toCreated(contact), duplicates };
+    return { ...this.forActor(contact, actor), duplicates };
   }
 
   /**
@@ -359,22 +368,26 @@ export class ContactService {
     id: number,
     dto: UpdateContactDto,
     actor: ContactActor,
-  ): Promise<Contact> {
+  ): Promise<WrittenContact> {
     const existing = await this.findRow(id, actor.organizationId);
     this.assertNoViolation(networkFieldViolation(dto, actor.codes, existing));
     if (dto.companyId != null && dto.companyId !== existing.companyId) {
-      await this.assertCompanyInOrganization(
+      await findCompanyInOrganization(
+        this.db,
         dto.companyId,
         actor.organizationId,
       );
     }
     await this.assertSourceInOrganization(dto.sourceId, actor.organizationId);
     if (dto.ownerId !== undefined && dto.ownerId !== existing.ownerId) {
-      await this.assertOwnerAllowed(dto.ownerId, actor.organizationId);
+      await this.authzService.assertCommercialOwner(
+        dto.ownerId,
+        actor.organizationId,
+      );
     }
 
     const { newCompanyName, ...fields } = dto;
-    return this.db.transaction(async (tx) => {
+    const updated = await this.db.transaction(async (tx) => {
       const set: Record<string, unknown> = { ...fields, updatedAt: new Date() };
       if (newCompanyName) {
         set.companyId = await insertProspectCompany(
@@ -395,6 +408,7 @@ export class ContactService {
         .returning();
       return contact;
     });
+    return this.forActor(updated, actor);
   }
 
   /**
@@ -402,11 +416,11 @@ export class ContactService {
    * `releaseContact`): their Tasks stay commercial, Vacancies lose them as
    * Vacancy Contact.
    */
-  async remove(id: number, actor: ContactActor): Promise<Contact> {
+  async remove(id: number, actor: ContactActor): Promise<WrittenContact> {
     const existing = await this.findRow(id, actor.organizationId);
     this.assertNoViolation(networkFieldViolation({}, actor.codes, existing));
 
-    return this.db.transaction(async (tx) => {
+    const removed = await this.db.transaction(async (tx) => {
       await releaseContact(tx, id);
       const [contact] = await tx
         .delete(contacts)
@@ -419,6 +433,7 @@ export class ContactService {
         .returning();
       return contact;
     });
+    return this.forActor(removed, actor);
   }
 
   private async findRow(id: number, organizationId: number): Promise<Contact> {
@@ -436,20 +451,6 @@ export class ContactService {
     if (violation) throw new BadRequestException(violation);
   }
 
-  private async assertCompanyInOrganization(
-    companyId: number,
-    organizationId: number,
-  ) {
-    const company = await this.db.query.companies.findFirst({
-      columns: { id: true },
-      where: and(
-        eq(companies.id, companyId),
-        eq(companies.organizationId, organizationId),
-      ),
-    });
-    if (!company) throw new BadRequestException('La empresa no existe.');
-  }
-
   private async assertSourceInOrganization(
     sourceId: number | null | undefined,
     organizationId: number,
@@ -465,22 +466,18 @@ export class ContactService {
     if (!source) throw new BadRequestException('El origen no existe.');
   }
 
-  private async assertOwnerAllowed(
-    ownerId: number | null | undefined,
-    organizationId: number,
-  ) {
-    if (ownerId == null) return;
-    const commercialUsers =
-      await this.authzService.listCommercialUsers(organizationId);
-    this.assertNoViolation(
-      contactOwnerViolation(
-        ownerId,
-        commercialUsers.map((user) => user.id),
-      ),
-    );
+  /**
+   * A written Contact as the caller may see it: the network fields only with
+   * commercial access (see contactForViewer).
+   */
+  private forActor(contact: Contact, actor: ContactActor): WrittenContact {
+    if (!hasCommercialAccess(actor.codes)) {
+      return contactForViewer(contact, actor.codes);
+    }
+    return this.toNetworkFields(contact);
   }
 
-  private toCreated(contact: Contact): Omit<CreatedContact, 'duplicates'> {
+  private toNetworkFields(contact: Contact): NetworkContactFields {
     return {
       id: contact.id,
       companyId: contact.companyId,
@@ -503,7 +500,7 @@ export class ContactService {
     },
   ): NetworkContact {
     return {
-      ...this.toCreated(row),
+      ...this.toNetworkFields(row),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       company: row.company,

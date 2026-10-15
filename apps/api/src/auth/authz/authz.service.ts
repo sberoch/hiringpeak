@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { PermissionCode } from '@workspace/shared/enums';
 import { COMMERCIAL_ACCESS_CODES } from '@workspace/shared/lib/commercial-access';
 import {
@@ -125,6 +130,22 @@ export class AuthzService {
         ),
       )
       .orderBy(asc(users.name), asc(users.id));
+  }
+
+  /**
+   * Owners of commercial records (Contact Owner, Opportunity Owner, Account
+   * Owner) must have commercial access. `null`/`undefined` (no owner) passes.
+   */
+  async assertCommercialOwner(
+    userId: number | null | undefined,
+    organizationId: number,
+  ): Promise<void> {
+    if (userId == null) return;
+    if (!(await this.isCommercialUser(userId, organizationId))) {
+      throw new BadRequestException(
+        'El responsable tiene que tener acceso comercial.',
+      );
+    }
   }
 
   async isCommercialUser(

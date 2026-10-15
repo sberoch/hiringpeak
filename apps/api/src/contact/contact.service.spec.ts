@@ -1,191 +1,302 @@
-import { BadRequestException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PermissionCode } from '@workspace/shared/enums';
-import { companies, taskContacts, tasks } from '@workspace/shared/schemas';
-import { DrizzleProvider } from '../common/database/drizzle.module';
-import { AuthzService } from '../auth/authz/authz.service';
-import { PermissionService } from '../permission/permission.service';
-import { RoleService } from '../role/role.service';
-import { UserService } from '../user/user.service';
-import { NotificationFactory } from '../notification/notification-factory';
-import { TaskService } from '../task/task.service';
-import { ContactService } from './contact.service';
+import { InteractionType, PermissionCode } from '@workspace/shared/enums';
+import {
+  interactionContacts,
+  interactions as interactionRows,
+} from '@workspace/shared/schemas';
+import type { DrizzleDatabase } from '../common/database/types/drizzle';
+import type { InteractionService } from '../interaction/interaction.service';
+import { fixtures } from '../common/database/testing/fixtures';
+import {
+  createTestDatabase,
+  failInsertsInto,
+} from '../common/database/testing/test-database';
+import { testServices } from '../common/database/testing/test-services';
+import type { TaskService } from '../task/task.service';
+import type { ContactActor } from './contact.dto';
+import type { ContactService } from './contact.service';
 
-/**
- * Mocked Drizzle database (the boundary). `network` is the Organization's
- * existing Contacts, `commercialUsers` the users with commercial access; the
- * insert echoes back what the service wrote (new Companies get id 50, new
- * Contacts id 99, new Tasks id 300) and is recorded in `inserted`.
- */
-function makeDb(state: {
-  network: Record<string, unknown>[];
-  commercialUsers: { id: number; name: string; email: string }[];
-}) {
-  const chain = (result: unknown) => {
-    const node: Record<string, unknown> = {};
-    for (const step of ['from', 'leftJoin', 'innerJoin', 'where']) {
-      node[step] = vi.fn(() => node);
-    }
-    node.orderBy = vi.fn(() => Promise.resolve(result));
-    node.then = (resolve: (value: unknown) => unknown) => resolve(result);
-    return node;
+let db: DrizzleDatabase;
+let contacts: ContactService;
+let tasks: TaskService;
+let interactions: InteractionService;
+let f: ReturnType<typeof fixtures>;
+let org: number;
+let lucia: number;
+let tomas: number;
+let partner: ContactActor;
+
+beforeEach(async () => {
+  db = await createTestDatabase();
+  ({ contacts, tasks, interactions } = await testServices(db));
+  f = fixtures(db);
+  org = await f.organization();
+  lucia = await f.user(org, [PermissionCode.CRM_MANAGE], 'Lucía');
+  tomas = await f.user(org, [PermissionCode.CRM_READ], 'Tomás');
+  partner = {
+    organizationId: org,
+    userId: lucia,
+    codes: [PermissionCode.CRM_MANAGE],
   };
-  const inserted: { table: unknown; rows: unknown }[] = [];
-  const ids = new Map<unknown, number>([
-    [companies, 50],
-    [tasks, 300],
-  ]);
-  const db: Record<string, unknown> = {
-    inserted,
-    select: vi.fn(() => chain(state.network)),
-    selectDistinct: vi.fn(() => chain(state.commercialUsers)),
-    insert: vi.fn((table: unknown) => ({
-      values: vi.fn((rows: Record<string, unknown>) => {
-        inserted.push({ table, rows });
-        return {
-          returning: vi.fn(async () => [{ id: ids.get(table) ?? 99, ...rows }]),
-        };
-      }),
-    })),
-    query: {
-      companies: { findFirst: vi.fn(async () => ({ id: 4 })) },
-      contactSources: { findFirst: vi.fn(async () => ({ id: 1 })) },
-    },
-  };
-  db.transaction = vi.fn(async (cb: (tx: unknown) => unknown) => cb(db));
-  return db;
-}
+});
 
-const insertsInto = (db: ReturnType<typeof makeDb>, table: unknown) =>
-  (db.inserted as { table: unknown; rows: unknown }[])
-    .filter((insert) => insert.table === table)
-    .map((insert) => insert.rows);
-
-const partner = {
-  organizationId: 1,
-  userId: 7,
-  codes: [PermissionCode.CRM_MANAGE],
-};
+/** The Tasks attached to a Contact (their follow-ups). */
+const followUpsOf = async (contactId: number) =>
+  (
+    await tasks.findAll({
+      organizationId: org,
+      commercialAccess: true,
+      contactId,
+    })
+  ).items;
 
 describe('ContactService.create', () => {
-  let db: ReturnType<typeof makeDb>;
-  let service: ContactService;
-
-  beforeEach(async () => {
-    db = makeDb({
-      network: [
-        {
-          id: 3,
-          name: 'Paula Ibáñez',
-          role: 'CFO',
-          email: 'paula@acme.com',
-          linkedin: null,
-          companyId: 4,
-          companyName: 'Acme',
-        },
-      ],
-      commercialUsers: [
-        { id: 7, name: 'Lucía', email: 'lucia@x.com' },
-        { id: 8, name: 'Tomás', email: 'tomas@x.com' },
-      ],
-    });
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ContactService,
-        AuthzService,
-        // AuthzService's own collaborators; listing commercial users only reads the db.
-        { provide: UserService, useValue: {} },
-        { provide: RoleService, useValue: {} },
-        { provide: PermissionService, useValue: {} },
-        { provide: DrizzleProvider, useValue: db },
-        TaskService,
-        { provide: NotificationFactory, useValue: { ensure: vi.fn() } },
-      ],
-    }).compile();
-    service = module.get(ContactService);
-  });
-
   it('returns probable duplicates alongside the created Contact', async () => {
-    const created = await service.create(
+    const acme = await f.company(org, { name: 'Acme' });
+    await contacts.create(
+      { name: 'Paula Ibáñez', role: 'CFO', companyId: acme },
+      partner,
+    );
+
+    const created = await contacts.create(
       { name: 'Paula Ibanez', email: 'otra@globex.com' },
       partner,
     );
+
     expect(created.duplicates).toEqual([
       {
-        id: 3,
+        id: expect.any(Number),
         name: 'Paula Ibáñez',
         role: 'CFO',
-        company: { id: 4, name: 'Acme' },
+        company: { id: acme, name: 'Acme' },
         reason: 'name',
       },
     ]);
   });
 
   it('creates a Contact without a Company, owned by its creator', async () => {
-    const created = await service.create({ name: 'Martín Gómez' }, partner);
-    expect(created).toMatchObject({ id: 99, companyId: null, ownerId: 7 });
+    const created = await contacts.create({ name: 'Martín Gómez' }, partner);
+    expect(await contacts.findOne(created.id, org)).toMatchObject({
+      company: null,
+      owner: { id: lucia, name: 'Lucía' },
+    });
   });
 
   it('creates the Contact on a new Company created by name', async () => {
-    const created = await service.create(
+    const created = await contacts.create(
       { name: 'Martín Gómez', newCompanyName: 'Globex' },
       partner,
     );
-    expect(created.companyId).toBe(50);
+    expect(await contacts.findOne(created.id, org)).toMatchObject({
+      company: { name: 'Globex' },
+    });
   });
 
   describe('"Abordar en X días"', () => {
     beforeEach(() => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(new Date(2026, 9, 15, 10, 0));
     });
     afterEach(() => vi.useRealTimers());
 
-    it('schedules a follow-up due today + X, owned by the Contact Owner', async () => {
-      await service.create(
-        { name: 'Martín Gómez', ownerId: 8, followUpInDays: 7 },
+    it('schedules a follow-up on the new Contact due today + X, owned by the Contact Owner', async () => {
+      const created = await contacts.create(
+        { name: 'Martín Gómez', ownerId: tomas, followUpInDays: 7 },
         partner,
       );
-      expect(insertsInto(db, tasks)).toEqual([
+      expect(await followUpsOf(created.id)).toEqual([
         expect.objectContaining({
           title: 'Abordar a Martín',
           dueDate: '2026-10-22',
-          assignedTo: 8,
-          createdBy: 7,
+          assignedTo: tomas,
+          createdBy: lucia,
         }),
       ]);
     });
 
-    it('attaches the follow-up to the new Contact', async () => {
-      await service.create(
-        { name: 'Martín Gómez', followUpInDays: 30 },
-        partner,
-      );
-      expect(insertsInto(db, taskContacts)).toEqual([
-        [{ taskId: 300, contactId: 99 }],
-      ]);
-    });
-
     it('gives the follow-up to its creator when the Contact has no owner', async () => {
-      await service.create(
+      const created = await contacts.create(
         { name: 'Martín Gómez', ownerId: null, followUpInDays: 3 },
         partner,
       );
-      expect(insertsInto(db, tasks)).toEqual([
-        expect.objectContaining({ assignedTo: 7, dueDate: '2026-10-18' }),
+      expect(await followUpsOf(created.id)).toEqual([
+        expect.objectContaining({ assignedTo: lucia, dueDate: '2026-10-18' }),
       ]);
     });
 
     it('schedules nothing without it', async () => {
-      await service.create({ name: 'Martín Gómez' }, partner);
-      expect(insertsInto(db, tasks)).toEqual([]);
+      const created = await contacts.create({ name: 'Martín Gómez' }, partner);
+      expect(await followUpsOf(created.id)).toEqual([]);
     });
   });
 
   it('rejects an owner without commercial access', async () => {
+    const recruiter = await f.user(org, [PermissionCode.VACANCY_MANAGE]);
     await expect(
-      service.create({ name: 'Martín Gómez', ownerId: 5 }, partner),
+      contacts.create({ name: 'Martín Gómez', ownerId: recruiter }, partner),
     ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('What Contact writes return', () => {
+  let companyManager: ContactActor;
+  let acme: number;
+  beforeEach(async () => {
+    acme = await f.company(org, { name: 'Acme' });
+    companyManager = {
+      organizationId: org,
+      userId: await f.user(org, [PermissionCode.COMPANY_MANAGE]),
+      codes: [PermissionCode.COMPANY_MANAGE],
+    };
+  });
+
+  const basicFields = {
+    companyId: expect.any(Number),
+    name: 'Martín Gómez',
+    role: '',
+    email: null,
+    phone: null,
+    linkedin: null,
+  };
+
+  it('creating gives a Company manager without commercial access only the basic fields', async () => {
+    const created = await contacts.create(
+      { name: 'Martín Gómez', companyId: acme },
+      companyManager,
+    );
+    expect(created).toEqual({
+      id: expect.any(Number),
+      ...basicFields,
+      duplicates: [],
+    });
+  });
+
+  it('editing gives a Company manager without commercial access only the basic fields', async () => {
+    const contact = await f.contact(org, { name: 'Martín', companyId: acme });
+    const updated = await contacts.update(
+      contact,
+      { name: 'Martín Gómez' },
+      companyManager,
+    );
+    expect(updated).toEqual({ id: contact, ...basicFields });
+  });
+
+  it('deleting gives a Company manager without commercial access only the basic fields', async () => {
+    const contact = await f.contact(org, {
+      name: 'Martín Gómez',
+      companyId: acme,
+    });
+    expect(await contacts.remove(contact, companyManager)).toEqual({
+      id: contact,
+      ...basicFields,
+    });
+  });
+
+  it('editing gives a commercial user the network fields too', async () => {
+    const contact = await f.contact(org, { name: 'Martín', companyId: acme });
+    const updated = await contacts.update(
+      contact,
+      { shortDescription: 'Conocido de la feria' },
+      partner,
+    );
+    expect(updated).toMatchObject({
+      shortDescription: 'Conocido de la feria',
+      ownerId: null,
+      sourceId: null,
+    });
+  });
+});
+
+describe('Quick capture: a first Interaction with the new Contact', () => {
+  const firstInteraction = {
+    type: InteractionType.MEETING,
+    date: '2026-10-14',
+    summary: 'Nos conocimos en la feria',
+  };
+
+  it('is recorded with the Contact, at their Company', async () => {
+    const acme = await f.company(org, { name: 'Acme' });
+    const created = await contacts.create(
+      { name: 'Martín Gómez', companyId: acme, firstInteraction },
+      partner,
+    );
+    expect(await interactions.findAll({ contactId: created.id }, org)).toEqual([
+      expect.objectContaining({
+        ...firstInteraction,
+        company: { id: acme, name: 'Acme' },
+        contacts: [expect.objectContaining({ id: created.id })],
+      }),
+    ]);
+  });
+
+  it('is recorded at the Company created by name with the Contact', async () => {
+    const created = await contacts.create(
+      { name: 'Martín Gómez', newCompanyName: 'Globex', firstInteraction },
+      partner,
+    );
+    const [interaction] = await interactions.findAll(
+      { contactId: created.id },
+      org,
+    );
+    expect(interaction.company?.name).toBe('Globex');
+  });
+
+  it('saves neither when the Interaction cannot be saved', async () => {
+    // Fault injection at the database: recording any Interaction fails.
+    await failInsertsInto('interactions');
+
+    await expect(
+      contacts.create({ name: 'Martín Gómez', firstInteraction }, partner),
+    ).rejects.toThrow();
+    expect(
+      (
+        await contacts.findAll({
+          organizationId: org,
+          viewer: { userId: lucia, readsAllTasks: true },
+        })
+      ).items,
+    ).toEqual([]);
+  });
+
+  it('needs CRM_MANAGE', async () => {
+    const companyManager = {
+      organizationId: org,
+      userId: await f.user(org, [PermissionCode.COMPANY_MANAGE]),
+      codes: [PermissionCode.COMPANY_MANAGE],
+    };
+    const acme = await f.company(org);
+    await expect(
+      contacts.create(
+        { name: 'Martín Gómez', companyId: acme, firstInteraction },
+        companyManager,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('ContactService.findAll — last Interaction', () => {
+  it("ignores another Organization's Interactions", async () => {
+    const paula = await f.contact(org, { name: 'Paula' });
+    const otherOrg = await f.organization();
+    // A stray link from another Organization's Interaction.
+    const [stray] = await db
+      .insert(interactionRows)
+      .values({
+        organizationId: otherOrg,
+        type: InteractionType.CALL,
+        date: '2026-10-01',
+        summary: 'Ajena',
+      })
+      .returning();
+    await db
+      .insert(interactionContacts)
+      .values({ interactionId: stray.id, contactId: paula });
+
+    const page = await contacts.findAll({
+      organizationId: org,
+      viewer: { userId: lucia, readsAllTasks: true },
+    });
+    expect(page.items[0].lastInteraction).toBeNull();
   });
 });

@@ -11,7 +11,7 @@ import type { CompanyFilters } from "@workspace/shared/types/company";
 import { companyColumns } from "@/components/companies/company-table-columns";
 import { NewCompanySheet } from "@/components/companies/new-company-sheet";
 import { useCurrentUserId } from "@/components/contacts/contact-lookups";
-import { useCommercialAccess } from "@/components/opportunities/opportunity-ui";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import { DataTable } from "@workspace/ui/components/data-table";
 import { useCompanyFilters } from "@/hooks/use-company-filters";
 import { COMPANIES_API_KEY, getAllCompanies } from "@/lib/api/company";
