@@ -56,9 +56,6 @@ export function EditCompanySheet({
       name: company.name,
       description: company.description || "",
       status: company.status,
-      clientName: company.clientName || "",
-      clientEmail: company.clientEmail || "",
-      clientPhone: company.clientPhone || "",
     },
   });
 
@@ -121,52 +118,6 @@ export function EditCompanySheet({
                         className="resize-none"
                         {...field}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clientName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre del cliente</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nombre del cliente" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clientEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email del cliente</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="cliente@empresa.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="clientPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teléfono del cliente</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Teléfono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

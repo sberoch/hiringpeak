@@ -6,26 +6,34 @@ const DayDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD");
 
+const AttachmentIdsSchema = z.array(z.number().int()).optional();
+
+/** A Task attaches to any number of records of each type (ADR 0005). */
+const TaskAttachmentIdsShape = {
+  candidateIds: AttachmentIdsSchema,
+  vacancyIds: AttachmentIdsSchema,
+  candidacyIds: AttachmentIdsSchema,
+  companyIds: AttachmentIdsSchema,
+};
+
 export const CreateTaskSchema = z.object({
   title: z.string().min(1),
   dueDate: DayDateSchema.nullable().optional(),
   assignedTo: z.number().int(),
-  candidateId: z.number().int().nullable().optional(),
-  vacancyId: z.number().int().nullable().optional(),
-  companyId: z.number().int().nullable().optional(),
+  ...TaskAttachmentIdsShape,
 });
 
 /**
- * Edit a Task: title, due date, Task Owner, or clear the attachment.
+ * Edit a Task: title, due date, Task Owner or attachments. Each attachment
+ * list, when present, replaces that type's attachments (`[]` clears them);
+ * an absent list leaves that type untouched.
  * Mutation of completion state lives on dedicated endpoints.
  */
 export const UpdateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   dueDate: DayDateSchema.nullable().optional(),
   assignedTo: z.number().int().optional(),
-  candidateId: z.number().int().nullable().optional(),
-  vacancyId: z.number().int().nullable().optional(),
-  companyId: z.number().int().nullable().optional(),
+  ...TaskAttachmentIdsShape,
 });
 
 export const TaskQueryParamsSchema = PaginationParamsSchema.extend({
@@ -36,8 +44,10 @@ export const TaskQueryParamsSchema = PaginationParamsSchema.extend({
     .union([z.boolean(), z.enum(["true", "false"])])
     .transform((v) => (typeof v === "string" ? v === "true" : v))
     .optional(),
+  /** Tasks attached to this Candidate (among other records, possibly). */
   candidateId: z.coerce.number().optional(),
   vacancyId: z.coerce.number().optional(),
+  candidacyId: z.coerce.number().optional(),
   companyId: z.coerce.number().optional(),
 });
 

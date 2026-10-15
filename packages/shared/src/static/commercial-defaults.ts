@@ -1,7 +1,7 @@
 /**
  * Commercial picklists every Organization starts with. Seeded during
  * Onboarding, by the dev/prod seed scripts, and (for Organizations that
- * existed before the CRM) by migration 0006 — keep that SQL in sync.
+ * existed before the CRM) by migration 0008 — keep that SQL in sync.
  */
 export const DEFAULT_OPPORTUNITY_STAGES: readonly {
   name: string;

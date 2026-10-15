@@ -2,6 +2,7 @@ import type { PaginationFilters } from "./api.js";
 import type { Area } from "./area.js";
 import type { Candidate } from "./candidate.js";
 import type { Company } from "./company.js";
+import type { VacancyContactSummary } from "./contact.js";
 import type { Industry } from "./industry.js";
 import type { Seniority } from "./seniority.js";
 import type { User } from "./user.js";
@@ -87,6 +88,9 @@ export type Vacancy = Omit<
 > & {
   id: number;
   company: Company;
+  /** Vacancy Contact: the client-side counterpart this search runs with. */
+  vacancyContactId: number | null;
+  vacancyContact?: VacancyContactSummary | null;
   filters: VacancyFiltersType;
   candidates: ListedCandidateVacancy[];
   closedAt: string | null;

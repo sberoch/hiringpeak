@@ -1,5 +1,6 @@
 import type { PaginationFilters } from "./api";
 import { CompanyStatus } from "../enums";
+import type { ContactView } from "./contact";
 
 export const CompanyStatusEnum = CompanyStatus;
 export type CompanyStatusEnum = CompanyStatus;
@@ -13,14 +14,13 @@ export type BaseCompany = {
   status: CompanyStatusEnum;
   name: string;
   description?: string;
-  clientName?: string;
-  clientEmail?: string;
-  clientPhone?: string;
 };
 
 export type Company = BaseCompany & {
   id: number;
   vacancyCount: number;
+  /** The Company's current Contacts, shaped for the viewer (see contactForViewer). */
+  contacts: ContactView[];
   createdAt: string | Date;
 };
 

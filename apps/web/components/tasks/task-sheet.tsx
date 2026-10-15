@@ -43,12 +43,12 @@ import {
 } from "@workspace/ui/components/sheet";
 import type { TaskWithRelations } from "@workspace/shared/types/task";
 
+import { AttachmentPicker } from "./attachment-picker";
 import {
-  AttachmentPicker,
-  attachmentToPayload,
-  taskToAttachment,
-  type AttachmentValue,
-} from "./attachment-picker";
+  attachmentsToPayload,
+  taskAttachments,
+  type Attachment,
+} from "./attachments";
 import {
   newTaskFormSchema,
   type NewTaskFormSchema,
@@ -59,15 +59,15 @@ interface TaskSheetProps {
   onOpenChange: (open: boolean) => void;
   /** When provided, the Sheet is in edit mode for this task. */
   task?: TaskWithRelations | null;
-  /** When provided, create-mode locks the attachment to this value. */
-  lockedAttachment?: NonNullable<AttachmentValue>;
+  /** Create mode starts attached to this record (e.g. the page it's opened from). */
+  initialAttachment?: Attachment;
 }
 
 export function TaskSheet({
   open,
   onOpenChange,
   task,
-  lockedAttachment,
+  initialAttachment,
 }: TaskSheetProps) {
   const isEdit = !!task;
   const queryClient = useQueryClient();
@@ -89,9 +89,7 @@ export function TaskSheet({
     resolver: zodResolver(newTaskFormSchema),
     defaultValues: { title: "", dueDate: "" },
   });
-  const [attachment, setAttachment] = useState<AttachmentValue>(
-    lockedAttachment ?? null,
-  );
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -101,11 +99,11 @@ export function TaskSheet({
         dueDate: task.dueDate ?? "",
         assignedTo: task.assignedTo,
       });
-      setAttachment(taskToAttachment(task));
+      setAttachments(taskAttachments(task));
       return;
     }
     form.reset({ title: "", dueDate: "" });
-    setAttachment(lockedAttachment ?? null);
+    setAttachments(initialAttachment ? [initialAttachment] : []);
     if (session.status === "authenticated" && session.data?.userId) {
       form.setValue("assignedTo", parseInt(session.data.userId, 10));
     }
@@ -113,7 +111,7 @@ export function TaskSheet({
     open,
     isEdit,
     task,
-    lockedAttachment,
+    initialAttachment,
     session.status,
     session.data?.userId,
     form,
@@ -138,9 +136,7 @@ export function TaskSheet({
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async (values: NewTaskFormSchema) => {
-      const attachPayload = attachmentToPayload(
-        lockedAttachment ?? attachment,
-      );
+      const attachPayload = attachmentsToPayload(attachments);
       if (isEdit && task) {
         return updateTask(task.id, {
           title: values.title,
@@ -264,15 +260,25 @@ export function TaskSheet({
                 />
               </div>
 
-              {!lockedAttachment && (
-                <div className="space-y-1.5">
-                  <FormLabel>Vínculo (opcional)</FormLabel>
-                  <AttachmentPicker
-                    value={attachment}
-                    onChange={setAttachment}
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <FormLabel>
+                    Vínculos{" "}
+                    <span className="font-normal text-muted-brand">
+                      (opcional)
+                    </span>
+                  </FormLabel>
+                  {attachments.length > 0 && (
+                    <span className="text-[11px] text-muted-brand">
+                      {attachments.length} vinculados
+                    </span>
+                  )}
                 </div>
-              )}
+                <AttachmentPicker
+                  value={attachments}
+                  onChange={setAttachments}
+                />
+              </div>
 
               <div className="flex items-center justify-between gap-2 pt-2">
                 {isEdit ? (

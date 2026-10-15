@@ -63,11 +63,6 @@ export function buildCompanyReportData(params: {
     organizationName: params.organizationName,
     companyName: params.company.name,
     companyDescription: params.company.description?.trim() || undefined,
-    contactInfo: {
-      clientName: params.company.clientName?.trim() || undefined,
-      clientEmail: params.company.clientEmail?.trim() || undefined,
-      clientPhone: params.company.clientPhone?.trim() || undefined,
-    },
     generatedAt: params.generatedAt,
     summary,
     hires,
@@ -107,6 +102,9 @@ export function buildCompanyReportVacancyRow(
     hiredCandidates,
     rejectedCandidates,
     salary: vacancy.salary?.trim() || undefined,
+    vacancyContact: vacancy.vacancyContact
+      ? { name: vacancy.vacancyContact.name, role: vacancy.vacancyContact.role }
+      : undefined,
   };
 }
 

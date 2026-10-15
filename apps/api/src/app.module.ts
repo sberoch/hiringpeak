@@ -26,6 +26,7 @@ import { BlacklistModule } from './blacklist/blacklist.module';
 import { VacancyModule } from './vacancy/vacancy.module';
 import { CandidateVacancyModule } from './candidatevacancy/candidatevacancy.module';
 import { CompanyModule } from './company/company.module';
+import { ContactModule } from './contact/contact.module';
 import { OrganizationModule } from './organization/organization.module';
 import { OnboardModule } from './onboard/onboard.module';
 import { FeatureFlagModule } from './feature-flag/feature-flag.module';
@@ -62,6 +63,7 @@ import { OpportunityModule } from './opportunity/opportunity.module';
     VacancyModule,
     CandidateVacancyModule,
     CompanyModule,
+    ContactModule,
     AreaModule,
     IndustryModule,
     SeniorityModule,
