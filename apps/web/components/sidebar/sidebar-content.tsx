@@ -6,6 +6,7 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  Handshake,
   Landmark,
   LayoutDashboard,
   ListChecks,
@@ -138,6 +139,14 @@ const COMPANIES_ITEM: SidebarItem = {
   requiredPermissions: [PermissionCode.COMPANY_READ],
 };
 
+const OPPORTUNITIES_ITEM: SidebarItem = {
+  id: "opportunities",
+  title: "Oportunidades",
+  url: "/opportunities",
+  icon: <Handshake className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE],
+};
+
 const ADMIN_SECTION: SidebarSection = {
   label: "Administración",
   items: [
@@ -182,8 +191,8 @@ const ADMIN_SECTION: SidebarSection = {
 };
 
 /**
- * Users with commercial access get a «Comercial» section holding Empresas and
- * Tareas; everyone else keeps the original «Espacio de trabajo» layout.
+ * Users with commercial access get a «Comercial» section holding Oportunidades,
+ * Empresas and Tareas; everyone else keeps the original «Espacio de trabajo» layout.
  */
 function buildSidebarSections(commercialAccess: boolean): SidebarSection[] {
   if (!commercialAccess) {
@@ -206,7 +215,10 @@ function buildSidebarSections(commercialAccess: boolean): SidebarSection[] {
       label: "Espacio de trabajo",
       items: [DASHBOARD_ITEM, CANDIDATES_ITEM, VACANCIES_ITEM],
     },
-    { label: "Comercial", items: [COMPANIES_ITEM, TASKS_ITEM] },
+    {
+      label: "Comercial",
+      items: [OPPORTUNITIES_ITEM, COMPANIES_ITEM, TASKS_ITEM],
+    },
     ADMIN_SECTION,
   ];
 }
