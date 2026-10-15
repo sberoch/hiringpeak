@@ -9,8 +9,8 @@ import {
   excludePassword,
   tasks,
   type NewTask,
-  type Task,
 } from '@workspace/shared/schemas';
+import type { TaskWithRelations } from '@workspace/shared/types/task';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { NotificationFactory } from '../notification/notification-factory';
@@ -24,9 +24,14 @@ import {
   TaskFindAllServiceParams,
   UpdateTaskServiceDto,
 } from './task.dto';
-import { TaskTargetPolicy } from './task-target-policy';
+import {
+  attachedToFilters,
+  flattenTaskAttachments,
+  withTaskAttachments,
+  writeTaskAttachments,
+} from './task-attachments';
 
-export type TaskApiResponse = Task;
+export type TaskApiResponse = TaskWithRelations;
 
 @Injectable()
 export class TaskService {
@@ -50,9 +55,7 @@ export class TaskService {
       with: {
         assignedToUser: true,
         createdByUser: true,
-        candidate: true,
-        vacancy: true,
-        company: true,
+        ...withTaskAttachments,
       },
     });
 
@@ -61,13 +64,13 @@ export class TaskService {
       .from(tasks)
       .where(whereClause);
 
-    let [items, [{ count: totalItems }]] = await Promise.all([
+    const [rows, [{ count: totalItems }]] = await Promise.all([
       itemsQuery,
       countQuery,
     ]);
 
-    items = items.map((t) => ({
-      ...t,
+    const items = rows.map((t) => ({
+      ...flattenTaskAttachments(t),
       assignedToUser: excludePassword(t.assignedToUser),
       createdByUser: excludePassword(t.createdByUser),
     }));
@@ -96,15 +99,13 @@ export class TaskService {
       orderBy: [asc(tasks.dueDate)],
       with: {
         assignedToUser: true,
-        candidate: true,
-        vacancy: true,
-        company: true,
+        ...withTaskAttachments,
       },
       limit: 10,
     });
 
     return items.map((t) => ({
-      ...t,
+      ...flattenTaskAttachments(t),
       assignedToUser: excludePassword(t.assignedToUser),
     }));
   }
@@ -124,25 +125,20 @@ export class TaskService {
   }
 
   async create(dto: CreateTaskServiceDto) {
-    if (!TaskTargetPolicy.isValid(dto)) {
-      throw new BadRequestException(
-        'A Task can be attached to at most one of candidate, vacancy, or company',
-      );
-    }
-
-    const [task] = await this.db
-      .insert(tasks)
-      .values({
-        title: dto.title,
-        dueDate: dto.dueDate ?? null,
-        assignedTo: dto.assignedTo,
-        createdBy: dto.createdBy,
-        organizationId: dto.organizationId,
-        candidateId: dto.candidateId ?? null,
-        vacancyId: dto.vacancyId ?? null,
-        companyId: dto.companyId ?? null,
-      } as NewTask)
-      .returning();
+    const task = await this.db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(tasks)
+        .values({
+          title: dto.title,
+          dueDate: dto.dueDate ?? null,
+          assignedTo: dto.assignedTo,
+          createdBy: dto.createdBy,
+          organizationId: dto.organizationId,
+        } as NewTask)
+        .returning();
+      await writeTaskAttachments(tx, created.id, dto, { isNew: true });
+      return created;
+    });
 
     if (task.assignedTo !== dto.createdBy) {
       await this.notificationFactory.ensure({
@@ -167,35 +163,22 @@ export class TaskService {
   async update(id: number, dto: UpdateTaskServiceDto) {
     const existing = await this.findOne(id, dto.organizationId);
 
-    const merged = {
-      candidateId:
-        dto.candidateId !== undefined ? dto.candidateId : existing.candidateId,
-      vacancyId:
-        dto.vacancyId !== undefined ? dto.vacancyId : existing.vacancyId,
-      companyId:
-        dto.companyId !== undefined ? dto.companyId : existing.companyId,
-    };
-    if (!TaskTargetPolicy.isValid(merged)) {
-      throw new BadRequestException(
-        'A Task can be attached to at most one of candidate, vacancy, or company',
-      );
-    }
-
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (dto.title !== undefined) updates.title = dto.title;
     if (dto.dueDate !== undefined) updates.dueDate = dto.dueDate;
     if (dto.assignedTo !== undefined) updates.assignedTo = dto.assignedTo;
-    if (dto.candidateId !== undefined) updates.candidateId = dto.candidateId;
-    if (dto.vacancyId !== undefined) updates.vacancyId = dto.vacancyId;
-    if (dto.companyId !== undefined) updates.companyId = dto.companyId;
 
-    const [task] = await this.db
-      .update(tasks)
-      .set(updates)
-      .where(
-        and(eq(tasks.id, id), eq(tasks.organizationId, dto.organizationId)),
-      )
-      .returning();
+    const task = await this.db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(tasks)
+        .set(updates)
+        .where(
+          and(eq(tasks.id, id), eq(tasks.organizationId, dto.organizationId)),
+        )
+        .returning();
+      await writeTaskAttachments(tx, id, dto);
+      return updated;
+    });
 
     const reassignedToOther =
       dto.assignedTo !== undefined &&
@@ -276,10 +259,7 @@ export class TaskService {
     if (params.createdBy) filters.push(eq(tasks.createdBy, params.createdBy));
     if (params.completed != null)
       filters.push(eq(tasks.completed, params.completed));
-    if (params.candidateId)
-      filters.push(eq(tasks.candidateId, params.candidateId));
-    if (params.vacancyId) filters.push(eq(tasks.vacancyId, params.vacancyId));
-    if (params.companyId) filters.push(eq(tasks.companyId, params.companyId));
+    filters.push(...attachedToFilters(this.db, params));
     return and(...filters);
   }
 }

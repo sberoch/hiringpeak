@@ -1,18 +1,12 @@
 "use client";
 
-import {
-  AlertTriangle,
-  Building2,
-  Clock,
-  GitBranch,
-  Slash,
-  User,
-  UserPlus,
-} from "lucide-react";
+import { AlertTriangle, Clock, UserPlus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@workspace/ui/lib/utils";
 import type { TaskWithRelations } from "@workspace/shared/types/task";
+
+import { AttachChips, taskAttachments } from "./attachments";
 
 const MONTHS = [
   "ene",
@@ -116,79 +110,6 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-const ATTACH_ICON: Record<"candidate" | "vacancy" | "company", LucideIcon> = {
-  candidate: User,
-  vacancy: GitBranch,
-  company: Building2,
-};
-
-const ATTACH_LABEL: Record<"candidate" | "vacancy" | "company", string> = {
-  candidate: "Postulante",
-  vacancy: "Vacante",
-  company: "Empresa",
-};
-
-export type TaskAttachment = {
-  type: "candidate" | "vacancy" | "company";
-  label: string;
-} | null;
-
-export function taskAttachment(task: TaskWithRelations): TaskAttachment {
-  if (task.candidateId != null) {
-    return {
-      type: "candidate",
-      label: task.candidate?.name ?? `Postulante #${task.candidateId}`,
-    };
-  }
-  if (task.vacancyId != null) {
-    return {
-      type: "vacancy",
-      label: task.vacancy?.title ?? `Vacante #${task.vacancyId}`,
-    };
-  }
-  if (task.companyId != null) {
-    return {
-      type: "company",
-      label: task.company?.name ?? `Empresa #${task.companyId}`,
-    };
-  }
-  return null;
-}
-
-export function AttachChip({
-  attach,
-  className,
-}: {
-  attach: TaskAttachment;
-  className?: string;
-}) {
-  if (!attach) {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-md border border-dashed border-brand-border px-1.5 py-0.5 text-[11px] text-muted-brand",
-          className,
-        )}
-      >
-        <Slash className="h-3 w-3" />
-        Sin vincular
-      </span>
-    );
-  }
-  const Icon = ATTACH_ICON[attach.type];
-  return (
-    <span
-      title={`${ATTACH_LABEL[attach.type]}: ${attach.label}`}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md bg-electric/5 px-1.5 py-0.5 text-[11px] font-medium text-electric",
-        className,
-      )}
-    >
-      <Icon className="h-3 w-3 shrink-0" />
-      <span className="truncate max-w-[180px]">{attach.label}</span>
-    </span>
-  );
-}
 
 export function OwnerAvatar({
   name,
@@ -236,7 +157,7 @@ export function TaskRow({
   hideOwner,
   bordered,
 }: TaskRowProps) {
-  const attach = taskAttachment(task);
+  const attachments = taskAttachments(task);
   const ownerName = task.assignedToUser?.name ?? "—";
   const isMe =
     currentUserId != null && task.assignedToUser?.id === currentUserId;
@@ -288,7 +209,7 @@ export function TaskRow({
           {task.title}
         </p>
         <div className="mt-1 flex items-center gap-2">
-          <AttachChip attach={attach} />
+          <AttachChips attachments={attachments} />
         </div>
       </div>
 
