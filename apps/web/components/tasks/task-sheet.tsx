@@ -15,8 +15,13 @@ import {
   TASK_API_KEY,
   updateTask,
 } from "@/lib/api/tasks";
+import {
+  COMMERCIAL_USERS_API_KEY,
+  getCommercialUsers,
+} from "@/lib/api/opportunity";
 import { getAllUsers, USERS_API_KEY } from "@/lib/api/user";
 import { PermissionCode } from "@workspace/shared/enums";
+import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { Button } from "@workspace/ui/components/button";
 import {
   Form,
@@ -46,13 +51,11 @@ import type { TaskWithRelations } from "@workspace/shared/types/task";
 import { AttachmentPicker } from "./attachment-picker";
 import {
   attachmentsToPayload,
+  isCommercialAttachments,
   taskAttachments,
   type Attachment,
 } from "./attachments";
-import {
-  newTaskFormSchema,
-  type NewTaskFormSchema,
-} from "./new-task.schema";
+import { newTaskFormSchema, type NewTaskFormSchema } from "./new-task.schema";
 
 interface TaskSheetProps {
   open: boolean;
@@ -72,8 +75,9 @@ export function TaskSheet({
   const isEdit = !!task;
   const queryClient = useQueryClient();
   const session = useSession();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, permissionCodes } = usePermissions();
   const canManageAll = hasPermission(PermissionCode.TASK_MANAGE_ALL);
+  const actorIsCommercial = hasCommercialAccess(permissionCodes);
   const currentUserId =
     session.status === "authenticated" && session.data?.userId
       ? parseInt(session.data.userId, 10)
@@ -85,11 +89,23 @@ export function TaskSheet({
   });
   const users = usersData?.items ?? [];
 
+  // Only Users with commercial access can own a commercial Task.
+  const { data: commercialUsers } = useQuery({
+    queryKey: [COMMERCIAL_USERS_API_KEY],
+    queryFn: getCommercialUsers,
+    enabled: canManageAll && actorIsCommercial,
+  });
+  const commercialUserIds = new Set((commercialUsers ?? []).map((u) => u.id));
+
   const form = useForm<NewTaskFormSchema>({
     resolver: zodResolver(newTaskFormSchema),
     defaultValues: { title: "", dueDate: "" },
   });
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const isCommercial = isCommercialAttachments(
+    attachments,
+    task?.stayedCommercial ?? false,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -161,9 +177,10 @@ export function TaskSheet({
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
       onOpenChange(false);
     },
-    onError: () =>
+    onError: (err) =>
       toast.error(
         isEdit ? "No se pudo actualizar la tarea" : "No se pudo crear la tarea",
+        { description: apiErrorMessage(err) },
       ),
   });
 
@@ -194,10 +211,7 @@ export function TaskSheet({
                   <FormItem>
                     <FormLabel>Título</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ej. Llamar al abogado"
-                        {...field}
-                      />
+                      <Input placeholder="Ej. Llamar al abogado" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -237,11 +251,24 @@ export function TaskSheet({
                               <SelectValue placeholder="Selecciona un responsable" />
                             </SelectTrigger>
                             <SelectContent>
-                              {users.map((u) => (
-                                <SelectItem key={u.id} value={String(u.id)}>
-                                  {u.name}
-                                </SelectItem>
-                              ))}
+                              {users.map((u) => {
+                                const blocked =
+                                  isCommercial && !commercialUserIds.has(u.id);
+                                return (
+                                  <SelectItem
+                                    key={u.id}
+                                    value={String(u.id)}
+                                    disabled={blocked}
+                                  >
+                                    {u.name}
+                                    {blocked && (
+                                      <span className="text-xs text-muted-brand">
+                                        Sin acceso comercial
+                                      </span>
+                                    )}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                         ) : (
@@ -323,4 +350,11 @@ export function TaskSheet({
       </SheetContent>
     </Sheet>
   );
+}
+
+/** The API's message for a rejected write (e.g. an owner without commercial access). */
+function apiErrorMessage(err: unknown): string | undefined {
+  const message = (err as { response?: { data?: { message?: unknown } } })
+    ?.response?.data?.message;
+  return typeof message === "string" ? message : undefined;
 }

@@ -5,10 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { and, asc, count, desc, eq, isNull, SQL } from 'drizzle-orm';
-import {
-  notifications,
-  type Notification,
-} from '@workspace/shared/schemas';
+import { notifications, type Notification } from '@workspace/shared/schemas';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -16,6 +13,7 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
+import { notOfCommercialTask } from '../task/task-attachments';
 import { NotificationFindAllServiceParams } from './notification.dto';
 
 export type NotificationApiResponse = Notification;
@@ -61,25 +59,27 @@ export class NotificationService {
     return paginatedResponse(items, totalItems, paginationQuery);
   }
 
-  async unreadCount(organizationId: number, recipientUserId: number) {
+  async unreadCount(
+    organizationId: number,
+    recipient: { userId: number; commercialAccess: boolean },
+  ) {
     const [{ count: c }] = await this.db
       .select({ count: count(notifications.id) })
       .from(notifications)
       .where(
         and(
           eq(notifications.organizationId, organizationId),
-          eq(notifications.recipientUserId, recipientUserId),
+          eq(notifications.recipientUserId, recipient.userId),
           isNull(notifications.readAt),
+          ...(recipient.commercialAccess
+            ? []
+            : [notOfCommercialTask(notifications.taskId)]),
         ),
       );
     return { count: c };
   }
 
-  async markRead(
-    id: number,
-    organizationId: number,
-    recipientUserId: number,
-  ) {
+  async markRead(id: number, organizationId: number, recipientUserId: number) {
     const existing = await this.findOwn(id, organizationId, recipientUserId);
     if (existing.readAt) return existing;
     const readUpdate: Record<string, unknown> = { readAt: new Date() };
@@ -97,11 +97,7 @@ export class NotificationService {
     return updated;
   }
 
-  async dismiss(
-    id: number,
-    organizationId: number,
-    recipientUserId: number,
-  ) {
+  async dismiss(id: number, organizationId: number, recipientUserId: number) {
     await this.findOwn(id, organizationId, recipientUserId);
     const [deleted] = await this.db
       .delete(notifications)
@@ -151,6 +147,9 @@ export class NotificationService {
     filters.push(eq(notifications.recipientUserId, params.recipientUserId));
     if (params.unreadOnly === true) {
       filters.push(isNull(notifications.readAt));
+    }
+    if (!params.commercialAccess) {
+      filters.push(notOfCommercialTask(notifications.taskId));
     }
     return and(...filters);
   }

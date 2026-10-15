@@ -12,6 +12,8 @@ export type TaskAttachedCandidacy = {
   vacancyTitle: string;
 };
 export type TaskAttachedCompany = { id: number; name: string };
+export type TaskAttachedContact = { id: number; name: string };
+export type TaskAttachedOpportunity = { id: number; title: string };
 
 /** Records a Task is attached to, by type (ADR 0005: any number, any mix). */
 export type TaskAttachmentIds = {
@@ -19,7 +21,12 @@ export type TaskAttachmentIds = {
   vacancyIds?: number[];
   candidacyIds?: number[];
   companyIds?: number[];
+  contactIds?: number[];
+  opportunityIds?: number[];
 };
+
+/** Tasks page pills: commercial Tasks, or Tasks about recruiting records. */
+export type TaskAttachmentClass = "commercial" | "vacancies";
 
 export type BaseTask = {
   title: string;
@@ -41,6 +48,8 @@ export type TaskWithRelations = Task & {
   vacancies: TaskAttachedVacancy[];
   candidacies: TaskAttachedCandidacy[];
   companies: TaskAttachedCompany[];
+  contacts: TaskAttachedContact[];
+  opportunities: TaskAttachedOpportunity[];
 };
 
 export type TaskFilters = PaginationFilters & {
@@ -51,6 +60,9 @@ export type TaskFilters = PaginationFilters & {
   vacancyId?: number;
   candidacyId?: number;
   companyId?: number;
+  contactId?: number;
+  opportunityId?: number;
+  attachmentClass?: TaskAttachmentClass;
 };
 
 export type TaskParams = TaskFilters;
