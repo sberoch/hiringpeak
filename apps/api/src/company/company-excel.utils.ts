@@ -1,5 +1,8 @@
 import ExcelJS from 'exceljs';
-import { type Company } from '@workspace/shared/types/company';
+import {
+  COMPANY_STATUS_NAMES,
+  type Company,
+} from '@workspace/shared/types/company';
 import type {
   ReportCandidacyRow,
   VacancyReportFullResponse,
@@ -47,7 +50,7 @@ export function buildCompanyReportWorkbook(params: {
         ['Organización', organizationName],
         ['Generado', formatExcelDateTime(generatedAt)],
         ['Empresa', data.companyName],
-        ['Estado', company.status],
+        ['Estado', COMPANY_STATUS_NAMES[company.status]],
       ],
     },
     {

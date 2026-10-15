@@ -1,4 +1,7 @@
-import { CompanyStatusEnum, type Company } from '@workspace/shared/types/company';
+import {
+  CompanyStatusEnum,
+  type Company,
+} from '@workspace/shared/types/company';
 import type { VacancyApiResponse } from '../vacancy/vacancy.service';
 import {
   buildCompanyReportData,
@@ -14,8 +17,11 @@ const baseCompany: Company = {
   id: 17,
   name: 'Compañía Ágil',
   description: 'Cliente de prueba',
-  status: CompanyStatusEnum.ACTIVE,
+  status: CompanyStatusEnum.CLIENT,
+  accountOwnerId: null,
+  accountOwner: null,
   vacancyCount: 2,
+  activeVacancyCount: 1,
   createdAt: '2026-04-08T00:00:00.000Z',
   contacts: [],
 };

@@ -26,6 +26,7 @@ import {
   CreateCompanyDto,
   UpdateCompanyDto,
   CompanyQueryParams,
+  UpdateCompanyAccountOwnerDto,
 } from './company.dto';
 import { PermissionCode } from '@workspace/shared/enums';
 import { Permissions } from '../auth/permissions/permissions.decorator';
@@ -166,6 +167,30 @@ export class CompanyController {
       ...updateCompanyDto,
       organizationId,
     });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'set_company_account_owner',
+    entityType: 'company',
+    labelField: 'name',
+    relatedFields: [
+      { type: 'account_owner_from', field: 'accountOwnerChange.from' },
+      { type: 'account_owner_to', field: 'accountOwnerChange.to' },
+    ],
+  })
+  @Permissions(PermissionCode.CRM_MANAGE)
+  @Patch(':id/account-owner')
+  async setAccountOwner(
+    @Param('id') id: string,
+    @Body() dto: UpdateCompanyAccountOwnerDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.companyService.setAccountOwner(
+      +id,
+      organizationId,
+      dto.accountOwnerId,
+    );
   }
 
   @ApiOkResponse()

@@ -1,4 +1,5 @@
 import type { LastInteraction } from "./interaction.js";
+import type { CompanyStatus } from "../enums.js";
 
 export type OpportunityStage = {
   id: number;
@@ -92,6 +93,8 @@ export type OpportunityFilters = {
   companyId?: number;
   /** Only the Opportunities this Contact is part of. */
   contactId?: number;
+  /** Only Opportunities at Prospect (or Client) Companies. */
+  companyStatus?: CompanyStatus;
 };
 
 export type CreateOpportunityPayload = {

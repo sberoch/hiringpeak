@@ -1,10 +1,9 @@
 import { companies } from '@workspace/shared/schemas';
-import { CompanyStatus } from '@workspace/shared/enums';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 
 /**
  * "Pick or create" a Company by name (Contact capture, "Crear oportunidad"):
- * a new Company starts as a Prospect, with no description. Runs on the
+ * a new Company (a Prospect, by derivation) with no description. Runs on the
  * caller's transaction.
  */
 export async function insertProspectCompany(
@@ -17,7 +16,6 @@ export async function insertProspectCompany(
     .values({
       name,
       description: '',
-      status: CompanyStatus.PROSPECT,
       organizationId,
     })
     .returning({ id: companies.id });

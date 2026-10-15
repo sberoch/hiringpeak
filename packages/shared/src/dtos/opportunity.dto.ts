@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PaginationParamsSchema } from "./pagination.dto.js";
+import { CompanyStatus } from "../enums.js";
 
 /** Day-granular date string `YYYY-MM-DD`. */
 const DayDateSchema = z
@@ -12,7 +13,7 @@ export const CreateOpportunitySchema = z.object({
   title: z.string().trim().min(1),
   companyId: z.number().int(),
   estimatedFee: EstimatedFeeSchema.optional(),
-  /** Opportunity Owner; defaults to the creator. */
+  /** Opportunity Owner; defaults to the Company's Account Owner, else the creator. */
   ownerId: z.number().int().optional(),
 });
 
@@ -25,6 +26,7 @@ export const CreateOpportunitySchema = z.object({
 export const CreateOpportunityFromContactSchema = z.object({
   title: z.string().trim().min(1),
   estimatedFee: EstimatedFeeSchema.optional(),
+  /** Opportunity Owner; defaults to the Company's Account Owner, else the creator. */
   ownerId: z.number().int().optional(),
   companyId: z.number().int().nullable().optional(),
   newCompanyName: z.string().trim().min(1).nullable().optional(),
@@ -72,6 +74,8 @@ export const OpportunityQueryParamsSchema = z.object({
   companyId: z.coerce.number().int().optional(),
   /** Only the Opportunities this Contact is part of. */
   contactId: z.coerce.number().int().optional(),
+  /** Only Opportunities at Prospect (or Client) Companies. */
+  companyStatus: z.nativeEnum(CompanyStatus).optional(),
 });
 
 export const OpportunityStageQueryParamsSchema = PaginationParamsSchema;

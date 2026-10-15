@@ -1,6 +1,5 @@
  
 import { and, eq } from 'drizzle-orm';
-import { CompanyStatus } from '@workspace/shared/enums';
 import { companies } from '@workspace/shared/schemas';
 import { SeedTx } from './types';
 
@@ -38,7 +37,6 @@ async function findOrCreateCompany(
     .values({
       name,
       description: '',
-      status: CompanyStatus.ACTIVE,
       organizationId,
     })
     .returning({ id: companies.id });

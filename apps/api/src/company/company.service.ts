@@ -4,17 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, SQL } from 'drizzle-orm';
 import {
   companies,
   contacts,
+  interactions,
   type Company as CompanyRecord,
   type Contact as ContactRecord,
-  type Vacancy as VacancyRecord,
 } from '@workspace/shared/schemas';
+import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 import { contactForViewer } from '@workspace/shared/lib/contact-access';
 import type { Company as CompanyResponse } from '@workspace/shared/types/company';
-import { CompanyStatusEnum } from '@workspace/shared/types/company';
+import type { LastInteraction } from '@workspace/shared/types/interaction';
+import { AuthzService } from '../auth/authz/authz.service';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -28,16 +30,30 @@ import {
   CreateCompanyServiceDto,
   UpdateCompanyServiceDto,
 } from './company.dto';
+import { lastInteractionByKey } from '../interaction/last-interaction';
+import { deriveCompanyStatus } from './company-status';
+import { companyStatusCondition } from './company-status-filter';
 
 interface CompanyQueryResult extends CompanyRecord {
-  vacancies: VacancyRecord[];
+  vacancies: { id: number; status: { isFinal: boolean } | null }[];
   contacts: ContactRecord[];
+  accountOwner: { id: number; name: string } | null;
+  opportunities: {
+    id: number;
+    estimatedFee: string | null;
+    stage: { isWon: boolean; isLost: boolean };
+  }[];
 }
 
+const ACCOUNT_OWNER_WITHOUT_COMMERCIAL_ACCESS =
+  'El responsable de cuenta debe tener acceso al área comercial.';
 
 @Injectable()
 export class CompanyService {
-  constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
+  constructor(
+    @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
+    private readonly authzService: AuthzService,
+  ) {}
 
   /**
    * `viewerCodes` are the caller's permission codes: they decide which Contact
@@ -57,9 +73,17 @@ export class CompanyService {
       limit: paginationQuery.limit,
       offset: paginationQuery.offset,
       with: {
-        vacancies: true,
+        vacancies: {
+          columns: { id: true },
+          with: { status: { columns: { isFinal: true } } },
+        },
         // A Company lists only its current Contacts.
         contacts: { orderBy: [asc(contacts.name)] },
+        accountOwner: { columns: { id: true, name: true } },
+        opportunities: {
+          columns: { id: true, estimatedFee: true },
+          with: { stage: { columns: { isWon: true, isLost: true } } },
+        },
       },
     });
 
@@ -73,8 +97,13 @@ export class CompanyService {
       countQuery,
     ]);
 
+    const lastInteractions = await this.lastInteractionsFor(
+      items.map((item) => item.id),
+      params.organizationId,
+      viewerCodes,
+    );
     const parsedItems = items.map((item) =>
-      this.transformQueryResult(item, viewerCodes),
+      this.transformQueryResult(item, viewerCodes, lastInteractions),
     );
 
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
@@ -91,20 +120,96 @@ export class CompanyService {
         eq(companies.organizationId, organizationId),
       ),
       with: {
-        vacancies: true,
+        vacancies: {
+          columns: { id: true },
+          with: { status: { columns: { isFinal: true } } },
+        },
         // A Company lists only its current Contacts.
         contacts: { orderBy: [asc(contacts.name)] },
+        accountOwner: { columns: { id: true, name: true } },
+        opportunities: {
+          columns: { id: true, estimatedFee: true },
+          with: { stage: { columns: { isWon: true, isLost: true } } },
+        },
       },
     });
     if (!company) throw new NotFoundException('Not found');
-    return this.transformQueryResult(company, viewerCodes);
+    const lastInteractions = await this.lastInteractionsFor(
+      [company.id],
+      organizationId,
+      viewerCodes,
+    );
+    return this.transformQueryResult(company, viewerCodes, lastInteractions);
+  }
+
+  /**
+   * Set or clear the Account Owner (only users with commercial access).
+   * Returns the Company plus `accountOwnerChange` (from → to names) for the
+   * audit trail.
+   */
+  async setAccountOwner(
+    id: number,
+    organizationId: number,
+    accountOwnerId: number | null,
+  ) {
+    const existing = await this.findOne(id, organizationId);
+    if (
+      accountOwnerId != null &&
+      !(await this.authzService.isCommercialUser(
+        accountOwnerId,
+        organizationId,
+      ))
+    ) {
+      throw new BadRequestException(ACCOUNT_OWNER_WITHOUT_COMMERCIAL_ACCESS);
+    }
+    await this.db
+      .update(companies)
+      .set({ accountOwnerId } as Partial<CompanyRecord>)
+      .where(
+        and(eq(companies.id, id), eq(companies.organizationId, organizationId)),
+      );
+    const updated = await this.findOne(id, organizationId);
+    return {
+      ...updated,
+      accountOwnerChange: {
+        from: existing.accountOwner?.name ?? null,
+        to: updated.accountOwner?.name ?? null,
+      },
+    };
+  }
+
+  /** Each Company's latest Interaction; only computed for commercial viewers. */
+  private async lastInteractionsFor(
+    companyIds: number[],
+    organizationId: number,
+    viewerCodes: readonly string[],
+  ): Promise<Map<number, LastInteraction>> {
+    if (!hasCommercialAccess(viewerCodes) || companyIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({
+        id: interactions.id,
+        type: interactions.type,
+        date: interactions.date,
+        key: interactions.companyId,
+      })
+      .from(interactions)
+      .where(
+        and(
+          eq(interactions.organizationId, organizationId),
+          inArray(interactions.companyId, companyIds),
+        ),
+      );
+    return lastInteractionByKey(
+      rows.filter(
+        (row): row is typeof row & { key: number } => row.key != null,
+      ),
+    );
   }
 
   async create(dto: CreateCompanyServiceDto) {
-    const [company] = await this.db
-      .insert(companies)
-      .values(dto)
-      .returning();
+    const [company] = await this.db.insert(companies).values(dto).returning();
     return company;
   }
 
@@ -133,15 +238,40 @@ export class CompanyService {
   private transformQueryResult(
     result: CompanyQueryResult,
     viewerCodes: readonly string[],
+    lastInteractions: Map<number, LastInteraction>,
   ): CompanyResponse {
-    const { vacancies, contacts: companyContacts, ...rest } = result;
-    return {
+    const {
+      vacancies,
+      contacts: companyContacts,
+      opportunities,
+      ...rest
+    } = result;
+    const response: CompanyResponse = {
       ...rest,
-      status: this.parseCompanyStatus(rest.status),
+      status: deriveCompanyStatus({
+        opportunities: opportunities.map((o) => o.stage),
+        vacancyCount: vacancies.length,
+      }),
       vacancyCount: vacancies.length,
+      activeVacancyCount: vacancies.filter((v) => !v.status?.isFinal).length,
       contacts: companyContacts.map((contact) =>
         contactForViewer(contact, viewerCodes),
       ),
+    };
+    if (!hasCommercialAccess(viewerCodes)) return response;
+
+    const open = opportunities.filter((o) => !o.stage.isWon && !o.stage.isLost);
+    return {
+      ...response,
+      commercial: {
+        openOpportunityCount: open.length,
+        openOpportunityFee: open.reduce(
+          (sum, o) =>
+            sum + (o.estimatedFee == null ? 0 : Number(o.estimatedFee)),
+          0,
+        ),
+        lastInteraction: lastInteractions.get(result.id) ?? null,
+      },
     };
   }
 
@@ -173,20 +303,13 @@ export class CompanyService {
       filters.push(ilike(companies.description, params.description));
     }
     if (params.status) {
-      filters.push(eq(companies.status, params.status));
+      filters.push(
+        companyStatusCondition(this.db, companies.id, params.status),
+      );
+    }
+    if (params.accountOwnerId != null) {
+      filters.push(eq(companies.accountOwnerId, params.accountOwnerId));
     }
     return filters.length > 0 ? and(...filters) : undefined;
-  }
-
-  private parseCompanyStatus(status: string) {
-    if (status === CompanyStatusEnum.ACTIVE) {
-      return CompanyStatusEnum.ACTIVE;
-    }
-
-    if (status === CompanyStatusEnum.PROSPECT) {
-      return CompanyStatusEnum.PROSPECT;
-    }
-
-    throw new BadRequestException('Invalid company status');
   }
 }
