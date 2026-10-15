@@ -96,7 +96,7 @@ function CreateOpportunityForm({
 
   const [company, setCompany] = useState<CompanyChoice>({ kind: "none" });
   const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+  const [estimatedFeeInput, setEstimatedFeeInput] = useState("");
   const [ownerId, setOwnerId] = useState<number | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
 
@@ -118,7 +118,7 @@ function CreateOpportunityForm({
     commercialUsers,
   );
   const effectiveOwnerId = ownerId ?? defaultOwnerId;
-  const fee = parseMoneyInput(amount);
+  const fee = parseMoneyInput(estimatedFeeInput);
   const feeInvalid = fee != null && (!Number.isFinite(fee) || fee < 0);
   const companyReady = hasCompany || company.kind !== "none";
   const canSubmit =
@@ -248,9 +248,9 @@ function CreateOpportunityForm({
               <Input
                 id="opportunity-from-contact-fee"
                 inputMode="numeric"
-                value={amount}
+                value={estimatedFeeInput}
                 onChange={(e) =>
-                  setAmount(e.target.value.replace(/[^\d.,]/g, ""))
+                  setEstimatedFeeInput(e.target.value.replace(/[^\d.,]/g, ""))
                 }
                 placeholder="Sin estimar"
                 className="pl-7 tabular-nums"

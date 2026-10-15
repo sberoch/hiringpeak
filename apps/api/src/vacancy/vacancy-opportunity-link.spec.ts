@@ -22,7 +22,7 @@ let user: number;
 let acme: number;
 let globex: number;
 let statusId: number;
-let wonDeal: number;
+let wonOpportunity: number;
 
 beforeEach(async () => {
   const db = await createTestDatabase();
@@ -34,7 +34,7 @@ beforeEach(async () => {
   globex = await f.company(org, { name: 'Globex' });
   statusId = await f.vacancyStatus(org);
   const stages = await f.stages(org);
-  wonDeal = await f.opportunity(org, {
+  wonOpportunity = await f.opportunity(org, {
     companyId: acme,
     ownerId: user,
     stageId: stages.won,
@@ -61,7 +61,7 @@ describe('Setting the Opportunity of a Vacancy', () => {
 
   it('is forbidden without CRM_MANAGE when clearing it', async () => {
     const vacancy = await vacancies.create(
-      vacancyDto({ opportunityId: wonDeal }),
+      vacancyDto({ opportunityId: wonOpportunity }),
       PARTNER,
     );
     await expect(
@@ -75,17 +75,17 @@ describe('Setting the Opportunity of a Vacancy', () => {
 
   it('links a won Opportunity of the same Company with CRM_MANAGE', async () => {
     const vacancy = await vacancies.create(
-      vacancyDto({ opportunityId: wonDeal }),
+      vacancyDto({ opportunityId: wonOpportunity }),
       PARTNER,
     );
     expect(
       (await vacancies.findOne(vacancy.id, org, PARTNER)).opportunityId,
-    ).toBe(wonDeal);
+    ).toBe(wonOpportunity);
   });
 
   it('lets recruiters edit a linked Vacancy without touching the link', async () => {
     const vacancy = await vacancies.create(
-      vacancyDto({ opportunityId: wonDeal }),
+      vacancyDto({ opportunityId: wonOpportunity }),
       PARTNER,
     );
     await vacancies.update(
@@ -95,7 +95,7 @@ describe('Setting the Opportunity of a Vacancy', () => {
     );
     expect(
       (await vacancies.findOne(vacancy.id, org, PARTNER)).opportunityId,
-    ).toBe(wonDeal);
+    ).toBe(wonOpportunity);
   });
 });
 
@@ -103,7 +103,10 @@ describe('Reading the Opportunity of a Vacancy', () => {
   let vacancyId: number;
   beforeEach(async () => {
     vacancyId = (
-      await vacancies.create(vacancyDto({ opportunityId: wonDeal }), PARTNER)
+      await vacancies.create(
+        vacancyDto({ opportunityId: wonOpportunity }),
+        PARTNER,
+      )
     ).id;
   });
 
@@ -131,14 +134,14 @@ describe('Reading the Opportunity of a Vacancy', () => {
     const page = await vacancies.findAll({ organizationId: org }, [
       PermissionCode.CRM_READ,
     ]);
-    expect(page.items[0]).toMatchObject({ opportunityId: wonDeal });
+    expect(page.items[0]).toMatchObject({ opportunityId: wonOpportunity });
   });
 });
 
 describe('Company changes and the link', () => {
   it("moving the Vacancy to another Company unlinks it from the first Company's Opportunity", async () => {
     const vacancy = await vacancies.create(
-      vacancyDto({ opportunityId: wonDeal }),
+      vacancyDto({ opportunityId: wonOpportunity }),
       PARTNER,
     );
     await vacancies.update(
@@ -153,15 +156,15 @@ describe('Company changes and the link', () => {
 
   it('moving the Opportunity to another Company leaves its Vacancies linked', async () => {
     const vacancy = await vacancies.create(
-      vacancyDto({ opportunityId: wonDeal }),
+      vacancyDto({ opportunityId: wonOpportunity }),
       PARTNER,
     );
-    await opportunities.update(wonDeal, {
+    await opportunities.update(wonOpportunity, {
       companyId: globex,
       organizationId: org,
     });
     expect(
       (await vacancies.findOne(vacancy.id, org, PARTNER)).opportunityId,
-    ).toBe(wonDeal);
+    ).toBe(wonOpportunity);
   });
 });

@@ -25,7 +25,10 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { cn } from "@workspace/ui/lib/utils";
-import { sortStages } from "@workspace/shared/lib/opportunity-pipeline";
+import {
+  isOpenStage,
+  sortOpportunityStages,
+} from "@workspace/shared/lib/opportunity-stage";
 import type {
   OpportunityStageOutcome,
   OpportunityStageWithUsage,
@@ -54,7 +57,7 @@ import {
 
 type Stage = OpportunityStageWithUsage;
 
-const isOpen = (stage: Stage) => !stage.isWon && !stage.isLost;
+const isOpen = (stage: Stage) => isOpenStage(stage);
 
 function OutcomeRadio({
   checked,
@@ -241,7 +244,10 @@ export default function OpportunityStagesSettings() {
     queryFn: getOpportunityStages,
   });
 
-  const stages = useMemo(() => (data ? sortStages(data) : []), [data]);
+  const stages = useMemo(
+    () => (data ? sortOpportunityStages(data) : []),
+    [data],
+  );
   const open = stages.filter(isOpen);
   const outcomes = stages.filter((stage) => !isOpen(stage));
   const term = search.trim().toLowerCase();

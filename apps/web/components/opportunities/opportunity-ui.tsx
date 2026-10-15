@@ -17,7 +17,7 @@ import {
 } from "@/lib/api/opportunity";
 import { PermissionCode } from "@workspace/shared/enums";
 import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
-import { sortStages } from "@workspace/shared/lib/opportunity-pipeline";
+import { sortOpportunityStages } from "@workspace/shared/lib/opportunity-stage";
 import type { OpportunityStage } from "@workspace/shared/types/opportunity";
 import { LoadingSpinner } from "@workspace/ui/components/loading-spinner";
 import { cn } from "@workspace/ui/lib/utils";
@@ -117,7 +117,10 @@ export function useOpportunityStages() {
     queryKey: [OPPORTUNITY_STAGE_API_KEY],
     queryFn: getOpportunityStages,
   });
-  return { ...query, data: query.data ? sortStages(query.data) : undefined };
+  return {
+    ...query,
+    data: query.data ? sortOpportunityStages(query.data) : undefined,
+  };
 }
 
 export function useLostReasons() {

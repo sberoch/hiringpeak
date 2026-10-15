@@ -14,6 +14,7 @@ import {
 } from '@workspace/shared/schemas';
 import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 import { contactForViewer } from '@workspace/shared/lib/contact-access';
+import { isOpenStage } from '@workspace/shared/lib/opportunity-stage';
 import type { Company as CompanyResponse } from '@workspace/shared/types/company';
 import type { LastInteraction } from '@workspace/shared/types/interaction';
 import { AuthzService } from '../auth/authz/authz.service';
@@ -272,7 +273,7 @@ export class CompanyService {
     };
     if (!hasCommercialAccess(viewerCodes)) return response;
 
-    const open = opportunities.filter((o) => !o.stage.isWon && !o.stage.isLost);
+    const open = opportunities.filter((o) => isOpenStage(o.stage));
     return {
       ...response,
       commercial: {

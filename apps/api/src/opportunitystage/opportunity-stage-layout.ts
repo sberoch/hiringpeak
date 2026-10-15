@@ -1,3 +1,8 @@
+import {
+  isOpenStage,
+  stageOutcome,
+} from '@workspace/shared/lib/opportunity-stage';
+
 /**
  * Opportunity Stage layout: the rules that keep an Organization's stages
  * well-formed while they are configured — exactly one won and one lost stage,
@@ -31,15 +36,15 @@ export type OutcomeReassignmentViolation =
   | { violation: 'holds_other_outcome' }
   | { violation: 'stage_in_use'; busy: BusyStage[] };
 
-const isOpen = (stage: StageSlot) => !stage.isWon && !stage.isLost;
+const isOpen = (stage: StageSlot) => isOpenStage(stage);
 
 const bySortThenId = (a: StageSlot, b: StageSlot) =>
   a.sort - b.sort || a.id - b.id;
 
 /** Re-numbers sort as: open stages in the given order, then won, then lost. */
 function arrange(open: StageSlot[], all: StageSlot[]): StageSlot[] {
-  const won = all.filter((stage) => stage.isWon);
-  const lost = all.filter((stage) => stage.isLost);
+  const won = all.filter((stage) => stageOutcome(stage) === 'won');
+  const lost = all.filter((stage) => stageOutcome(stage) === 'lost');
   return [...open, ...won, ...lost].map((stage, sort) => ({
     ...stage,
     sort,
@@ -115,8 +120,7 @@ export function reassignOutcome(
 ): LayoutResult<OutcomeReassignmentViolation> {
   const target = stages.find((stage) => stage.id === targetId);
   if (!target) return { ok: false, violation: 'stage_not_found' };
-  const holds = (stage: StageSlot) =>
-    outcome === 'won' ? stage.isWon : stage.isLost;
+  const holds = (stage: StageSlot) => stageOutcome(stage) === outcome;
 
   if (holds(target)) {
     return { ok: true, stages: arrange(openInOrder([...stages]), [...stages]) };

@@ -6,7 +6,7 @@ import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
  * surface a violation). See CONTEXT.md (`Opportunity`).
  *
  * - Only a won Opportunity can produce, or be linked to, a Vacancy: if work
- *   has started, the deal is won.
+ *   has started, the Opportunity is won.
  * - The Vacancy belongs to the Opportunity's Company.
  *
  * Checked only when the link is made. Moving the Opportunity out of won later

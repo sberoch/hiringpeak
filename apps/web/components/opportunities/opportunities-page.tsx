@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
 import { CompanyStatus } from "@workspace/shared/enums";
-import { summarizePipeline } from "@workspace/shared/lib/opportunity-pipeline";
+import { groupOpportunitiesByStage } from "@workspace/shared/lib/opportunities-by-stage";
 import type {
   OpportunityFilters,
   OpportunityListItem,
@@ -95,7 +95,7 @@ export function OpportunitiesPage() {
   });
   const { requestMove, dialog } = useStageChange();
 
-  const summary = summarizePipeline(stages ?? [], opportunities ?? []);
+  const summary = groupOpportunitiesByStage(stages ?? [], opportunities ?? []);
   const filtering =
     !!filters.search ||
     owner !== ALL ||
@@ -287,7 +287,7 @@ export function OpportunitiesPage() {
                         <span className="ml-3 text-sm text-slate-brand">
                           Subtotal{" "}
                           <FeeTotal
-                            total={group.feeTotal}
+                            total={group.estimatedFeeTotal}
                             className="font-semibold text-ink"
                           />
                         </span>
@@ -339,7 +339,7 @@ export function OpportunitiesPage() {
         <span className="text-slate-brand">
           Total:{" "}
           <span className="font-bold tabular-nums text-ink">
-            {formatMoney(summary.open.feeTotal)}
+            {formatMoney(summary.open.estimatedFeeTotal)}
           </span>
         </span>
         <span className="text-xs text-muted-brand">

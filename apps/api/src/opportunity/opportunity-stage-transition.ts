@@ -1,3 +1,8 @@
+import {
+  isOpenStage,
+  stageOutcome,
+} from '@workspace/shared/lib/opportunity-stage';
+
 /**
  * Opportunity stage transition: given the target Opportunity Stage, an optional
  * Lost Reason and an optional Close Date, returns the outcome fields the
@@ -32,15 +37,16 @@ export function transitionStage(
   request: StageTransitionRequest,
 ): StageTransitionResult {
   const { target } = request;
-  if (target.isLost && request.lostReasonId == null) {
+  const outcome = stageOutcome(target);
+  if (outcome === 'lost' && request.lostReasonId == null) {
     return { ok: false, violation: 'lost_reason_required' };
   }
-  const closed = target.isWon || target.isLost;
+  const closed = outcome !== 'open';
   return {
     ok: true,
     fields: {
       stageId: target.id,
-      lostReasonId: target.isLost ? (request.lostReasonId ?? null) : null,
+      lostReasonId: outcome === 'lost' ? (request.lostReasonId ?? null) : null,
       closeDate: closed ? (request.closeDate ?? request.today) : null,
     },
   };
@@ -59,7 +65,7 @@ export function editCloseDate(
   currentStage: Omit<TargetStage, 'id'>,
   closeDate: string,
 ): CloseDateEditResult {
-  if (!currentStage.isWon && !currentStage.isLost) {
+  if (isOpenStage(currentStage)) {
     return { ok: false, violation: 'not_closed' };
   }
   return { ok: true, closeDate };

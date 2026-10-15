@@ -133,7 +133,7 @@ function NewOpportunityForm({
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+  const [estimatedFeeInput, setEstimatedFeeInput] = useState("");
   const [ownerId, setOwnerId] = useState<number | null>(null);
 
   const company = companies?.items.find((c) => c.id === companyId) ?? null;
@@ -143,7 +143,7 @@ function NewOpportunityForm({
     commercialUsers,
   );
   const effectiveOwnerId = ownerId ?? defaultOwnerId;
-  const fee = parseMoneyInput(amount);
+  const fee = parseMoneyInput(estimatedFeeInput);
   const feeInvalid = fee != null && (!Number.isFinite(fee) || fee < 0);
   const canSubmit =
     company != null && title.trim() !== "" && !feeInvalid && !!effectiveOwnerId;
@@ -255,8 +255,10 @@ function NewOpportunityForm({
           <Input
             id="new-opportunity-fee"
             inputMode="numeric"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
+            value={estimatedFeeInput}
+            onChange={(e) =>
+              setEstimatedFeeInput(e.target.value.replace(/[^\d.,]/g, ""))
+            }
             placeholder="15.000.000"
             className="bg-surface pl-7 tabular-nums"
           />

@@ -29,6 +29,10 @@ import { INTERACTION_API_KEY } from "@/lib/api/interaction";
 import { TASK_API_KEY } from "@/lib/api/tasks";
 import { VACANCY_API_KEY } from "@/lib/api/vacancy";
 import { formatMoney } from "@/lib/utils";
+import {
+  isOpenStage,
+  stageOutcome,
+} from "@workspace/shared/lib/opportunity-stage";
 import type {
   Opportunity,
   OpportunityStage,
@@ -164,7 +168,7 @@ export function OpportunityDetail({ id }: { id: string }) {
         onMove={(stage) => requestMove(opportunity, stage)}
       />
 
-      {opportunity.stage.isLost && (
+      {stageOutcome(opportunity.stage) === "lost" && (
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
           <ThumbsDown className="mt-0.5 h-5 w-5 text-slate-500" />
           <div className="min-w-0">
@@ -302,10 +306,11 @@ function StagePath({
   canManage: boolean;
   onMove: (stage: OpportunityStage) => void;
 }) {
-  const open = stages.filter((s) => !s.isWon && !s.isLost);
-  const won = stages.find((s) => s.isWon);
-  const lost = stages.find((s) => s.isLost);
+  const open = stages.filter(isOpenStage);
+  const won = stages.find((s) => stageOutcome(s) === "won");
+  const lost = stages.find((s) => stageOutcome(s) === "lost");
   const current = opportunity.stage;
+  const currentOutcome = stageOutcome(current);
   const currentIndex = open.findIndex((s) => s.id === current.id);
 
   return (
@@ -313,15 +318,16 @@ function StagePath({
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-0 flex-1">
           {open.map((stage, i) => {
-            const state = current.isWon
-              ? "done"
-              : current.isLost
-                ? "muted"
-                : i < currentIndex
-                  ? "done"
-                  : i === currentIndex
-                    ? "current"
-                    : "todo";
+            const state =
+              currentOutcome === "won"
+                ? "done"
+                : currentOutcome === "lost"
+                  ? "muted"
+                  : i < currentIndex
+                    ? "done"
+                    : i === currentIndex
+                      ? "current"
+                      : "todo";
             const clickable = canManage && stage.id !== current.id;
             return (
               <button
@@ -356,7 +362,7 @@ function StagePath({
 
         <div className="flex shrink-0 items-center gap-2">
           {won &&
-            (current.isWon ? (
+            (currentOutcome === "won" ? (
               <span className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-white">
                 <Trophy className="h-4 w-4" />
                 {won.name}
@@ -371,7 +377,7 @@ function StagePath({
               </Button>
             ) : null)}
           {lost &&
-            (current.isLost ? (
+            (currentOutcome === "lost" ? (
               <span className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-500 px-4 text-sm font-semibold text-white">
                 <ThumbsDown className="h-4 w-4" />
                 {lost.name}
@@ -390,7 +396,7 @@ function StagePath({
       </div>
       {canManage && (
         <p className="mt-2 px-1 text-xs text-muted-brand">
-          {current.isWon || current.isLost
+          {currentOutcome !== "open"
             ? "Clic en una etapa para reabrirla."
             : "Hacé clic en una etapa para mover la oportunidad."}
         </p>
@@ -437,7 +443,7 @@ function FactsCard({
   opportunity: Opportunity;
   canManage: boolean;
 }) {
-  const closed = opportunity.stage.isWon || opportunity.stage.isLost;
+  const closed = !isOpenStage(opportunity.stage);
   return (
     <section className="max-w-xl rounded-2xl border border-brand-border bg-surface px-4 py-2">
       <div className="divide-y divide-brand-border">
@@ -612,12 +618,12 @@ function FeePopover({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
+  const [estimatedFeeInput, setEstimatedFeeInput] = useState("");
   const mutation = useOpportunityUpdate(opportunity);
   if (!canManage) return <>{children}</>;
 
   const save = () => {
-    const fee = parseMoneyInput(amount);
+    const fee = parseMoneyInput(estimatedFeeInput);
     if (fee != null && (!Number.isFinite(fee) || fee < 0)) {
       toast.error("Ingresá un monto válido");
       return;
@@ -630,7 +636,7 @@ function FeePopover({
       open={open}
       onOpenChange={(next) => {
         if (next) {
-          setAmount(
+          setEstimatedFeeInput(
             opportunity.estimatedFee != null
               ? opportunity.estimatedFee.toLocaleString("es-AR")
               : "",
@@ -653,8 +659,10 @@ function FeePopover({
             autoFocus
             inputMode="numeric"
             placeholder="Sin estimar"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
+            value={estimatedFeeInput}
+            onChange={(e) =>
+              setEstimatedFeeInput(e.target.value.replace(/[^\d.,]/g, ""))
+            }
             onKeyDown={(e) => e.key === "Enter" && save()}
             className="h-9 tabular-nums"
           />
@@ -663,7 +671,7 @@ function FeePopover({
           <button
             type="button"
             className="text-xs font-medium text-slate-brand hover:text-red-600"
-            onClick={() => setAmount("")}
+            onClick={() => setEstimatedFeeInput("")}
           >
             Dejar sin estimar
           </button>
@@ -721,7 +729,9 @@ function CloseDatePopover({
         <div>
           <p className="text-sm font-semibold text-ink">Fecha de cierre</p>
           <p className="text-xs text-slate-brand">
-            Cuándo se {opportunity.stage.isWon ? "ganó" : "perdió"} de verdad.
+            Cuándo se{" "}
+            {stageOutcome(opportunity.stage) === "won" ? "ganó" : "perdió"} de
+            verdad.
           </p>
         </div>
         <Input

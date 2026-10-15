@@ -1,3 +1,5 @@
+import { isOpenStage } from '@workspace/shared/lib/opportunity-stage';
+
 /**
  * An Opportunity's next step and No Next Step ("Sin próximo paso"). Both are
  * derived from the open Tasks attached to it and never stored. Pure: no I/O,
@@ -36,5 +38,5 @@ export function hasNoNextStep(
   stage: { isWon: boolean; isLost: boolean },
   nextStep: NextStepCandidate | null,
 ): boolean {
-  return !stage.isWon && !stage.isLost && nextStep == null;
+  return isOpenStage(stage) && nextStep == null;
 }
