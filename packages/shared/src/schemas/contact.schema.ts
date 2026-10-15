@@ -8,6 +8,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { companies } from "./company.schema";
+import { contactSources } from "./contactsource.schema";
 import { organizations } from "./organization.schema";
 import { users } from "./user.schema";
 import { vacancies } from "./vacancy.schema";
@@ -32,6 +33,14 @@ export const contacts = pgTable(
     email: text("email"),
     phone: text("phone"),
     linkedin: text("linkedin"),
+    /** Network-only (commercial side): "Origen", "Responsable" and a short note. */
+    sourceId: integer("source_id").references(() => contactSources.id, {
+      onDelete: "set null",
+    }),
+    ownerId: integer("owner_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    shortDescription: text("short_description"),
     /** Immutable audit field — null for Contacts created by the data migration. */
     createdBy: integer("created_by").references(() => users.id, {
       onDelete: "set null",
@@ -42,6 +51,7 @@ export const contacts = pgTable(
   (table) => [
     index("contacts_organization_id_idx").on(table.organizationId),
     index("contacts_company_id_idx").on(table.companyId),
+    index("contacts_owner_id_idx").on(table.ownerId),
   ],
 );
 
@@ -53,6 +63,14 @@ export const contactsRelations = relations(contacts, ({ one, many }) => ({
   company: one(companies, {
     fields: [contacts.companyId],
     references: [companies.id],
+  }),
+  source: one(contactSources, {
+    fields: [contacts.sourceId],
+    references: [contactSources.id],
+  }),
+  owner: one(users, {
+    fields: [contacts.ownerId],
+    references: [users.id],
   }),
   vacancies: many(vacancies),
 }));

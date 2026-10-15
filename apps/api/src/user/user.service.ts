@@ -7,10 +7,23 @@ import {
 import {
   excludePassword,
   hashPassword,
+  permissions,
+  rolePermissions,
   User,
   users,
 } from '@workspace/shared/schemas';
-import { and, asc, count, desc, eq, ilike, not, SQL } from 'drizzle-orm';
+import { COMMERCIAL_ACCESS_CODES } from '@workspace/shared/lib/commercial-access';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  not,
+  SQL,
+} from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type {
   DbOptions,
@@ -57,6 +70,28 @@ export class UserService {
     ]);
     const itemsResponse = items.map((user) => excludePassword(user as User));
     return paginatedResponse(itemsResponse, totalItems, paginationQuery);
+  }
+
+  /**
+   * Users of the Organization with commercial access (`CRM_READ` or
+   * `CRM_MANAGE` through their Role): the only ones who can own commercial
+   * records. Sorted by name.
+   */
+  async findCommercialUsers(
+    organizationId: number,
+  ): Promise<{ id: number; name: string; email: string }[]> {
+    return this.db
+      .selectDistinct({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .innerJoin(rolePermissions, eq(rolePermissions.roleId, users.roleId))
+      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          inArray(permissions.code, [...COMMERCIAL_ACCESS_CODES]),
+        ),
+      )
+      .orderBy(asc(users.name));
   }
 
   /** Find user by id only (e.g. for JWT validation). */

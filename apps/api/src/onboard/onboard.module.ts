@@ -4,11 +4,19 @@ import { AuthModule } from '../auth/auth.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { RoleModule } from '../role/role.module';
 import { UserModule } from '../user/user.module';
+import { ContactSourceModule } from '../contactsource/contactsource.module';
 import { OnboardController } from './onboard.controller';
 import { OnboardService } from './onboard.service';
 
 @Module({
-  imports: [DrizzleModule, AuthModule, OrganizationModule, RoleModule, UserModule],
+  imports: [
+    DrizzleModule,
+    AuthModule,
+    OrganizationModule,
+    RoleModule,
+    UserModule,
+    ContactSourceModule,
+  ],
   controllers: [OnboardController],
   providers: [OnboardService],
 })

@@ -10,7 +10,9 @@ import {
   candidateSources,
   rejectionReasons,
   candidateFiles,
+  contactSources,
 } from '@workspace/shared/schemas';
+import { DEFAULT_CONTACT_SOURCES } from '../../../contactsource/contactsource.defaults';
 import { SeedTx } from './types';
 
 const areasList = [
@@ -190,6 +192,13 @@ export async function seedCatalogs(
       { sort },
     );
     rejectionReasonIds.set(name, id);
+  }
+
+  console.log('  Seeding contact sources...');
+  for (const [sort, name] of DEFAULT_CONTACT_SOURCES.entries()) {
+    await findOrCreateByName(tx, contactSources, name, organizationId, {
+      sort,
+    });
   }
 
   // candidateFiles: fixture row only in dev seed; skip in prod.

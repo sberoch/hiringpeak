@@ -41,6 +41,14 @@ export class UserController {
     return this.userService.findAll({ ...query, organizationId });
   }
 
+  /** Users who can own commercial records (Contact, Opportunity, Account Owner). */
+  @ApiOkResponse()
+  @Permissions(PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE)
+  @Get('commercial')
+  async findCommercial(@OrganizationId() organizationId: number) {
+    return this.userService.findCommercialUsers(organizationId);
+  }
+
   @ApiOkResponse()
   @Get(':id')
   async findOne(
