@@ -11,6 +11,7 @@ import {
   type NewTask,
   type Task,
 } from '@workspace/shared/schemas';
+import type { TaskWithRelations } from '@workspace/shared/types/task';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { NotificationFactory } from '../notification/notification-factory';
@@ -24,9 +25,19 @@ import {
   TaskFindAllServiceParams,
   UpdateTaskServiceDto,
 } from './task.dto';
-import { TaskTargetPolicy } from './task-target-policy';
+import {
+  attachedToFilters,
+  attachmentClassFilters,
+  flattenTaskAttachments,
+  withTaskAttachments,
+  writeTaskAttachments,
+} from './task-attachments';
+import { isCommercialTask } from './task-access';
 
-export type TaskApiResponse = Task;
+export type TaskApiResponse = TaskWithRelations;
+
+/** The User a Task query is for, and whether commercial Tasks reach them. */
+export type TaskViewer = { userId: number; commercialAccess: boolean };
 
 @Injectable()
 export class TaskService {
@@ -50,9 +61,7 @@ export class TaskService {
       with: {
         assignedToUser: true,
         createdByUser: true,
-        candidate: true,
-        vacancy: true,
-        company: true,
+        ...withTaskAttachments(params.organizationId),
       },
     });
 
@@ -61,13 +70,13 @@ export class TaskService {
       .from(tasks)
       .where(whereClause);
 
-    let [items, [{ count: totalItems }]] = await Promise.all([
+    const [rows, [{ count: totalItems }]] = await Promise.all([
       itemsQuery,
       countQuery,
     ]);
 
-    items = items.map((t) => ({
-      ...t,
+    const items = rows.map((t) => ({
+      ...flattenTaskAttachments(t),
       assignedToUser: excludePassword(t.assignedToUser),
       createdByUser: excludePassword(t.createdByUser),
     }));
@@ -77,7 +86,7 @@ export class TaskService {
 
   async dueSoonForUser(
     organizationId: number,
-    ownerUserId: number,
+    owner: TaskViewer,
     withinDays = 7,
     now: Date = new Date(),
   ) {
@@ -88,49 +97,56 @@ export class TaskService {
     const items = await this.db.query.tasks.findMany({
       where: and(
         eq(tasks.organizationId, organizationId),
-        eq(tasks.assignedTo, ownerUserId),
+        eq(tasks.assignedTo, owner.userId),
         eq(tasks.completed, false),
         isNotNull(tasks.dueDate),
         lte(tasks.dueDate, upperStr),
+        ...attachmentClassFilters(owner),
       ),
       orderBy: [asc(tasks.dueDate)],
       with: {
         assignedToUser: true,
-        candidate: true,
-        vacancy: true,
-        company: true,
+        ...withTaskAttachments(organizationId),
       },
       limit: 10,
     });
 
     return items.map((t) => ({
-      ...t,
+      ...flattenTaskAttachments(t),
       assignedToUser: excludePassword(t.assignedToUser),
     }));
   }
 
-  async openCountFor(organizationId: number, ownerUserId: number) {
+  async openCountFor(organizationId: number, owner: TaskViewer) {
     const [{ count: c }] = await this.db
       .select({ count: count(tasks.id) })
       .from(tasks)
       .where(
         and(
           eq(tasks.organizationId, organizationId),
-          eq(tasks.assignedTo, ownerUserId),
+          eq(tasks.assignedTo, owner.userId),
           eq(tasks.completed, false),
+          ...attachmentClassFilters(owner),
         ),
       );
     return { count: c };
   }
 
   async create(dto: CreateTaskServiceDto) {
-    if (!TaskTargetPolicy.isValid(dto)) {
-      throw new BadRequestException(
-        'A Task can be attached to at most one of candidate, vacancy, or company',
-      );
-    }
+    const task = await this.db.transaction((tx) => this.insertTask(tx, dto));
+    await this.notifyNewOwner(task, dto.createdBy);
+    return task;
+  }
 
-    const [task] = await this.db
+  /**
+   * Inserts a Task with its attachments in the caller's transaction. Once it
+   * commits, call `notifyNewOwner` (as `create` does).
+   */
+  async insertTask(
+    tx: Pick<DrizzleDatabase, 'insert' | 'delete' | 'select'>,
+    dto: CreateTaskServiceDto,
+  ): Promise<Task> {
+    const [created] = await tx
       .insert(tasks)
       .values({
         title: dto.title,
@@ -138,64 +154,69 @@ export class TaskService {
         assignedTo: dto.assignedTo,
         createdBy: dto.createdBy,
         organizationId: dto.organizationId,
-        candidateId: dto.candidateId ?? null,
-        vacancyId: dto.vacancyId ?? null,
-        companyId: dto.companyId ?? null,
       } as NewTask)
       .returning();
-
-    if (task.assignedTo !== dto.createdBy) {
-      await this.notificationFactory.ensure({
-        recipientUserId: task.assignedTo,
-        organizationId: task.organizationId,
-        kind: 'assigned',
-        taskId: task.id,
-      });
-    }
-
-    return task;
+    await writeTaskAttachments(tx, created.id, dto, {
+      organizationId: dto.organizationId,
+      isNew: true,
+    });
+    return created;
   }
 
-  async findOne(id: number, organizationId: number) {
-    const task = await this.db.query.tasks.findFirst({
-      where: and(eq(tasks.id, id), eq(tasks.organizationId, organizationId)),
+  /** Tells the Task Owner about a Task someone else created for them. */
+  async notifyNewOwner(task: Task, createdBy: number): Promise<void> {
+    if (task.assignedTo === createdBy) return;
+    await this.notificationFactory.ensure({
+      recipientUserId: task.assignedTo,
+      organizationId: task.organizationId,
+      kind: 'assigned',
+      taskId: task.id,
     });
-    if (!task) throw new NotFoundException('Not found');
-    return task;
+  }
+
+  /**
+   * The Task with what decides its visibility: its Opportunity and Contact
+   * ids and whether it is commercial.
+   */
+  async findOne(id: number, organizationId: number) {
+    const row = await this.db.query.tasks.findFirst({
+      where: and(eq(tasks.id, id), eq(tasks.organizationId, organizationId)),
+      with: {
+        taskOpportunities: { columns: { opportunityId: true } },
+        taskContacts: { columns: { contactId: true } },
+      },
+    });
+    if (!row) throw new NotFoundException('Not found');
+    const { taskOpportunities = [], taskContacts = [], ...task } = row;
+    const facts = {
+      opportunityIds: taskOpportunities.map((l) => l.opportunityId),
+      contactIds: taskContacts.map((l) => l.contactId),
+      stayedCommercial: task.stayedCommercial,
+    };
+    return { ...task, ...facts, commercial: isCommercialTask(facts) };
   }
 
   async update(id: number, dto: UpdateTaskServiceDto) {
     const existing = await this.findOne(id, dto.organizationId);
 
-    const merged = {
-      candidateId:
-        dto.candidateId !== undefined ? dto.candidateId : existing.candidateId,
-      vacancyId:
-        dto.vacancyId !== undefined ? dto.vacancyId : existing.vacancyId,
-      companyId:
-        dto.companyId !== undefined ? dto.companyId : existing.companyId,
-    };
-    if (!TaskTargetPolicy.isValid(merged)) {
-      throw new BadRequestException(
-        'A Task can be attached to at most one of candidate, vacancy, or company',
-      );
-    }
-
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (dto.title !== undefined) updates.title = dto.title;
     if (dto.dueDate !== undefined) updates.dueDate = dto.dueDate;
     if (dto.assignedTo !== undefined) updates.assignedTo = dto.assignedTo;
-    if (dto.candidateId !== undefined) updates.candidateId = dto.candidateId;
-    if (dto.vacancyId !== undefined) updates.vacancyId = dto.vacancyId;
-    if (dto.companyId !== undefined) updates.companyId = dto.companyId;
 
-    const [task] = await this.db
-      .update(tasks)
-      .set(updates)
-      .where(
-        and(eq(tasks.id, id), eq(tasks.organizationId, dto.organizationId)),
-      )
-      .returning();
+    const task = await this.db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(tasks)
+        .set(updates)
+        .where(
+          and(eq(tasks.id, id), eq(tasks.organizationId, dto.organizationId)),
+        )
+        .returning();
+      await writeTaskAttachments(tx, id, dto, {
+        organizationId: dto.organizationId,
+      });
+      return updated;
+    });
 
     const reassignedToOther =
       dto.assignedTo !== undefined &&
@@ -276,15 +297,14 @@ export class TaskService {
     if (params.createdBy) filters.push(eq(tasks.createdBy, params.createdBy));
     if (params.completed != null)
       filters.push(eq(tasks.completed, params.completed));
-    if (params.candidateId)
-      filters.push(eq(tasks.candidateId, params.candidateId));
-    if (params.vacancyId) filters.push(eq(tasks.vacancyId, params.vacancyId));
-    if (params.companyId) filters.push(eq(tasks.companyId, params.companyId));
+    filters.push(...attachedToFilters(this.db, params));
+    filters.push(...attachmentClassFilters(params));
     return and(...filters);
   }
 }
 
-function formatLocalDay(d: Date): string {
+/** A Date as its local day, `YYYY-MM-DD`. */
+export function formatLocalDay(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');

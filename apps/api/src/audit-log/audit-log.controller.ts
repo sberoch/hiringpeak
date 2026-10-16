@@ -14,6 +14,9 @@ import {
   type AuditLogItem,
 } from '@workspace/shared/types/audit-log';
 import { PermissionCode } from '@workspace/shared/enums';
+import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
+import { CurrentUser } from '../auth/auth.decorators';
+import { AuthzService } from '../auth/authz/authz.service';
 import type { Response } from 'express';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
@@ -27,7 +30,19 @@ import { AuditLogService } from './audit-log.service';
 @ApiTags('Audit Log')
 @Controller('audit-log')
 export class AuditLogController {
-  constructor(private readonly auditLogService: AuditLogService) {}
+  constructor(
+    private readonly auditLogService: AuditLogService,
+    private readonly authzService: AuthzService,
+  ) {}
+
+  /** Commercial events reach only callers with commercial access. */
+  private async commercialAccess(user: { id: string | number }) {
+    const userId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    return hasCommercialAccess(
+      await this.authzService.getPermissionCodesForUser(userId),
+    );
+  }
 
   @ApiOkResponse()
   @Get()
@@ -35,8 +50,13 @@ export class AuditLogController {
   async findAll(
     @Query() query: AuditLogQueryParams,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
-    return this.auditLogService.findAll({ ...query, organizationId });
+    return this.auditLogService.findAll({
+      ...query,
+      organizationId,
+      commercialAccess: await this.commercialAccess(user),
+    });
   }
 
   @ApiOkResponse()
@@ -46,11 +66,13 @@ export class AuditLogController {
   async exportCsv(
     @Query() query: AuditLogQueryParams,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const items = await this.auditLogService.findAllForExport({
       ...query,
       organizationId,
+      commercialAccess: await this.commercialAccess(user),
     });
     const csv = toCsv(items);
     const fileName = `registro-auditoria-${new Date().toISOString().slice(0, 10)}.csv`;

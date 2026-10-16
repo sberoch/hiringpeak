@@ -4,6 +4,7 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -17,6 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PermissionCode } from '@workspace/shared/enums';
+import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 import { AuditAction } from '../audit-log/audit-action.decorator';
 import { CurrentUser } from '../auth/auth.decorators';
 import { AuthzService } from '../auth/authz/authz.service';
@@ -26,9 +28,10 @@ import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { CreateTaskDto, TaskQueryParams, UpdateTaskDto } from './task.dto';
 import {
-  canAssignTaskTo,
   canManageTask,
   hasTaskReadAll,
+  isCommercialTask,
+  taskWriteViolation,
 } from './task-access';
 import { TaskService } from './task.service';
 
@@ -46,6 +49,59 @@ export class TaskController {
     return typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
   }
 
+  private async viewer(user: { id: string | number }) {
+    const userId = this.parseUserId(user);
+    const codes = await this.authzService.getPermissionCodesForUser(userId);
+    return { userId, codes, commercialAccess: hasCommercialAccess(codes) };
+  }
+
+  /**
+   * The Task the caller manages. A Task they can't read is "not found", so
+   * commercial Tasks never surface to callers without commercial access.
+   */
+  private async findManageable(
+    id: number,
+    organizationId: number,
+    actor: { userId: number; codes: string[] },
+  ) {
+    const existing = await this.taskService.findOne(id, organizationId);
+    const facts = {
+      assignedTo: existing.assignedTo,
+      commercial: existing.commercial,
+    };
+    if (existing.commercial && !hasCommercialAccess(actor.codes)) {
+      throw new NotFoundException('Not found');
+    }
+    if (!canManageTask(facts, actor.userId, actor.codes)) {
+      throw new ForbiddenException(
+        'Cannot manage tasks assigned to other users',
+      );
+    }
+    return existing;
+  }
+
+  /** Throws when the Task, as it will be after the write, breaks the access rules. */
+  private async assertWritable(
+    task: { assignedTo: number; commercial: boolean },
+    organizationId: number,
+    actor: { userId: number; codes: string[] },
+  ) {
+    const ownerHasCommercialAccess =
+      task.assignedTo === actor.userId
+        ? hasCommercialAccess(actor.codes)
+        : task.commercial &&
+          (await this.authzService.isCommercialUser(
+            task.assignedTo,
+            organizationId,
+          ));
+    const violation = taskWriteViolation(
+      { ...task, ownerHasCommercialAccess },
+      actor.userId,
+      actor.codes,
+    );
+    if (violation) throw new ForbiddenException(violation);
+  }
+
   @ApiOkResponse()
   @Get()
   @Permissions(PermissionCode.TASK_READ)
@@ -54,14 +110,13 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const actorUserId = this.parseUserId(user);
-    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
-    const readAll = hasTaskReadAll(codes);
+    const actor = await this.viewer(user);
+    const readAll = hasTaskReadAll(actor.codes);
 
     if (
       !readAll &&
       query.assignedTo != null &&
-      query.assignedTo !== actorUserId
+      query.assignedTo !== actor.userId
     ) {
       throw new ForbiddenException('Cannot view tasks assigned to other users');
     }
@@ -69,7 +124,8 @@ export class TaskController {
     return this.taskService.findAll({
       ...query,
       organizationId,
-      assignedTo: readAll ? query.assignedTo : actorUserId,
+      assignedTo: readAll ? query.assignedTo : actor.userId,
+      commercialAccess: actor.commercialAccess,
     });
   }
 
@@ -80,8 +136,10 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const ownerUserId = this.parseUserId(user);
-    return this.taskService.openCountFor(organizationId, ownerUserId);
+    return this.taskService.openCountFor(
+      organizationId,
+      await this.viewer(user),
+    );
   }
 
   @ApiOkResponse()
@@ -91,8 +149,10 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const ownerUserId = this.parseUserId(user);
-    return this.taskService.dueSoonForUser(organizationId, ownerUserId);
+    return this.taskService.dueSoonForUser(
+      organizationId,
+      await this.viewer(user),
+    );
   }
 
   @ApiCreatedResponse()
@@ -108,20 +168,20 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const actorUserId = this.parseUserId(user);
-    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
-    if (
-      !canAssignTaskTo(createTaskDto.assignedTo, actorUserId, codes)
-    ) {
-      throw new ForbiddenException(
-        'Cannot create tasks assigned to other users',
-      );
-    }
+    const actor = await this.viewer(user);
+    await this.assertWritable(
+      {
+        assignedTo: createTaskDto.assignedTo,
+        commercial: isCommercialTask(createTaskDto),
+      },
+      organizationId,
+      actor,
+    );
 
     return this.taskService.create({
       ...createTaskDto,
       organizationId,
-      createdBy: actorUserId,
+      createdBy: actor.userId,
     });
   }
 
@@ -139,27 +199,28 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const actorUserId = this.parseUserId(user);
-    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
-    const existing = await this.taskService.findOne(+id, organizationId);
+    const actor = await this.viewer(user);
+    const existing = await this.findManageable(+id, organizationId, actor);
 
-    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
-      throw new ForbiddenException('Cannot manage tasks assigned to other users');
-    }
-
-    if (
-      updateTaskDto.assignedTo !== undefined &&
-      !canAssignTaskTo(updateTaskDto.assignedTo, actorUserId, codes)
-    ) {
-      throw new ForbiddenException(
-        'Cannot reassign tasks to other users',
-      );
-    }
+    // Removing the Opportunity or Contact by editing doesn't set the mark.
+    await this.assertWritable(
+      {
+        assignedTo: updateTaskDto.assignedTo ?? existing.assignedTo,
+        commercial: isCommercialTask({
+          opportunityIds:
+            updateTaskDto.opportunityIds ?? existing.opportunityIds,
+          contactIds: updateTaskDto.contactIds ?? existing.contactIds,
+          stayedCommercial: existing.stayedCommercial,
+        }),
+      },
+      organizationId,
+      actor,
+    );
 
     return this.taskService.update(+id, {
       ...updateTaskDto,
       organizationId,
-      actorUserId,
+      actorUserId: actor.userId,
     });
   }
 
@@ -176,15 +237,10 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const actorUserId = this.parseUserId(user);
-    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
-    const existing = await this.taskService.findOne(+id, organizationId);
+    const actor = await this.viewer(user);
+    await this.findManageable(+id, organizationId, actor);
 
-    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
-      throw new ForbiddenException('Cannot manage tasks assigned to other users');
-    }
-
-    return this.taskService.complete(+id, organizationId, actorUserId);
+    return this.taskService.complete(+id, organizationId, actor.userId);
   }
 
   @ApiOkResponse()
@@ -200,13 +256,8 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const actorUserId = this.parseUserId(user);
-    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
-    const existing = await this.taskService.findOne(+id, organizationId);
-
-    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
-      throw new ForbiddenException('Cannot manage tasks assigned to other users');
-    }
+    const actor = await this.viewer(user);
+    await this.findManageable(+id, organizationId, actor);
 
     return this.taskService.reopen(+id, organizationId);
   }
@@ -224,13 +275,8 @@ export class TaskController {
     @OrganizationId() organizationId: number,
     @CurrentUser() user: { id: string | number },
   ) {
-    const actorUserId = this.parseUserId(user);
-    const codes = await this.authzService.getPermissionCodesForUser(actorUserId);
-    const existing = await this.taskService.findOne(+id, organizationId);
-
-    if (!canManageTask(existing.assignedTo, actorUserId, codes)) {
-      throw new ForbiddenException('Cannot manage tasks assigned to other users');
-    }
+    const actor = await this.viewer(user);
+    await this.findManageable(+id, organizationId, actor);
 
     return this.taskService.remove(+id, organizationId);
   }

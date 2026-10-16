@@ -74,3 +74,14 @@ export async function deleteCompany(id: string) {
   const response = await api.delete<Company>(`/company/${id}`);
   return response.data;
 }
+
+/** Set or clear (`null`) the Account Owner. Requires `CRM_MANAGE`. */
+export async function setCompanyAccountOwner(
+  id: number,
+  accountOwnerId: number | null
+) {
+  const response = await api.patch<Company>(`/company/${id}/account-owner`, {
+    accountOwnerId,
+  });
+  return response.data;
+}

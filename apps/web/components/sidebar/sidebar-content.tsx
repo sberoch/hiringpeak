@@ -2,10 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  BookUser,
   Briefcase,
   Building2,
   ChevronLeft,
   ChevronRight,
+  Handshake,
   Landmark,
   LayoutDashboard,
   ListChecks,
@@ -25,10 +27,8 @@ import { DialogsIdsEnum, REDIRECT_UNAUTHORIZED } from "@/lib/consts";
 import { getMyOpenTaskCount, TASK_API_KEY } from "@/lib/api/tasks";
 import { getInitials } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
-import {
-  Avatar,
-  AvatarFallback,
-} from "@workspace/ui/components/avatar";
+import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
+import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import {
   Collapsible,
   CollapsibleContent,
@@ -80,110 +80,157 @@ interface SidebarSection {
   items: SidebarItem[];
 }
 
-const SIDEBAR_SECTIONS: SidebarSection[] = [
-  {
-    label: "Espacio de trabajo",
-    items: [
+const DASHBOARD_ITEM: SidebarItem = {
+  id: "dashboard",
+  title: "Dashboard",
+  url: "/dashboard",
+  icon: <LayoutDashboard className="w-4 h-4" />,
+};
+
+const TASKS_ITEM: SidebarItem = {
+  id: "tasks",
+  title: "Tareas",
+  url: "/tasks",
+  icon: <ListChecks className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.TASK_READ],
+};
+
+const CANDIDATES_ITEM: SidebarItem = {
+  id: "candidates",
+  title: "Postulantes",
+  url: "/candidates",
+  icon: <Users className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.CANDIDATE_READ],
+};
+
+const VACANCIES_ITEM: SidebarItem = {
+  id: "vacancies",
+  title: "Vacantes",
+  url: "/vacancies",
+  icon: <Briefcase className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.VACANCY_READ],
+  items: [
+    {
+      id: "all-vacancies",
+      title: "Todas las vacantes",
+      url: "/vacancies",
+      requiredPermissions: [PermissionCode.VACANCY_READ],
+    },
+    {
+      id: "create-vacancy-ai",
+      title: "Crear vacante con IA",
+      url: "/vacancies/new?source=ai",
+      requiredPermissions: [PermissionCode.VACANCY_MANAGE],
+    },
+    {
+      id: "simulate-vacancy",
+      title: "Simular búsqueda",
+      url: "#",
+      dialogId: DialogsIdsEnum.simulateVacancy,
+      requiredPermissions: [PermissionCode.VACANCY_READ],
+    },
+  ],
+};
+
+const COMPANIES_ITEM: SidebarItem = {
+  id: "companies",
+  title: "Empresas",
+  url: "/companies",
+  icon: <Building2 className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.COMPANY_READ],
+};
+
+const OPPORTUNITIES_ITEM: SidebarItem = {
+  id: "opportunities",
+  title: "Oportunidades",
+  url: "/opportunities",
+  icon: <Handshake className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE],
+};
+
+const CONTACTS_ITEM: SidebarItem = {
+  id: "contacts",
+  title: "Contactos",
+  url: "/contacts",
+  icon: <BookUser className="w-4 h-4" />,
+  requiredPermissions: [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE],
+};
+
+const ADMIN_SECTION: SidebarSection = {
+  label: "Administración",
+  items: [
+    {
+      id: "organization-settings",
+      title: "Organización",
+      url: "/organization-settings",
+      icon: <Landmark className="w-4 h-4" />,
+      requiredPermissions: [PermissionCode.SETTINGS_READ],
+      items: [
+        {
+          id: "org-users",
+          title: "Usuarios",
+          url: "/organization-settings/users",
+          requiredPermissions: [
+            PermissionCode.USER_READ,
+            PermissionCode.USER_MANAGE,
+          ],
+        },
+        {
+          id: "org-roles",
+          title: "Roles y permisos",
+          url: "/organization-settings/roles",
+          requiredPermissions: [PermissionCode.ROLE_MANAGE],
+        },
+        {
+          id: "org-audit-log",
+          title: "Registro de auditoría",
+          url: "/organization-settings/audit-log",
+          requiredPermissions: [PermissionCode.AUDIT_LOG_READ],
+        },
+      ],
+    },
+    {
+      id: "settings",
+      title: "Configuración",
+      url: "/settings",
+      icon: <Settings className="w-4 h-4" />,
+      requiredPermissions: [PermissionCode.SETTINGS_READ],
+    },
+  ],
+};
+
+/**
+ * Users with commercial access get a «Comercial» section holding Oportunidades,
+ * Empresas, Contactos and Tareas; everyone else keeps the original «Espacio de trabajo» layout.
+ */
+function buildSidebarSections(commercialAccess: boolean): SidebarSection[] {
+  if (!commercialAccess) {
+    return [
       {
-        id: "dashboard",
-        title: "Dashboard",
-        url: "/dashboard",
-        icon: <LayoutDashboard className="w-4 h-4" />,
-      },
-      {
-        id: "tasks",
-        title: "Tareas",
-        url: "/tasks",
-        icon: <ListChecks className="w-4 h-4" />,
-        requiredPermissions: [PermissionCode.TASK_READ],
-      },
-      {
-        id: "candidates",
-        title: "Postulantes",
-        url: "/candidates",
-        icon: <Users className="w-4 h-4" />,
-        requiredPermissions: [PermissionCode.CANDIDATE_READ],
-      },
-      {
-        id: "vacancies",
-        title: "Vacantes",
-        url: "/vacancies",
-        icon: <Briefcase className="w-4 h-4" />,
-        requiredPermissions: [PermissionCode.VACANCY_READ],
+        label: "Espacio de trabajo",
         items: [
-          {
-            id: "all-vacancies",
-            title: "Todas las vacantes",
-            url: "/vacancies",
-            requiredPermissions: [PermissionCode.VACANCY_READ],
-          },
-          {
-            id: "create-vacancy-ai",
-            title: "Crear vacante con IA",
-            url: "/vacancies/new?source=ai",
-            requiredPermissions: [PermissionCode.VACANCY_MANAGE],
-          },
-          {
-            id: "simulate-vacancy",
-            title: "Simular búsqueda",
-            url: "#",
-            dialogId: DialogsIdsEnum.simulateVacancy,
-            requiredPermissions: [PermissionCode.VACANCY_READ],
-          },
+          DASHBOARD_ITEM,
+          TASKS_ITEM,
+          CANDIDATES_ITEM,
+          VACANCIES_ITEM,
+          COMPANIES_ITEM,
         ],
       },
-      {
-        id: "companies",
-        title: "Empresas",
-        url: "/companies",
-        icon: <Building2 className="w-4 h-4" />,
-        requiredPermissions: [PermissionCode.COMPANY_READ],
-      },
-    ],
-  },
-  {
-    label: "Administración",
-    items: [
-      {
-        id: "organization-settings",
-        title: "Organización",
-        url: "/organization-settings",
-        icon: <Landmark className="w-4 h-4" />,
-        requiredPermissions: [PermissionCode.SETTINGS_READ],
-        items: [
-          {
-            id: "org-users",
-            title: "Usuarios",
-            url: "/organization-settings/users",
-            requiredPermissions: [
-              PermissionCode.USER_READ,
-              PermissionCode.USER_MANAGE,
-            ],
-          },
-          {
-            id: "org-roles",
-            title: "Roles y permisos",
-            url: "/organization-settings/roles",
-            requiredPermissions: [PermissionCode.ROLE_MANAGE],
-          },
-          {
-            id: "org-audit-log",
-            title: "Registro de auditoría",
-            url: "/organization-settings/audit-log",
-            requiredPermissions: [PermissionCode.AUDIT_LOG_READ],
-          },
-        ],
-      },
-      {
-        id: "settings",
-        title: "Configuración",
-        url: "/settings",
-        icon: <Settings className="w-4 h-4" />,
-        requiredPermissions: [PermissionCode.SETTINGS_READ],
-      },
-    ],
-  },
-];
+      ADMIN_SECTION,
+    ];
+  }
+  return [
+    {
+      label: "Espacio de trabajo",
+      items: [DASHBOARD_ITEM, CANDIDATES_ITEM, VACANCIES_ITEM],
+    },
+    {
+      label: "Comercial",
+      items: [OPPORTUNITIES_ITEM, COMPANIES_ITEM, CONTACTS_ITEM, TASKS_ITEM],
+    },
+    ADMIN_SECTION,
+  ];
+}
 
 const activeNavClass =
   "data-[active=true]:bg-sidebar-primary/10 data-[active=true]:text-sidebar-primary data-[active=true]:font-semibold";
@@ -194,7 +241,8 @@ interface SidebarContentProps {
 
 export function AppSidebarContent({ otherProps }: SidebarContentProps) {
   const pathname = usePathname();
-  const { hasAnyPermission, isLoading } = usePermissions();
+  const { hasAnyPermission, permissionCodes, isLoading } = usePermissions();
+  const sections = buildSidebarSections(hasCommercialAccess(permissionCodes));
   const { collapsible = "icon", ...sidebarProps } = otherProps;
   const { toggleSidebar, state, isMobile, openMobile } = useSidebar();
   const showIconOnly = !isMobile && state === "collapsed";
@@ -243,7 +291,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
         </div>
       </SidebarHeader>
       <SidebarContent className="gap-0 overflow-x-hidden pt-4 group-data-[collapsible=icon]:pt-2">
-        {SIDEBAR_SECTIONS.map((section) => {
+        {sections.map((section) => {
           const visibleItems = section.items.filter((itm) =>
             canSee(itm.requiredPermissions),
           );

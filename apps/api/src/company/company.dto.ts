@@ -3,12 +3,18 @@ import {
   CreateCompanySchema,
   UpdateCompanySchema,
   CompanyQueryParamsSchema,
+  UpdateCompanyAccountOwnerSchema,
 } from '@workspace/shared/dtos';
 
 /** Request DTOs (controller): no organizationId — client does not send it */
 export class CreateCompanyDto extends createZodDto(CreateCompanySchema) {}
 export class UpdateCompanyDto extends createZodDto(UpdateCompanySchema) {}
-export class CompanyQueryParams extends createZodDto(CompanyQueryParamsSchema) {}
+export class UpdateCompanyAccountOwnerDto extends createZodDto(
+  UpdateCompanyAccountOwnerSchema,
+) {}
+export class CompanyQueryParams extends createZodDto(
+  CompanyQueryParamsSchema,
+) {}
 
 export type CompanyFindAllServiceParams = CompanyQueryParams & {
   organizationId: number;

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -30,6 +31,8 @@ import {
   CandidateVacancyStatus,
   candidateVacancyStatuses,
   Comment,
+  contacts,
+  opportunities,
   RejectionReason,
   Company,
   User,
@@ -46,6 +49,17 @@ import {
   vacancyStatuses,
   VacancyStatus,
 } from '@workspace/shared/schemas';
+import type { VacancyContactSummary } from '@workspace/shared/types/contact';
+import {
+  VacancyContactPolicy,
+  type VacancyContactPatch,
+  type VacancyContactState,
+} from './vacancy-contact-policy';
+import {
+  canSetVacancyOpportunity,
+  VacancyOpportunityPolicy,
+  vacancyForViewer,
+} from './vacancy-opportunity-policy';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 import { PaginatedResponse } from '../common/pagination/pagination.params';
@@ -65,6 +79,7 @@ import type { VacancyListReportSourceRow } from './vacancy-list-report.types';
 
 type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
+  vacancyContact?: VacancyContactSummary | null;
   filters: VacancyFilters & {
     areaIds: Array<VacancyFiltersArea & { area: Area }>;
     industryIds: Array<VacancyFiltersIndustry & { industry: Industry }>;
@@ -87,6 +102,7 @@ type VacancyQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
 /** Drizzle shape returned by the report finders (full candidate graph). */
 type ReportQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
+  vacancyContact?: VacancyContactSummary | null;
   filters: VacancyFilters & {
     areaIds: Array<VacancyFiltersArea & { area: Area }>;
     industryIds: Array<VacancyFiltersIndustry & { industry: Industry }>;
@@ -113,6 +129,8 @@ type ReportQueryResult = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
 
 export type VacancyApiResponse = Omit<Vacancy, 'assignedTo' | 'createdBy'> & {
   status: VacancyStatus;
+  /** Loaded only where needed (detail, Company Report); name and role only. */
+  vacancyContact?: VacancyContactSummary | null;
   filters:
     | (VacancyFilters & {
         areas: Area[];
@@ -191,8 +209,10 @@ export type VacancyReportFullResponse = Omit<
 export class VacancyService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
+  /** `viewerCodes`: the caller's permission codes (see vacancyForViewer). */
   async findAll(
     params: VacancyFindAllServiceParams,
+    viewerCodes: readonly string[] = [],
   ): Promise<PaginatedResponse<VacancyListItemApiResponse>> {
     const paginationQuery = buildPaginationQuery(params);
     const whereClause = this.buildWhereClause(params);
@@ -247,10 +267,13 @@ export class VacancyService {
     ]);
 
     const parsedItems = items.map((item) =>
-      this.transformListQueryResult(
-        item,
-        statusCounts.get(item.id) ?? [],
-        recentCandidacies.get(item.id) ?? [],
+      vacancyForViewer(
+        this.transformListQueryResult(
+          item,
+          statusCounts.get(item.id) ?? [],
+          recentCandidacies.get(item.id) ?? [],
+        ),
+        viewerCodes,
       ),
     );
     return paginatedResponse(parsedItems, totalItems, paginationQuery);
@@ -334,9 +357,9 @@ export class VacancyService {
         vacancyId: candidateVacancies.vacancyId,
         candidateId: sql<number>`${candidates.id}`.as('candidate_id'),
         candidateName: sql<string>`${candidates.name}`.as('candidate_name'),
-        candidateImage: sql<
-          string | null
-        >`${candidates.image}`.as('candidate_image'),
+        candidateImage: sql<string | null>`${candidates.image}`.as(
+          'candidate_image',
+        ),
         statusId: sql<number>`${candidateVacancyStatuses.id}`.as('status_id'),
         statusName: sql<string>`${candidateVacancyStatuses.name}`.as(
           'status_name',
@@ -477,7 +500,11 @@ export class VacancyService {
     return counts;
   }
 
-  async findOne(id: number, organizationId: number) {
+  async findOne(
+    id: number,
+    organizationId: number,
+    viewerCodes: readonly string[] = [],
+  ) {
     const vacancy = await this.db.query.vacancies.findFirst({
       where: and(
         eq(vacancies.id, id),
@@ -505,6 +532,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -524,7 +552,7 @@ export class VacancyService {
       },
     });
     if (!vacancy) throw new NotFoundException('Vacancy not found');
-    return this.transformQueryResult(vacancy);
+    return vacancyForViewer(this.transformQueryResult(vacancy), viewerCodes);
   }
 
   async findAllByCompanyId(
@@ -559,6 +587,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -603,6 +632,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -648,6 +678,7 @@ export class VacancyService {
           },
         },
         company: true,
+        vacancyContact: { columns: { id: true, name: true, role: true } },
         candidateVacancies: {
           with: {
             candidate: {
@@ -730,14 +761,75 @@ export class VacancyService {
     };
   }
 
-  async create(dto: CreateVacancyServiceDto) {
-    return this.db.transaction(async (tx) => {
+  /** `actorCodes`: the caller's permission codes (see canSetVacancyOpportunity). */
+  async create(dto: CreateVacancyServiceDto, actorCodes: readonly string[]) {
+    this.assertMaySetOpportunity(dto, actorCodes);
+    const vacancy = await this.db.transaction(async (tx) => {
       return this.createRecord(tx, dto);
+    });
+    return vacancyForViewer(vacancy, actorCodes);
+  }
+
+  private assertMaySetOpportunity(
+    dto: { opportunityId?: number | null },
+    actorCodes: readonly string[],
+  ) {
+    if (
+      dto.opportunityId !== undefined &&
+      !canSetVacancyOpportunity(actorCodes)
+    ) {
+      throw new ForbiddenException(
+        'Solo el área comercial puede vincular una vacante a una oportunidad.',
+      );
+    }
+  }
+
+  /**
+   * "Crear vacante" from a won Opportunity: a Vacancy on the Opportunity's
+   * Company, linked back to it, in the Organization's first open status and
+   * with an empty Search Brief (filled in later from the Vacancy page).
+   */
+  async createFromOpportunity(dto: {
+    organizationId: number;
+    opportunityId: number;
+    companyId: number;
+    title: string;
+    assignedTo: number;
+    vacancyContactId?: number | null;
+    createdBy: number;
+  }) {
+    return this.db.transaction(async (tx) => {
+      const status = await tx.query.vacancyStatuses.findFirst({
+        where: and(
+          eq(vacancyStatuses.organizationId, dto.organizationId),
+          eq(vacancyStatuses.isFinal, false),
+        ),
+        orderBy: asc(vacancyStatuses.id),
+      });
+      if (!status) {
+        throw new BadRequestException(
+          'No hay estados de vacante abiertos configurados.',
+        );
+      }
+      return this.createRecord(tx, {
+        ...dto,
+        statusId: status.id,
+        filters: {},
+      });
     });
   }
 
   async createRecord(tx: DrizzleDatabase, dto: CreateVacancyRecordDto) {
     const { organizationId, aiVacancyRunId, ...createVacancyDto } = dto;
+
+    if (createVacancyDto.opportunityId != null) {
+      await this.assertOpportunityLinkable(
+        tx,
+        organizationId,
+        createVacancyDto.opportunityId,
+        createVacancyDto.companyId,
+      );
+    }
 
     const [filters] = await tx
       .insert(vacancyFilters)
@@ -781,6 +873,16 @@ export class VacancyService {
     });
     const closedAt = status?.isFinal ? new Date() : null;
 
+    const vacancyContactId = await this.resolveVacancyContact(
+      tx,
+      organizationId,
+      null,
+      {
+        companyId: createVacancyDto.companyId,
+        vacancyContactId: createVacancyDto.vacancyContactId,
+      },
+    );
+
     const vacancyValues = {
       title: createVacancyDto.title,
       description: createVacancyDto.description ?? '',
@@ -788,6 +890,8 @@ export class VacancyService {
       statusId: createVacancyDto.statusId,
       vacancyFiltersId: filters.id,
       companyId: createVacancyDto.companyId,
+      vacancyContactId: vacancyContactId ?? null,
+      opportunityId: createVacancyDto.opportunityId ?? null,
       createdBy: createVacancyDto.createdBy,
       assignedTo: createVacancyDto.assignedTo,
       organizationId,
@@ -795,14 +899,30 @@ export class VacancyService {
       aiVacancyRunId: aiVacancyRunId ?? null,
     };
 
-    const [vacancy] = await tx.insert(vacancies).values(vacancyValues).returning();
+    const [vacancy] = await tx
+      .insert(vacancies)
+      .values(vacancyValues)
+      .returning();
 
     if (!vacancy) throw new Error('Error creating vacancy');
 
     return vacancy;
   }
 
-  async update(id: number, dto: UpdateVacancyServiceDto) {
+  /**
+   * `actorCodes`: the caller's permission codes (see canSetVacancyOpportunity).
+   *
+   * The "same Company" rule (VacancyOpportunityPolicy) is checked only when a
+   * link is made. Moving the Vacancy to another Company unlinks it from an
+   * Opportunity of a different Company; moving the Opportunity leaves its
+   * Vacancies alone (state changes don't cascade).
+   */
+  async update(
+    id: number,
+    dto: UpdateVacancyServiceDto,
+    actorCodes: readonly string[],
+  ) {
+    this.assertMaySetOpportunity(dto, actorCodes);
     const { organizationId, ...updateVacancyDto } = dto;
     const { filters: _filters, ...vacancyFields } = updateVacancyDto;
     const vacancy = await this.db.transaction(async (tx) => {
@@ -811,6 +931,60 @@ export class VacancyService {
         ...vacancyFields,
         updatedAt: new Date(),
       };
+      delete setFields.vacancyContactId;
+      if (
+        updateVacancyDto.companyId !== undefined ||
+        updateVacancyDto.vacancyContactId !== undefined
+      ) {
+        const current = await tx.query.vacancies.findFirst({
+          columns: { companyId: true, vacancyContactId: true },
+          where: and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        });
+        if (!current) throw new NotFoundException('Vacancy not found');
+        const vacancyContactId = await this.resolveVacancyContact(
+          tx,
+          organizationId,
+          current,
+          {
+            companyId: updateVacancyDto.companyId,
+            vacancyContactId: updateVacancyDto.vacancyContactId,
+          },
+        );
+        if (vacancyContactId !== undefined) {
+          setFields.vacancyContactId = vacancyContactId;
+        }
+      }
+      if (
+        updateVacancyDto.opportunityId === undefined &&
+        updateVacancyDto.companyId !== undefined
+      ) {
+        const unlink = await this.opportunityOfAnotherCompany(
+          tx,
+          id,
+          organizationId,
+          updateVacancyDto.companyId,
+        );
+        if (unlink) setFields.opportunityId = null;
+      }
+      if (updateVacancyDto.opportunityId != null) {
+        const current = await tx.query.vacancies.findFirst({
+          columns: { companyId: true },
+          where: and(
+            eq(vacancies.id, id),
+            eq(vacancies.organizationId, organizationId),
+          ),
+        });
+        if (!current) throw new NotFoundException('Vacancy not found');
+        await this.assertOpportunityLinkable(
+          tx,
+          organizationId,
+          updateVacancyDto.opportunityId,
+          updateVacancyDto.companyId ?? current.companyId,
+        );
+      }
       if (updateVacancyDto.statusId != null) {
         const newStatus = await tx.query.vacancyStatuses.findFirst({
           where: eq(vacancyStatuses.id, updateVacancyDto.statusId),
@@ -913,7 +1087,94 @@ export class VacancyService {
 
       return vacancy;
     });
-    return vacancy;
+    return vacancyForViewer(vacancy, actorCodes);
+  }
+
+  /** Whether the Vacancy is linked to an Opportunity that is not on `companyId`. */
+  private async opportunityOfAnotherCompany(
+    tx: DrizzleDatabase,
+    id: number,
+    organizationId: number,
+    companyId: number,
+  ): Promise<boolean> {
+    const current = await tx.query.vacancies.findFirst({
+      columns: { id: true },
+      where: and(
+        eq(vacancies.id, id),
+        eq(vacancies.organizationId, organizationId),
+      ),
+      with: { opportunity: { columns: { companyId: true } } },
+    });
+    return (
+      current?.opportunity != null &&
+      current.opportunity.companyId !== companyId
+    );
+  }
+
+  /**
+   * Applies the Vacancy-from-Opportunity rule (see VacancyOpportunityPolicy):
+   * only a won Opportunity of the Vacancy's Company can be linked.
+   */
+  private async assertOpportunityLinkable(
+    tx: DrizzleDatabase,
+    organizationId: number,
+    opportunityId: number,
+    vacancyCompanyId: number | null,
+  ) {
+    const opportunity = await tx.query.opportunities.findFirst({
+      columns: { companyId: true },
+      where: and(
+        eq(opportunities.id, opportunityId),
+        eq(opportunities.organizationId, organizationId),
+      ),
+      with: { stage: { columns: { isWon: true } } },
+    });
+    if (!opportunity) throw new NotFoundException('Opportunity not found');
+    const result = VacancyOpportunityPolicy.canLink({
+      opportunity,
+      vacancyCompanyId,
+    });
+    if ('reason' in result) {
+      throw new BadRequestException(
+        result.reason === 'opportunity_not_won'
+          ? 'Solo una oportunidad ganada puede generar vacantes.'
+          : 'La vacante tiene que ser de la empresa de la oportunidad.',
+      );
+    }
+  }
+
+  /**
+   * Applies the Vacancy Contact rule (see VacancyContactPolicy): the named
+   * Contact must currently work at the Vacancy's Company, and changing the
+   * Company clears it. Returns the value to store (undefined = unchanged).
+   */
+  private async resolveVacancyContact(
+    tx: DrizzleDatabase,
+    organizationId: number,
+    current: VacancyContactState | null,
+    patch: VacancyContactPatch,
+  ): Promise<number | null | undefined> {
+    const contact =
+      patch.vacancyContactId != null
+        ? await tx.query.contacts.findFirst({
+            columns: { companyId: true },
+            where: and(
+              eq(contacts.id, patch.vacancyContactId),
+              eq(contacts.organizationId, organizationId),
+            ),
+          })
+        : undefined;
+    const resolution = VacancyContactPolicy.resolve({
+      current,
+      patch,
+      contactCompanyId: contact?.companyId ?? null,
+    });
+    if (!resolution.ok) {
+      throw new BadRequestException(
+        'El contacto de la vacante tiene que trabajar en la empresa de la vacante.',
+      );
+    }
+    return resolution.vacancyContactId;
   }
 
   /**
@@ -925,9 +1186,13 @@ export class VacancyService {
    * by design — see CloseVacancySchema. Returns the updated row plus `closeChange`
    * (old/new date) for the audit trail.
    */
-  async close(id: number, dto: CloseVacancyServiceDto) {
+  async close(
+    id: number,
+    dto: CloseVacancyServiceDto,
+    viewerCodes: readonly string[] = [],
+  ) {
     const { organizationId, statusId, closedAt } = dto;
-    return this.db.transaction(async (tx) => {
+    const closed = await this.db.transaction(async (tx) => {
       const existing = await tx.query.vacancies.findFirst({
         where: and(
           eq(vacancies.id, id),
@@ -974,6 +1239,7 @@ export class VacancyService {
         },
       };
     });
+    return vacancyForViewer(closed, viewerCodes);
   }
 
   /**
@@ -982,8 +1248,13 @@ export class VacancyService {
    * non-final status (ordered by id). Returns the updated row plus `closeChange`
    * (old date → null) for the audit trail.
    */
-  async reopen(id: number, organizationId: number, statusId?: number) {
-    return this.db.transaction(async (tx) => {
+  async reopen(
+    id: number,
+    organizationId: number,
+    statusId?: number,
+    viewerCodes: readonly string[] = [],
+  ) {
+    const reopened = await this.db.transaction(async (tx) => {
       const existing = await tx.query.vacancies.findFirst({
         where: and(
           eq(vacancies.id, id),
@@ -1047,6 +1318,7 @@ export class VacancyService {
         },
       };
     });
+    return vacancyForViewer(reopened, viewerCodes);
   }
 
   /**
@@ -1067,14 +1339,15 @@ export class VacancyService {
     return date ? date.toISOString().slice(0, 10) : null;
   }
 
-  async remove(id: number, organizationId: number) {
+  async remove(
+    id: number,
+    organizationId: number,
+    viewerCodes: readonly string[] = [],
+  ) {
     const [vacancy] = await this.db
       .delete(vacancies)
       .where(
-        and(
-          eq(vacancies.id, id),
-          eq(vacancies.organizationId, organizationId),
-        ),
+        and(eq(vacancies.id, id), eq(vacancies.organizationId, organizationId)),
       )
       .returning();
 
@@ -1084,7 +1357,7 @@ export class VacancyService {
       .delete(vacancyFilters)
       .where(eq(vacancyFilters.id, vacancy.vacancyFiltersId));
 
-    return vacancy;
+    return vacancyForViewer(vacancy, viewerCodes);
   }
 
   /**
@@ -1161,12 +1434,10 @@ export class VacancyService {
             ...rest,
             candidate: {
               ...candidateRest,
-              areas:
-                candidateAreas?.map((ca) => ca.area).filter(Boolean) ?? [],
+              areas: candidateAreas?.map((ca) => ca.area).filter(Boolean) ?? [],
               industries:
-                candidateIndustries
-                  ?.map((ci) => ci.industry)
-                  .filter(Boolean) ?? [],
+                candidateIndustries?.map((ci) => ci.industry).filter(Boolean) ??
+                [],
               seniorities:
                 candidateSeniorities
                   ?.map((cs) => cs.seniority)

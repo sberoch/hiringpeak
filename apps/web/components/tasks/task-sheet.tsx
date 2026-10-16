@@ -15,8 +15,14 @@ import {
   TASK_API_KEY,
   updateTask,
 } from "@/lib/api/tasks";
+import {
+  COMMERCIAL_USERS_API_KEY,
+  getCommercialUsers,
+  OPPORTUNITY_API_KEY,
+} from "@/lib/api/opportunity";
 import { getAllUsers, USERS_API_KEY } from "@/lib/api/user";
 import { PermissionCode } from "@workspace/shared/enums";
+import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { Button } from "@workspace/ui/components/button";
 import {
   Form,
@@ -43,37 +49,36 @@ import {
 } from "@workspace/ui/components/sheet";
 import type { TaskWithRelations } from "@workspace/shared/types/task";
 
+import { AttachmentPicker } from "./attachment-picker";
 import {
-  AttachmentPicker,
-  attachmentToPayload,
-  taskToAttachment,
-  type AttachmentValue,
-} from "./attachment-picker";
-import {
-  newTaskFormSchema,
-  type NewTaskFormSchema,
-} from "./new-task.schema";
+  attachmentsToPayload,
+  isCommercialAttachments,
+  taskAttachments,
+  type Attachment,
+} from "./attachments";
+import { newTaskFormSchema, type NewTaskFormSchema } from "./new-task.schema";
 
 interface TaskSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** When provided, the Sheet is in edit mode for this task. */
   task?: TaskWithRelations | null;
-  /** When provided, create-mode locks the attachment to this value. */
-  lockedAttachment?: NonNullable<AttachmentValue>;
+  /** Create mode starts attached to this record (e.g. the page it's opened from). */
+  initialAttachment?: Attachment;
 }
 
 export function TaskSheet({
   open,
   onOpenChange,
   task,
-  lockedAttachment,
+  initialAttachment,
 }: TaskSheetProps) {
   const isEdit = !!task;
   const queryClient = useQueryClient();
   const session = useSession();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, permissionCodes } = usePermissions();
   const canManageAll = hasPermission(PermissionCode.TASK_MANAGE_ALL);
+  const actorIsCommercial = hasCommercialAccess(permissionCodes);
   const currentUserId =
     session.status === "authenticated" && session.data?.userId
       ? parseInt(session.data.userId, 10)
@@ -85,12 +90,22 @@ export function TaskSheet({
   });
   const users = usersData?.items ?? [];
 
+  // Only Users with commercial access can own a commercial Task.
+  const { data: commercialUsers } = useQuery({
+    queryKey: [COMMERCIAL_USERS_API_KEY],
+    queryFn: getCommercialUsers,
+    enabled: canManageAll && actorIsCommercial,
+  });
+  const commercialUserIds = new Set((commercialUsers ?? []).map((u) => u.id));
+
   const form = useForm<NewTaskFormSchema>({
     resolver: zodResolver(newTaskFormSchema),
     defaultValues: { title: "", dueDate: "" },
   });
-  const [attachment, setAttachment] = useState<AttachmentValue>(
-    lockedAttachment ?? null,
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const isCommercial = isCommercialAttachments(
+    attachments,
+    task?.stayedCommercial ?? false,
   );
 
   useEffect(() => {
@@ -101,11 +116,11 @@ export function TaskSheet({
         dueDate: task.dueDate ?? "",
         assignedTo: task.assignedTo,
       });
-      setAttachment(taskToAttachment(task));
+      setAttachments(taskAttachments(task));
       return;
     }
     form.reset({ title: "", dueDate: "" });
-    setAttachment(lockedAttachment ?? null);
+    setAttachments(initialAttachment ? [initialAttachment] : []);
     if (session.status === "authenticated" && session.data?.userId) {
       form.setValue("assignedTo", parseInt(session.data.userId, 10));
     }
@@ -113,7 +128,7 @@ export function TaskSheet({
     open,
     isEdit,
     task,
-    lockedAttachment,
+    initialAttachment,
     session.status,
     session.data?.userId,
     form,
@@ -124,6 +139,8 @@ export function TaskSheet({
     onSuccess: () => {
       toast.success("Tarea eliminada");
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+      // An Opportunity's next step is derived from its open Tasks.
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
       onOpenChange(false);
     },
     onError: () => toast.error("No se pudo eliminar la tarea"),
@@ -138,9 +155,7 @@ export function TaskSheet({
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async (values: NewTaskFormSchema) => {
-      const attachPayload = attachmentToPayload(
-        lockedAttachment ?? attachment,
-      );
+      const attachPayload = attachmentsToPayload(attachments);
       if (isEdit && task) {
         return updateTask(task.id, {
           title: values.title,
@@ -163,11 +178,14 @@ export function TaskSheet({
     onSuccess: () => {
       toast.success(isEdit ? "Tarea actualizada" : "Tarea creada");
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+      // An Opportunity's next step is derived from its open Tasks.
+      queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
       onOpenChange(false);
     },
-    onError: () =>
+    onError: (err) =>
       toast.error(
         isEdit ? "No se pudo actualizar la tarea" : "No se pudo crear la tarea",
+        { description: apiErrorMessage(err) },
       ),
   });
 
@@ -198,10 +216,7 @@ export function TaskSheet({
                   <FormItem>
                     <FormLabel>Título</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ej. Llamar al abogado"
-                        {...field}
-                      />
+                      <Input placeholder="Ej. Llamar al abogado" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -241,11 +256,24 @@ export function TaskSheet({
                               <SelectValue placeholder="Selecciona un responsable" />
                             </SelectTrigger>
                             <SelectContent>
-                              {users.map((u) => (
-                                <SelectItem key={u.id} value={String(u.id)}>
-                                  {u.name}
-                                </SelectItem>
-                              ))}
+                              {users.map((u) => {
+                                const blocked =
+                                  isCommercial && !commercialUserIds.has(u.id);
+                                return (
+                                  <SelectItem
+                                    key={u.id}
+                                    value={String(u.id)}
+                                    disabled={blocked}
+                                  >
+                                    {u.name}
+                                    {blocked && (
+                                      <span className="text-xs text-muted-brand">
+                                        Sin acceso comercial
+                                      </span>
+                                    )}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                         ) : (
@@ -264,15 +292,25 @@ export function TaskSheet({
                 />
               </div>
 
-              {!lockedAttachment && (
-                <div className="space-y-1.5">
-                  <FormLabel>Vínculo (opcional)</FormLabel>
-                  <AttachmentPicker
-                    value={attachment}
-                    onChange={setAttachment}
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <FormLabel>
+                    Vínculos{" "}
+                    <span className="font-normal text-muted-brand">
+                      (opcional)
+                    </span>
+                  </FormLabel>
+                  {attachments.length > 0 && (
+                    <span className="text-[11px] text-muted-brand">
+                      {attachments.length} vinculados
+                    </span>
+                  )}
                 </div>
-              )}
+                <AttachmentPicker
+                  value={attachments}
+                  onChange={setAttachments}
+                />
+              </div>
 
               <div className="flex items-center justify-between gap-2 pt-2">
                 {isEdit ? (
@@ -317,4 +355,11 @@ export function TaskSheet({
       </SheetContent>
     </Sheet>
   );
+}
+
+/** The API's message for a rejected write (e.g. an owner without commercial access). */
+function apiErrorMessage(err: unknown): string | undefined {
+  const message = (err as { response?: { data?: { message?: unknown } } })
+    ?.response?.data?.message;
+  return typeof message === "string" ? message : undefined;
 }

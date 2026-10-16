@@ -46,6 +46,7 @@ import { FeatureFlag } from '../feature-flag/feature-flag.enum';
 import { FeatureFlagGuard } from '../feature-flag/feature-flag.guard';
 import { RequireFeatureFlags } from '../feature-flag/feature-flag.decorator';
 import { VacancyAiService } from './vacancy-ai.service';
+import { AuthzService } from '../auth/authz/authz.service';
 import { CreateAiVacancyDto } from './vacancy-ai.dto';
 import {
   assertExtractHasInput,
@@ -65,7 +66,15 @@ export class VacancyController {
     private readonly vacancyService: VacancyService,
     private readonly vacancyReportService: VacancyReportService,
     private readonly vacancyAiService: VacancyAiService,
+    private readonly authzService: AuthzService,
   ) {}
+
+  /** The caller's permission codes: they decide whether the Opportunity link is shown or writable. */
+  private codesOf(user: CurrentUserStore['user']): Promise<string[]> {
+    const userId =
+      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    return this.authzService.getPermissionCodesForUser(userId);
+  }
 
   @ApiOkResponse()
   @Get()
@@ -73,8 +82,12 @@ export class VacancyController {
   async findAll(
     @Query() query: VacancyQueryParams,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: CurrentUserStore['user'],
   ) {
-    return this.vacancyService.findAll({ ...query, organizationId });
+    return this.vacancyService.findAll(
+      { ...query, organizationId },
+      await this.codesOf(user),
+    );
   }
 
   @ApiOkResponse()
@@ -220,8 +233,13 @@ export class VacancyController {
   async findOne(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: CurrentUserStore['user'],
   ) {
-    return this.vacancyService.findOne(+id, organizationId);
+    return this.vacancyService.findOne(
+      +id,
+      organizationId,
+      await this.codesOf(user),
+    );
   }
 
   @ApiOkResponse()
@@ -265,32 +283,43 @@ export class VacancyController {
   }
 
   @ApiCreatedResponse()
-  @AuditAction({ eventType: 'create_vacancy', entityType: 'vacancy', labelField: 'title' })
+  @AuditAction({
+    eventType: 'create_vacancy',
+    entityType: 'vacancy',
+    labelField: 'title',
+  })
   @Post()
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async create(
     @Body() createVacancyDto: CreateVacancyDto,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: CurrentUserStore['user'],
   ) {
-    return this.vacancyService.create({
-      ...createVacancyDto,
-      organizationId,
-    });
+    return this.vacancyService.create(
+      { ...createVacancyDto, organizationId },
+      await this.codesOf(user),
+    );
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'update_vacancy', entityType: 'vacancy', labelField: 'title' })
+  @AuditAction({
+    eventType: 'update_vacancy',
+    entityType: 'vacancy',
+    labelField: 'title',
+  })
   @Patch(':id')
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async update(
     @Param('id') id: string,
     @Body() updateVacancyDto: UpdateVacancyDto,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: CurrentUserStore['user'],
   ) {
-    return this.vacancyService.update(+id, {
-      ...updateVacancyDto,
-      organizationId,
-    });
+    return this.vacancyService.update(
+      +id,
+      { ...updateVacancyDto, organizationId },
+      await this.codesOf(user),
+    );
   }
 
   @ApiOkResponse()
@@ -309,11 +338,13 @@ export class VacancyController {
     @Param('id') id: string,
     @Body() closeVacancyDto: CloseVacancyDto,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: CurrentUserStore['user'],
   ) {
-    return this.vacancyService.close(+id, {
-      ...closeVacancyDto,
-      organizationId,
-    });
+    return this.vacancyService.close(
+      +id,
+      { ...closeVacancyDto, organizationId },
+      await this.codesOf(user),
+    );
   }
 
   @ApiOkResponse()
@@ -329,22 +360,33 @@ export class VacancyController {
     @Param('id') id: string,
     @Body() reopenVacancyDto: ReopenVacancyDto,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: CurrentUserStore['user'],
   ) {
     return this.vacancyService.reopen(
       +id,
       organizationId,
       reopenVacancyDto.statusId,
+      await this.codesOf(user),
     );
   }
 
   @ApiOkResponse()
-  @AuditAction({ eventType: 'delete_vacancy', entityType: 'vacancy', labelField: 'title' })
+  @AuditAction({
+    eventType: 'delete_vacancy',
+    entityType: 'vacancy',
+    labelField: 'title',
+  })
   @Delete(':id')
   @Permissions(PermissionCode.VACANCY_MANAGE)
   async remove(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: CurrentUserStore['user'],
   ) {
-    return this.vacancyService.remove(+id, organizationId);
+    return this.vacancyService.remove(
+      +id,
+      organizationId,
+      await this.codesOf(user),
+    );
   }
 }

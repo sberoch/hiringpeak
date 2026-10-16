@@ -1,6 +1,6 @@
-
 import { and, eq } from 'drizzle-orm';
 import { candidates, tasks } from '@workspace/shared/schemas';
+import { writeTaskAttachments } from '../../../task/task-attachments';
 import { SeedTx } from './types';
 
 /**
@@ -130,21 +130,27 @@ export async function seedTasks(
     if (task.candidate) {
       candidateId = candidateIdByName.get(task.candidate) ?? null;
       if (!candidateId) {
-        console.log(`  Candidate "${task.candidate}" not found, skipping task "${task.title}"`);
+        console.log(
+          `  Candidate "${task.candidate}" not found, skipping task "${task.title}"`,
+        );
         continue;
       }
     }
     if (task.vacancy) {
       vacancyId = opts.vacancyIds.get(task.vacancy) ?? null;
       if (!vacancyId) {
-        console.log(`  Vacancy "${task.vacancy}" not found, skipping task "${task.title}"`);
+        console.log(
+          `  Vacancy "${task.vacancy}" not found, skipping task "${task.title}"`,
+        );
         continue;
       }
     }
     if (task.company) {
       companyId = opts.companyIds.get(task.company) ?? null;
       if (!companyId) {
-        console.log(`  Company "${task.company}" not found, skipping task "${task.title}"`);
+        console.log(
+          `  Company "${task.company}" not found, skipping task "${task.title}"`,
+        );
         continue;
       }
     }
@@ -165,19 +171,29 @@ export async function seedTasks(
       continue;
     }
 
-    await tx.insert(tasks).values({
-      title: task.title,
-      dueDate: task.dueDate,
-      completed: task.completed ?? false,
-      completedAt: task.completed ? new Date('2026-06-01') : null,
-      completedBy: task.completed ? opts.userId : null,
-      createdBy: opts.userId,
-      assignedTo: opts.userId,
-      organizationId: opts.organizationId,
-      candidateId,
-      vacancyId,
-      companyId,
-    } as typeof tasks.$inferInsert);
+    const [inserted] = await tx
+      .insert(tasks)
+      .values({
+        title: task.title,
+        dueDate: task.dueDate,
+        completed: task.completed ?? false,
+        completedAt: task.completed ? new Date('2026-06-01') : null,
+        completedBy: task.completed ? opts.userId : null,
+        createdBy: opts.userId,
+        assignedTo: opts.userId,
+        organizationId: opts.organizationId,
+      } as typeof tasks.$inferInsert)
+      .returning({ id: tasks.id });
+    await writeTaskAttachments(
+      tx,
+      inserted.id,
+      {
+        candidateIds: candidateId ? [candidateId] : [],
+        vacancyIds: vacancyId ? [vacancyId] : [],
+        companyIds: companyId ? [companyId] : [],
+      },
+      { organizationId: opts.organizationId, isNew: true },
+    );
     created++;
   }
 

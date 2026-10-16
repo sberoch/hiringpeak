@@ -21,7 +21,6 @@ import {
   VACANCY_STATUS_API_KEY,
 } from "@/lib/api/vacancy-status";
 import { cn } from "@/lib/utils";
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type { VacancyFiltersType } from "@workspace/shared/types/vacancy";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
@@ -82,13 +81,12 @@ export function VacancyFilters({
   const { data: companies } = useQuery({
     queryKey: [
       COMPANIES_API_KEY,
-      { limit: 1e9, page: 1, status: CompanyStatusEnum.ACTIVE },
+      { limit: 1e9, page: 1 },
     ],
     queryFn: () =>
       getAllCompanies({
         limit: 1e9,
         page: 1,
-        status: CompanyStatusEnum.ACTIVE,
       }),
   });
 

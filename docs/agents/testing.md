@@ -10,6 +10,10 @@ Vitest, configured per package. One `vitest.config.ts` in each package that has 
 
 Globals are enabled in all configs (`describe`, `it`, `expect`, `beforeEach`, `vi`) and registered in each package's `tsconfig.json` via `"types": [..., "vitest/globals"]`. New specs do not need to import these.
 
+## The database in api specs
+
+Service specs run against an in-memory Postgres (PGlite) with every migration applied: `createTestDatabase()` in `apps/api/src/common/database/testing/test-database.ts` returns a fresh, empty database per call, `testServices(db)` wires the real services to it and `fixtures(db)` inserts arrange-step records. Act through one service method and assert through another read method (e.g. `create` then `findAll`), never by reading tables or recording writes. No external database is needed. To check that a write is all-or-nothing, `failInsertsInto(table)` makes inserts into that table fail.
+
 ## Commands
 
 - `pnpm test` — run every package's tests via turbo.

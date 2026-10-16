@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Delete,
+  forwardRef,
   Get,
+  Inject,
   Param,
   Patch,
   Post,
@@ -23,13 +25,18 @@ import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { CreateUserDto, UpdateUserDto, UserQueryParams } from './user.dto';
 import { UserService } from './user.service';
+import { AuthzService } from '../auth/authz/authz.service';
 
 @ApiBearerAuth()
 @UseGuards(PermissionsGuard, OrganizationGuard)
 @ApiTags('Users')
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    @Inject(forwardRef(() => AuthzService))
+    private readonly authzService: AuthzService,
+  ) {}
 
   @ApiOkResponse()
   @Permissions(PermissionCode.USER_MANAGE, PermissionCode.USER_READ)
@@ -39,6 +46,14 @@ export class UserController {
     @OrganizationId() organizationId: number,
   ) {
     return this.userService.findAll({ ...query, organizationId });
+  }
+
+  /** Users who can own commercial records (Opportunity, Account, Contact owners). */
+  @ApiOkResponse()
+  @Permissions(PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE)
+  @Get('commercial')
+  async findCommercial(@OrganizationId() organizationId: number) {
+    return this.authzService.listCommercialUsers(organizationId);
   }
 
   @ApiOkResponse()

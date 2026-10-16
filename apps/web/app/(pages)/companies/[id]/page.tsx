@@ -15,29 +15,45 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { DataTable } from "@workspace/ui/components/data-table";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import {
-  COMPANY_STATUS_NAMES,
-  CompanyStatusEnum,
-} from "@workspace/shared/types/company";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs";
 import { PermissionCode } from "@workspace/shared/enums";
 import { downloadFile } from "@/lib/download";
-import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import { useVacancyFilters } from "@/hooks/use-vacancy-filters";
 import { companyDetailColumns as vacancyColumns } from "@/components/vacancies/vacancy-table-columns";
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { DeleteCompanyDialog } from "@/components/companies/delete-company-dialog";
 import { EditCompanySheet } from "@/components/companies/edit-company-sheet";
 import { TasksInContextCard } from "@/components/tasks/tasks-in-context-card";
+import { CompanyContactsTab } from "@/components/companies/company-contacts-tab";
+import { CompanyInteractionsTab } from "@/components/interactions/interaction-lists";
+import { LastInteractionLabel } from "@/components/interactions/interaction-format";
+import { CompanyOpportunitiesTab } from "@/components/companies/company-opportunities-tab";
+import { AccountOwnerControl } from "@/components/companies/account-owner-control";
+import { CompanyStatusBadge } from "@/components/companies/company-status-badge";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import {
   COMPANIES_API_KEY,
   downloadCompanyReportPdf,
   getCompanyById,
 } from "@/lib/api/company";
 import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
+
+type CompanyTab =
+  | "resumen"
+  | "contactos"
+  | "oportunidades"
+  | "interacciones"
+  | "vacantes"
+  | "tareas";
 
 function CompanyDetailSkeleton() {
   return (
@@ -79,6 +95,8 @@ export default function CompanyDetailPage({
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [tab, setTab] = useState<CompanyTab>("resumen");
+  const { canRead: hasCommercialAccess } = useCommercialAccess();
 
   const {
     filters,
@@ -163,18 +181,7 @@ export default function CompanyDetailPage({
             title={
               <span className="flex items-center gap-2.5">
                 {company.name}
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "rounded-lg text-xs font-semibold",
-                    company.status === CompanyStatusEnum.ACTIVE &&
-                      "bg-emerald-50 text-emerald-700 hover:bg-emerald-50",
-                    company.status === CompanyStatusEnum.PROSPECT &&
-                      "bg-amber-50 text-amber-700 hover:bg-amber-50",
-                  )}
-                >
-                  {COMPANY_STATUS_NAMES[company.status]}
-                </Badge>
+                <CompanyStatusBadge status={company.status} />
               </span>
             }
           />
@@ -216,111 +223,230 @@ export default function CompanyDetailPage({
         </div>
       </div>
 
-      {/* Two-column info grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Detalles card */}
-        <div className="rounded-2xl border border-brand-border bg-surface p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
-              <Info className="h-3.5 w-3.5" />
-            </div>
-            <h3 className="text-sm font-semibold text-ink">Detalles</h3>
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Cliente</span>
-              <span className="text-ink font-medium">
-                {company.clientName || "-"}
-              </span>
-            </div>
-            <div className="h-px bg-brand-border-light" />
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Email cliente</span>
-              <span className="text-ink font-medium">
-                {company.clientEmail || "-"}
-              </span>
-            </div>
-            <div className="h-px bg-brand-border-light" />
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Teléfono cliente</span>
-              <span className="text-ink font-medium">
-                {company.clientPhone || "-"}
-              </span>
-            </div>
-            <div className="h-px bg-brand-border-light" />
-            <div className="flex justify-between">
-              <span className="text-muted-brand">Vacantes</span>
-              <span className="text-ink font-medium">
-                {company.vacancyCount ?? 0}
-              </span>
-            </div>
-            {company.createdAt && (
-              <>
-                <div className="h-px bg-brand-border-light" />
-                <div className="flex justify-between">
-                  <span className="text-muted-brand">Fecha de creación</span>
-                  <span className="text-ink font-medium">
-                    {new Date(company.createdAt).toLocaleDateString()}
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setTab(value as CompanyTab)}
+        className="gap-5"
+      >
+        <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-brand-border bg-transparent p-0">
+          {(
+            [
+              { key: "resumen", label: "Resumen" },
+              {
+                key: "contactos",
+                label: "Contactos",
+                count: company.contacts.length,
+              },
+              {
+                key: "oportunidades",
+                label: "Oportunidades",
+                count: company.commercial?.openOpportunityCount,
+                commercial: true,
+              },
+              {
+                key: "interacciones",
+                label: "Interacciones",
+                commercial: true,
+              },
+              {
+                key: "vacantes",
+                label: "Vacantes",
+                count: company.vacancyCount ?? 0,
+              },
+              { key: "tareas", label: "Tareas" },
+            ] as {
+              key: CompanyTab;
+              label: string;
+              count?: number;
+              commercial?: boolean;
+            }[]
+          )
+            .filter((item) => !item.commercial || hasCommercialAccess)
+            .map((item) => (
+              <TabsTrigger
+                key={item.key}
+                value={item.key}
+                className="-mb-px h-10 flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-sm font-semibold text-slate-brand shadow-none data-[state=active]:border-electric data-[state=active]:bg-transparent data-[state=active]:text-ink data-[state=active]:shadow-none"
+              >
+                {item.label}
+                {item.count != null && (
+                  <span className="rounded-md bg-brand-border-light px-1.5 py-0.5 text-[11px] font-semibold text-slate-brand">
+                    {item.count}
                   </span>
+                )}
+              </TabsTrigger>
+            ))}
+        </TabsList>
+
+        <TabsContent value="resumen">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Detalles card */}
+            <div className="rounded-2xl border border-brand-border bg-surface p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
+                  <Info className="h-3.5 w-3.5" />
                 </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Descripción card */}
-        <div className="rounded-2xl border border-brand-border bg-surface p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
-              <FileText className="h-3.5 w-3.5" />
+                <h3 className="text-sm font-semibold text-ink">Detalles</h3>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-brand">Estado</span>
+                  <CompanyStatusBadge status={company.status} />
+                </div>
+                <div className="h-px bg-brand-border-light" />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-brand">
+                    Responsable de cuenta
+                  </span>
+                  <AccountOwnerControl company={company} />
+                </div>
+                <div className="h-px bg-brand-border-light" />
+                <button
+                  type="button"
+                  className="flex w-full justify-between text-left"
+                  onClick={() => setTab("contactos")}
+                >
+                  <span className="text-muted-brand">Contactos</span>
+                  <span className="text-ink font-medium hover:text-electric">
+                    {company.contacts.length}
+                  </span>
+                </button>
+                <div className="h-px bg-brand-border-light" />
+                <button
+                  type="button"
+                  className="flex w-full justify-between text-left"
+                  onClick={() => setTab("vacantes")}
+                >
+                  <span className="text-muted-brand">Vacantes activas</span>
+                  <span className="text-ink font-medium hover:text-electric">
+                    {company.activeVacancyCount}
+                    <span className="ml-1 text-xs font-normal text-muted-brand">
+                      de {company.vacancyCount ?? 0}
+                    </span>
+                  </span>
+                </button>
+                {company.commercial && (
+                  <>
+                    <div className="h-px bg-brand-border-light" />
+                    <button
+                      type="button"
+                      className="flex w-full justify-between text-left"
+                      onClick={() => setTab("oportunidades")}
+                    >
+                      <span className="text-muted-brand">
+                        Negocio abierto ·{" "}
+                        {company.commercial.openOpportunityCount} oport.
+                      </span>
+                      <span className="text-ink font-medium tabular-nums hover:text-electric">
+                        {company.commercial.openOpportunityFee > 0
+                          ? formatMoney(company.commercial.openOpportunityFee)
+                          : "Sin fee en juego"}
+                      </span>
+                    </button>
+                    <div className="h-px bg-brand-border-light" />
+                    <button
+                      type="button"
+                      className="flex w-full justify-between text-left"
+                      onClick={() => setTab("interacciones")}
+                    >
+                      <span className="text-muted-brand">
+                        Última interacción
+                      </span>
+                      <LastInteractionLabel
+                        last={company.commercial.lastInteraction}
+                      />
+                    </button>
+                  </>
+                )}
+                {company.createdAt && (
+                  <>
+                    <div className="h-px bg-brand-border-light" />
+                    <div className="flex justify-between">
+                      <span className="text-muted-brand">
+                        Fecha de creación
+                      </span>
+                      <span className="text-ink font-medium">
+                        {new Date(company.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            <h3 className="text-sm font-semibold text-ink">Descripción</h3>
-          </div>
-          {company.description ? (
-            <div className="whitespace-pre-wrap text-sm text-slate-brand leading-relaxed max-h-[300px] overflow-y-auto">
-              {company.description}
-            </div>
-          ) : (
-            <div className="text-muted-brand text-sm italic">
-              No hay descripción disponible
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Vacancies section */}
-      <div className="flex flex-col min-w-0">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-electric/10 text-electric">
-            <Users className="h-4 w-4" />
+            {/* Descripción card */}
+            <div className="rounded-2xl border border-brand-border bg-surface p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-electric/10 text-electric">
+                  <FileText className="h-3.5 w-3.5" />
+                </div>
+                <h3 className="text-sm font-semibold text-ink">Descripción</h3>
+              </div>
+              {company.description ? (
+                <div className="whitespace-pre-wrap text-sm text-slate-brand leading-relaxed max-h-[300px] overflow-y-auto">
+                  {company.description}
+                </div>
+              ) : (
+                <div className="text-muted-brand text-sm italic">
+                  No hay descripción disponible
+                </div>
+              )}
+            </div>
           </div>
-          <h2 className="text-lg font-bold tracking-tight text-ink">
-            Vacantes de la empresa
-          </h2>
-        </div>
-        <DataTable
-          columns={vacancyColumns}
-          loading={isVacanciesLoading && !vacancies}
-          data={vacancies?.items || []}
-          pagination={{
-            totalItems: vacancies?.meta.totalItems || 1,
-            pageCount: vacancies?.meta.totalPages || 1,
-            pageIndex: (filters.page || 1) - 1,
-            pageSize: filters.limit || 10,
-            onPaginationChange,
-          }}
-          sorting={{
-            order: filters.order,
-            onSortingChange,
-          }}
-        />
-      </div>
+        </TabsContent>
 
-      {/* Tasks in context — secondary surface below the vacancies table */}
-      <TasksInContextCard
-        variant="compact"
-        context={{ type: "company", id: companyId, label: company.name }}
-      />
+        <TabsContent value="contactos">
+          <CompanyContactsTab company={company} />
+        </TabsContent>
+
+        {hasCommercialAccess && (
+          <TabsContent value="oportunidades">
+            <CompanyOpportunitiesTab company={company} />
+          </TabsContent>
+        )}
+
+        {hasCommercialAccess && (
+          <TabsContent value="interacciones">
+            <CompanyInteractionsTab company={company} />
+          </TabsContent>
+        )}
+
+        <TabsContent value="vacantes">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-electric/10 text-electric">
+                <Users className="h-4 w-4" />
+              </div>
+              <h2 className="text-lg font-bold tracking-tight text-ink">
+                Vacantes de la empresa
+              </h2>
+            </div>
+            <DataTable
+              columns={vacancyColumns}
+              loading={isVacanciesLoading && !vacancies}
+              data={vacancies?.items || []}
+              pagination={{
+                totalItems: vacancies?.meta.totalItems || 1,
+                pageCount: vacancies?.meta.totalPages || 1,
+                pageIndex: (filters.page || 1) - 1,
+                pageSize: filters.limit || 10,
+                onPaginationChange,
+              }}
+              sorting={{
+                order: filters.order,
+                onSortingChange,
+              }}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tareas">
+          <TasksInContextCard
+            variant="compact"
+            context={{ type: "company", id: companyId, label: company.name }}
+          />
+        </TabsContent>
+      </Tabs>
 
       {isDeleteDialogOpen && (
         <DeleteCompanyDialog

@@ -1,10 +1,7 @@
 import { z } from "zod";
 
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
-
 const companySchema = z.object({
   id: z.number(),
-  status: z.enum([CompanyStatusEnum.ACTIVE, CompanyStatusEnum.PROSPECT]),
   name: z.string(),
   description: z.string().optional(),
 });
@@ -71,6 +68,8 @@ export const editVacancySchema = z.object({
   companyId: z.number({
     error: "La empresa es requerida.",
   }),
+  /** Vacancy Contact: one of the Company's current Contacts, or none. */
+  vacancyContactId: z.number().nullable().optional(),
   filters: z
     .object({
       seniorityIds: z.array(z.number()).optional().nullable(),

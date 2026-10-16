@@ -53,7 +53,6 @@ import {
   getAllVacancyStatuses,
   VACANCY_STATUS_API_KEY,
 } from "@/lib/api/vacancy-status";
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type { AiVacancyDraft } from "@workspace/shared/types/vacancy-ai";
 import type {
   Vacancy,
@@ -99,6 +98,7 @@ const EMPTY_DEFAULTS = {
   title: "",
   description: "",
   salary: "",
+  vacancyContactId: null,
   filters: EMPTY_FILTERS,
 } as unknown as VacancyWizardFormSchema;
 
@@ -109,6 +109,7 @@ function vacancyToFormValues(vacancy: Vacancy): VacancyWizardFormSchema {
     salary: vacancy.salary ?? "",
     status: vacancy.status,
     company: vacancy.company,
+    vacancyContactId: vacancy.vacancyContactId ?? null,
     createdBy: vacancy.createdBy,
     assignedTo: vacancy.assignedTo,
     filters: {
@@ -182,6 +183,7 @@ function aiDraftToFormValues(
     company:
       catalogs.companies.find((company) => company.id === draft.companyId) ??
       (undefined as unknown as VacancyWizardFormSchema["company"]),
+    vacancyContactId: null,
     createdBy:
       sessionUser ??
       (undefined as unknown as VacancyWizardFormSchema["createdBy"]),
@@ -320,13 +322,12 @@ export function VacancyWizard({ vacancyId }: VacancyWizardProps) {
   const { data: aiCompanies } = useQuery({
     queryKey: [
       COMPANIES_API_KEY,
-      { limit: 1e9, page: 1, status: CompanyStatusEnum.ACTIVE },
+      { limit: 1e9, page: 1 },
     ],
     queryFn: () =>
       getAllCompanies({
         limit: 1e9,
         page: 1,
-        status: CompanyStatusEnum.ACTIVE,
       }),
     enabled: isAiSeededMode,
   });

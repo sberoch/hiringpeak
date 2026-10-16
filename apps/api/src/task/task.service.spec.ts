@@ -1,407 +1,430 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DrizzleProvider } from '../common/database/drizzle.module';
-import { NotificationFactory } from '../notification/notification-factory';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { PermissionCode } from '@workspace/shared/enums';
+import { fixtures } from '../common/database/testing/fixtures';
+import { createTestDatabase } from '../common/database/testing/test-database';
+import { testServices } from '../common/database/testing/test-services';
+import type { NotificationService } from '../notification/notification.service';
 import { TaskService } from './task.service';
 
+/**
+ * TaskService against the in-memory test database: Tasks are written through
+ * create/update/complete/reopen and read back through findAll, dueSoonForUser
+ * and openCountFor; Notifications through NotificationService.
+ */
+let tasks: TaskService;
+let notifications: NotificationService;
+let f: ReturnType<typeof fixtures>;
+let org: number;
+let ana: number;
+let beto: number;
+
+beforeEach(async () => {
+  const db = await createTestDatabase();
+  ({ tasks, notifications } = await testServices(db));
+  f = fixtures(db);
+  org = await f.organization();
+  ana = await f.user(org, [PermissionCode.CRM_MANAGE], 'Ana');
+  beto = await f.user(org, [], 'Beto');
+});
+
+const newTask = (fields: Record<string, unknown> = {}) =>
+  tasks.create({
+    title: 'Llamar al abogado',
+    assignedTo: ana,
+    createdBy: ana,
+    organizationId: org,
+    ...fields,
+  });
+
+const listed = async (params: Record<string, unknown> = {}) =>
+  (
+    await tasks.findAll({
+      organizationId: org,
+      commercialAccess: true,
+      ...params,
+    })
+  ).items;
+
+const onlyListed = async () => (await listed())[0];
+
+const inboxOf = async (userId: number) =>
+  (
+    await notifications.findAll({
+      organizationId: org,
+      recipientUserId: userId,
+      commercialAccess: true,
+    })
+  ).items;
+
+/** Records of every attachable type, in the Organization. */
+async function records() {
+  const company = await f.company(org, { name: 'Acme' });
+  const vacancy = await f.vacancy(org, {
+    companyId: company,
+    createdBy: ana,
+    title: 'Gerente Comercial',
+  });
+  const candidate = await f.candidate(org, 'Martín Álvarez');
+  const candidacy = await f.candidacy(org, {
+    candidateId: candidate,
+    vacancyId: vacancy,
+  });
+  const stages = await f.stages(org);
+  const opportunity = await f.opportunity(org, {
+    companyId: company,
+    ownerId: ana,
+    stageId: stages.open,
+    title: 'CFO Acme',
+  });
+  const contact = await f.contact(org, {
+    companyId: company,
+    name: 'Juan Pérez',
+  });
+  return { company, vacancy, candidate, candidacy, opportunity, contact };
+}
+
 describe('TaskService.create', () => {
-  let service: TaskService;
-  const returning = vi.fn();
-  const values = vi.fn(() => ({ returning }));
-  const insert = vi.fn(() => ({ values }));
-  const mockDb = { insert } as unknown as Record<string, unknown>;
-  const ensure = vi.fn();
-  const notificationFactory = { ensure } as unknown as NotificationFactory;
+  it('creates a standalone Task with no attachments', async () => {
+    await newTask();
+    expect(await onlyListed()).toMatchObject({
+      title: 'Llamar al abogado',
+      assignedTo: ana,
+      dueDate: null,
+      candidates: [],
+      vacancies: [],
+      candidacies: [],
+      companies: [],
+      contacts: [],
+      opportunities: [],
+    });
+  });
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TaskService,
-        { provide: DrizzleProvider, useValue: mockDb },
-        { provide: NotificationFactory, useValue: notificationFactory },
+  it('attaches a Task to records of every type at once', async () => {
+    const r = await records();
+    await newTask({
+      candidateIds: [r.candidate],
+      vacancyIds: [r.vacancy],
+      candidacyIds: [r.candidacy],
+      companyIds: [r.company],
+      opportunityIds: [r.opportunity],
+      contactIds: [r.contact],
+    });
+
+    expect(await onlyListed()).toMatchObject({
+      candidates: [{ id: r.candidate, name: 'Martín Álvarez' }],
+      vacancies: [{ id: r.vacancy, title: 'Gerente Comercial' }],
+      candidacies: [
+        {
+          id: r.candidacy,
+          candidateName: 'Martín Álvarez',
+          vacancyTitle: 'Gerente Comercial',
+        },
       ],
-    }).compile();
-    service = module.get<TaskService>(TaskService);
+      companies: [{ id: r.company, name: 'Acme' }],
+      opportunities: [{ id: r.opportunity, title: 'CFO Acme' }],
+      contacts: [{ id: r.contact, name: 'Juan Pérez' }],
+    });
   });
 
-  it('inserts a standalone Task with createdBy + organizationId', async () => {
-    returning.mockResolvedValueOnce([
-      {
-        id: 1,
-        title: 'Llamar al abogado',
-        assignedTo: 7,
-        organizationId: 42,
-      },
-    ]);
-    const result = await service.create({
-      title: 'Llamar al abogado',
-      assignedTo: 7,
-      createdBy: 7,
-      organizationId: 42,
-    });
+  it('attaches several records of one type', async () => {
+    const acme = await f.company(org, { name: 'Acme' });
+    const globex = await f.company(org, { name: 'Globex' });
+    await newTask({ companyIds: [acme, globex] });
 
-    expect(insert).toHaveBeenCalledTimes(1);
-    expect(values).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'Llamar al abogado',
-        assignedTo: 7,
-        createdBy: 7,
-        organizationId: 42,
-        candidateId: null,
-        vacancyId: null,
-        companyId: null,
-        dueDate: null,
-      }),
+    expect((await onlyListed()).companies).toEqual(
+      expect.arrayContaining([
+        { id: acme, name: 'Acme' },
+        { id: globex, name: 'Globex' },
+      ]),
     );
-    expect(result).toEqual({
-      id: 1,
-      title: 'Llamar al abogado',
-      assignedTo: 7,
-      organizationId: 42,
-    });
   });
 
-  it('rejects a Task with more than one attachment target', async () => {
-    await expect(
-      service.create({
-        title: 'mixed',
-        assignedTo: 7,
-        createdBy: 7,
-        organizationId: 42,
-        candidateId: 1,
-        vacancyId: 2,
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(insert).not.toHaveBeenCalled();
-  });
+  it('attaches the same record only once when it is picked twice', async () => {
+    const candidate = await f.candidate(org, 'Martín Álvarez');
+    await newTask({ candidateIds: [candidate, candidate] });
 
-  it('creates exactly one assigned Notification when assigning to another User on create', async () => {
-    returning.mockResolvedValueOnce([
-      { id: 11, assignedTo: 9, organizationId: 42 },
+    expect((await onlyListed()).candidates).toEqual([
+      { id: candidate, name: 'Martín Álvarez' },
     ]);
-    ensure.mockResolvedValueOnce({ id: 1 });
-
-    await service.create({
-      title: 'Pedir referencias',
-      assignedTo: 9,
-      createdBy: 7,
-      organizationId: 42,
-    });
-
-    expect(ensure).toHaveBeenCalledTimes(1);
-    expect(ensure).toHaveBeenCalledWith({
-      recipientUserId: 9,
-      organizationId: 42,
-      kind: 'assigned',
-      taskId: 11,
-    });
   });
 
-  it('does not create a Notification when self-creating (createdBy == assignedTo)', async () => {
-    returning.mockResolvedValueOnce([
-      { id: 12, assignedTo: 7, organizationId: 42 },
+  it('notifies the owner when someone else creates a Task for them', async () => {
+    const task = await newTask({ assignedTo: beto, createdBy: ana });
+
+    expect(await inboxOf(beto)).toEqual([
+      expect.objectContaining({ kind: 'assigned', taskId: task.id }),
     ]);
+  });
 
-    await service.create({
-      title: 'Mi tarea',
-      assignedTo: 7,
-      createdBy: 7,
-      organizationId: 42,
-    });
-
-    expect(ensure).not.toHaveBeenCalled();
+  it('notifies no one when the owner creates their own Task', async () => {
+    await newTask();
+    expect(await inboxOf(ana)).toEqual([]);
   });
 });
 
-describe('TaskService.update — assignment Notification', () => {
-  let service: TaskService;
-  const findFirst = vi.fn();
-  const returning = vi.fn();
-  const where = vi.fn(() => ({ returning }));
-  const set = vi.fn(() => ({ where }));
-  const update = vi.fn(() => ({ set }));
-  const mockDb = {
-    query: { tasks: { findFirst } },
-    update,
-  } as unknown as Record<string, unknown>;
-  const ensure = vi.fn();
-  const notificationFactory = { ensure } as unknown as NotificationFactory;
+describe('TaskService.update — attachments', () => {
+  it('replaces the attachments of each type it is given', async () => {
+    const acme = await f.company(org, { name: 'Acme' });
+    const globex = await f.company(org, { name: 'Globex' });
+    const task = await newTask({ companyIds: [acme] });
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TaskService,
-        { provide: DrizzleProvider, useValue: mockDb },
-        { provide: NotificationFactory, useValue: notificationFactory },
-      ],
-    }).compile();
-    service = module.get<TaskService>(TaskService);
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: ana,
+      companyIds: [globex],
+    });
+
+    expect((await onlyListed()).companies).toEqual([
+      { id: globex, name: 'Globex' },
+    ]);
   });
 
-  it('reassigning a Task to a different User notifies the new owner', async () => {
-    findFirst.mockResolvedValueOnce({
-      id: 5,
-      organizationId: 42,
-      assignedTo: 7,
-      candidateId: null,
-      vacancyId: null,
-      companyId: null,
-    });
-    returning.mockResolvedValueOnce([
-      { id: 5, assignedTo: 9, organizationId: 42 },
-    ]);
-
-    await service.update(5, {
-      organizationId: 42,
-      actorUserId: 7,
-      assignedTo: 9,
+  it('leaves the attachments of types it is not given untouched', async () => {
+    const r = await records();
+    const task = await newTask({
+      companyIds: [r.company],
+      vacancyIds: [r.vacancy],
     });
 
-    expect(ensure).toHaveBeenCalledWith({
-      recipientUserId: 9,
-      organizationId: 42,
-      kind: 'assigned',
-      taskId: 5,
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: ana,
+      candidateIds: [r.candidate],
+    });
+
+    expect(await onlyListed()).toMatchObject({
+      companies: [{ id: r.company }],
+      vacancies: [{ id: r.vacancy }],
+      candidates: [{ id: r.candidate }],
     });
   });
 
-  it('reassigning to the acting User (self) creates no Notification', async () => {
-    findFirst.mockResolvedValueOnce({
-      id: 5,
-      organizationId: 42,
-      assignedTo: 7,
-      candidateId: null,
-      vacancyId: null,
-      companyId: null,
-    });
-    returning.mockResolvedValueOnce([
-      { id: 5, assignedTo: 3, organizationId: 42 },
-    ]);
+  it('detaches every record of a type when given an empty list', async () => {
+    const acme = await f.company(org);
+    const task = await newTask({ companyIds: [acme] });
 
-    await service.update(5, {
-      organizationId: 42,
-      actorUserId: 3,
-      assignedTo: 3,
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: ana,
+      companyIds: [],
     });
 
-    expect(ensure).not.toHaveBeenCalled();
+    expect((await onlyListed()).companies).toEqual([]);
   });
 
-  it('editing a Task without changing assignedTo creates no Notification', async () => {
-    findFirst.mockResolvedValueOnce({
-      id: 5,
-      organizationId: 42,
-      assignedTo: 7,
-      candidateId: null,
-      vacancyId: null,
-      companyId: null,
-    });
-    returning.mockResolvedValueOnce([
-      { id: 5, assignedTo: 7, organizationId: 42 },
-    ]);
+  it('editing only the title keeps every attachment', async () => {
+    const acme = await f.company(org, { name: 'Acme' });
+    const task = await newTask({ companyIds: [acme] });
 
-    await service.update(5, {
-      organizationId: 42,
-      actorUserId: 7,
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: ana,
       title: 'nuevo titulo',
     });
 
-    expect(ensure).not.toHaveBeenCalled();
+    expect(await onlyListed()).toMatchObject({
+      title: 'nuevo titulo',
+      companies: [{ id: acme, name: 'Acme' }],
+    });
+  });
+});
+
+describe('TaskService.findAll', () => {
+  it('strips passwords from the owner and creator', async () => {
+    await newTask();
+    const task = await onlyListed();
+    expect([task.assignedToUser, task.createdByUser]).toEqual([
+      expect.not.objectContaining({ password: expect.anything() }),
+      expect.not.objectContaining({ password: expect.anything() }),
+    ]);
   });
 
-  it('reassigning to the same owner (no-op) creates no Notification', async () => {
-    findFirst.mockResolvedValueOnce({
-      id: 5,
-      organizationId: 42,
-      assignedTo: 7,
-      candidateId: null,
-      vacancyId: null,
-      companyId: null,
-    });
-    returning.mockResolvedValueOnce([
-      { id: 5, assignedTo: 7, organizationId: 42 },
+  it('lists the Tasks attached to a given record, whatever else they are attached to', async () => {
+    const acme = await f.company(org);
+    const globex = await f.company(org);
+    await newTask({ title: 'Acme', companyIds: [acme, globex] });
+    await newTask({ title: 'Solo Globex', companyIds: [globex] });
+
+    expect((await listed({ companyId: acme })).map((t) => t.title)).toEqual([
+      'Acme',
     ]);
+  });
 
-    await service.update(5, {
-      organizationId: 42,
-      actorUserId: 3,
-      assignedTo: 7,
-    });
+  it('leaves commercial Tasks out for a caller without commercial access', async () => {
+    const r = await records();
+    await newTask({ title: 'Comercial', contactIds: [r.contact] });
+    await newTask({ title: 'Reclutamiento', vacancyIds: [r.vacancy] });
 
-    expect(ensure).not.toHaveBeenCalled();
+    expect(
+      (await listed({ commercialAccess: false })).map((t) => t.title),
+    ).toEqual(['Reclutamiento']);
+  });
+
+  it('keeps commercial Tasks for a caller with commercial access', async () => {
+    const r = await records();
+    await newTask({ title: 'Comercial', opportunityIds: [r.opportunity] });
+
+    expect((await listed()).map((t) => t.title)).toEqual(['Comercial']);
   });
 });
 
 describe('TaskService.dueSoonForUser', () => {
-  let service: TaskService;
-  const findMany = vi.fn();
-  const mockDb = {
-    query: { tasks: { findMany } },
-  } as unknown as Record<string, unknown>;
-  const notificationFactory = { ensure: vi.fn() } as unknown as NotificationFactory;
+  const now = new Date('2026-05-20T10:00:00');
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TaskService,
-        { provide: DrizzleProvider, useValue: mockDb },
-        { provide: NotificationFactory, useValue: notificationFactory },
-      ],
-    }).compile();
-    service = module.get<TaskService>(TaskService);
+  it('returns at most 10 Tasks', async () => {
+    for (let i = 0; i < 12; i++) await newTask({ dueDate: '2026-05-21' });
+
+    const items = await tasks.dueSoonForUser(
+      org,
+      { userId: ana, commercialAccess: true },
+      7,
+      now,
+    );
+
+    expect(items).toHaveLength(10);
   });
 
-  it('queries open Tasks for the given Org+User with a dueDate within the window', async () => {
-    findMany.mockResolvedValueOnce([]);
+  it('returns each Task with its attachments and without the owner password', async () => {
+    const acme = await f.company(org, { name: 'Acme' });
+    await newTask({ dueDate: '2026-05-21', companyIds: [acme] });
 
-    const now = new Date('2026-05-20T10:00:00Z');
-    await service.dueSoonForUser(42, 7, 7, now);
+    const [item] = await tasks.dueSoonForUser(
+      org,
+      { userId: ana, commercialAccess: true },
+      7,
+      now,
+    );
 
-    expect(findMany).toHaveBeenCalledTimes(1);
-    const arg = findMany.mock.calls[0][0];
-    expect(arg.limit).toBe(10);
-    expect(arg.with).toMatchObject({
-      assignedToUser: true,
-      candidate: true,
-      vacancy: true,
-      company: true,
+    expect(item).toMatchObject({
+      companies: [{ id: acme, name: 'Acme' }],
+      assignedToUser: { id: ana, name: 'Ana' },
     });
+    expect(item.assignedToUser).not.toHaveProperty('password');
   });
 
-  it('strips the password field from assignedToUser', async () => {
-    findMany.mockResolvedValueOnce([
-      {
-        id: 1,
-        title: 't',
-        organizationId: 42,
-        assignedTo: 7,
-        dueDate: '2026-05-21',
-        completed: false,
-        assignedToUser: { id: 7, name: 'A', password: 'secret' },
-      },
-    ]);
+  it('leaves commercial Tasks out for an owner without commercial access', async () => {
+    const r = await records();
+    await newTask({ dueDate: '2026-05-21', contactIds: [r.contact] });
 
-    const items = await service.dueSoonForUser(42, 7);
+    expect(
+      await tasks.dueSoonForUser(
+        org,
+        { userId: ana, commercialAccess: false },
+        7,
+        now,
+      ),
+    ).toEqual([]);
+  });
 
-    expect(items[0].assignedToUser).not.toHaveProperty('password');
-    expect(items[0].assignedToUser).toMatchObject({ id: 7, name: 'A' });
+  it('includes commercial follow-ups for an owner with commercial access', async () => {
+    const r = await records();
+    await newTask({ dueDate: '2026-05-21', contactIds: [r.contact] });
+
+    expect(
+      await tasks.dueSoonForUser(
+        org,
+        { userId: ana, commercialAccess: true },
+        7,
+        now,
+      ),
+    ).toHaveLength(1);
   });
 });
 
 describe('TaskService.openCountFor', () => {
-  let service: TaskService;
-  const where = vi.fn();
-  const from = vi.fn(() => ({ where }));
-  const select = vi.fn(() => ({ from }));
-  const mockDb = { select } as unknown as Record<string, unknown>;
-  const notificationFactory = { ensure: vi.fn() } as unknown as NotificationFactory;
+  it("counts the User's open owned Tasks", async () => {
+    await newTask();
+    await newTask();
+    const done = await newTask();
+    await tasks.complete(done.id, org, ana);
+    await newTask({ assignedTo: beto });
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TaskService,
-        { provide: DrizzleProvider, useValue: mockDb },
-        { provide: NotificationFactory, useValue: notificationFactory },
-      ],
-    }).compile();
-    service = module.get<TaskService>(TaskService);
+    expect(
+      await tasks.openCountFor(org, { userId: ana, commercialAccess: true }),
+    ).toEqual({ count: 2 });
   });
 
-  it('returns the count of the User\'s open owned Tasks for the Organization', async () => {
-    where.mockResolvedValueOnce([{ count: 3 }]);
-
-    const result = await service.openCountFor(42, 7);
-
-    expect(result).toEqual({ count: 3 });
-    expect(select).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns zero when the User has no open owned Tasks', async () => {
-    where.mockResolvedValueOnce([{ count: 0 }]);
-
-    const result = await service.openCountFor(42, 7);
-
-    expect(result).toEqual({ count: 0 });
+  it('is zero when the User has no open owned Tasks', async () => {
+    expect(
+      await tasks.openCountFor(org, { userId: ana, commercialAccess: true }),
+    ).toEqual({ count: 0 });
   });
 });
 
 describe('TaskService.complete / reopen', () => {
-  let service: TaskService;
-  const findFirst = vi.fn();
-  const returning = vi.fn();
-  const where = vi.fn(() => ({ returning }));
-  const set = vi.fn(() => ({ where }));
-  const update = vi.fn(() => ({ set }));
-  const mockDb = {
-    query: { tasks: { findFirst } },
-    update,
-  } as unknown as Record<string, unknown>;
-  const ensure = vi.fn();
-  const notificationFactory = { ensure } as unknown as NotificationFactory;
+  it('complete records who completed it and when', async () => {
+    const task = await newTask();
+    await tasks.complete(task.id, org, beto);
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TaskService,
-        { provide: DrizzleProvider, useValue: mockDb },
-        { provide: NotificationFactory, useValue: notificationFactory },
-      ],
-    }).compile();
-    service = module.get<TaskService>(TaskService);
-  });
-
-  it('complete sets completed, completedAt, completedBy', async () => {
-    findFirst.mockResolvedValueOnce({ id: 1, organizationId: 42 });
-    returning.mockResolvedValueOnce([
-      {
-        id: 1,
-        completed: true,
-        completedAt: new Date(),
-        completedBy: 9,
-      },
-    ]);
-
-    const result = await service.complete(1, 42, 9);
-
-    expect(set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        completed: true,
-        completedBy: 9,
-        completedAt: expect.any(Date),
-      }),
-    );
-    expect(result.completedBy).toBe(9);
-    expect(result.completed).toBe(true);
-    expect(result.completedAt).toBeInstanceOf(Date);
-  });
-
-  it('reopen clears completed, completedAt, completedBy', async () => {
-    findFirst.mockResolvedValueOnce({
-      id: 1,
-      organizationId: 42,
+    expect(await onlyListed()).toMatchObject({
       completed: true,
+      completedBy: beto,
+      completedAt: expect.any(Date),
     });
-    returning.mockResolvedValueOnce([
-      { id: 1, completed: false, completedAt: null, completedBy: null },
+  });
+
+  it('reopen clears the completion', async () => {
+    const task = await newTask();
+    await tasks.complete(task.id, org, beto);
+    await tasks.reopen(task.id, org);
+
+    expect(await onlyListed()).toMatchObject({
+      completed: false,
+      completedBy: null,
+      completedAt: null,
+    });
+  });
+});
+
+describe('TaskService.update — assignment Notification', () => {
+  let carla: number;
+  beforeEach(async () => {
+    carla = await f.user(org, [], 'Carla');
+  });
+
+  it('reassigning a Task to a different User notifies the new owner', async () => {
+    const task = await newTask();
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: ana,
+      assignedTo: beto,
+    });
+
+    expect(await inboxOf(beto)).toEqual([
+      expect.objectContaining({ kind: 'assigned', taskId: task.id }),
     ]);
+  });
 
-    const result = await service.reopen(1, 42);
+  it('reassigning to the acting User notifies no one', async () => {
+    const task = await newTask();
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: carla,
+      assignedTo: carla,
+    });
 
-    expect(set).toHaveBeenCalledWith(
-      expect.objectContaining({
-        completed: false,
-        completedAt: null,
-        completedBy: null,
-      }),
-    );
-    expect(result.completed).toBe(false);
-    expect(result.completedAt).toBeNull();
-    expect(result.completedBy).toBeNull();
+    expect(await inboxOf(carla)).toEqual([]);
+  });
+
+  it('editing a Task without changing the owner notifies no one', async () => {
+    const task = await newTask();
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: carla,
+      title: 'nuevo titulo',
+    });
+
+    expect(await inboxOf(ana)).toEqual([]);
+  });
+
+  it('reassigning to the same owner notifies no one', async () => {
+    const task = await newTask();
+    await tasks.update(task.id, {
+      organizationId: org,
+      actorUserId: carla,
+      assignedTo: ana,
+    });
+
+    expect(await inboxOf(ana)).toEqual([]);
   });
 });

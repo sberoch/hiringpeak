@@ -26,10 +26,10 @@ import {
   getAllVacancyStatuses,
   VACANCY_STATUS_API_KEY,
 } from "@/lib/api/vacancy-status";
-import { CompanyStatusEnum } from "@workspace/shared/types/company";
 import type { User } from "@workspace/shared/types/user";
 
 import type { VacancyWizardFormSchema } from "./vacancy-wizard.schema";
+import { VacancyContactPicker } from "./vacancy-contact-picker";
 
 interface StepBasicInfoProps {
   form: UseFormReturn<VacancyWizardFormSchema>;
@@ -48,13 +48,12 @@ export function StepBasicInfo({
   const { data: companies } = useQuery({
     queryKey: [
       COMPANIES_API_KEY,
-      { limit: 1e9, page: 1, status: CompanyStatusEnum.ACTIVE },
+      { limit: 1e9, page: 1 },
     ],
     queryFn: () =>
       getAllCompanies({
         limit: 1e9,
         page: 1,
-        status: CompanyStatusEnum.ACTIVE,
       }),
   });
 
@@ -64,6 +63,7 @@ export function StepBasicInfo({
   });
 
   const noCompanies = companies && companies.items.length === 0;
+  const companyId = form.watch("company")?.id;
 
   useEffect(() => {
     if (form.getValues("status")) {
@@ -92,7 +92,14 @@ export function StepBasicInfo({
                 const company = companies?.items.find(
                   (c) => c.id.toString() === value,
                 );
-                if (company) field.onChange(company);
+                if (!company) return;
+                // A Vacancy never points at someone from another firm.
+                if (company.id !== field.value?.id) {
+                  form.setValue("vacancyContactId", null, {
+                    shouldDirty: true,
+                  });
+                }
+                field.onChange(company);
               }}
               value={field.value?.id?.toString()}
               disabled={!!noCompanies}
@@ -116,6 +123,21 @@ export function StepBasicInfo({
                 ))}
               </SelectContent>
             </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="vacancyContactId"
+        render={({ field }) => (
+          <FormItem>
+            <VacancyContactPicker
+              companyId={companyId ?? null}
+              value={field.value ?? null}
+              onChange={field.onChange}
+            />
             <FormMessage />
           </FormItem>
         )}

@@ -26,7 +26,6 @@ import {
   vacancies,
   vacancyStatuses,
 } from '@workspace/shared/schemas';
-import { CompanyStatus } from '@workspace/shared/enums';
 import {
   countries,
   languages,
@@ -767,10 +766,7 @@ export class VacancyAiService {
           orderBy: [asc(areas.name)],
         }),
         this.db.query.companies.findMany({
-          where: and(
-            eq(companies.organizationId, organizationId),
-            eq(companies.status, CompanyStatus.ACTIVE),
-          ),
+          where: eq(companies.organizationId, organizationId),
           columns: {
             id: true,
             name: true,

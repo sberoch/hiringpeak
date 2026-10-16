@@ -25,13 +25,30 @@ export const PermissionCode = {
   TASK_READ_ALL: "TASK_READ_ALL",
   TASK_MANAGE: "TASK_MANAGE",
   TASK_MANAGE_ALL: "TASK_MANAGE_ALL",
+  CRM_READ: "CRM_READ",
+  CRM_MANAGE: "CRM_MANAGE",
 } as const;
 export type PermissionCode =
   (typeof PermissionCode)[keyof typeof PermissionCode];
 
+/** What kind of Interaction happened (commercial side). */
+export const InteractionType = {
+  CALL: "call",
+  MEETING: "meeting",
+  EMAIL: "email",
+  LUNCH: "lunch",
+  OTHER: "other",
+} as const;
+export type InteractionType =
+  (typeof InteractionType)[keyof typeof InteractionType];
+
+/**
+ * Company Status, derived at read time: Client once the Company has ever had a
+ * won Opportunity or any Vacancy, otherwise Prospect.
+ */
 export enum CompanyStatus {
-  ACTIVE = "Active",
   PROSPECT = "Prospect",
+  CLIENT = "Client",
 }
 
 export enum CandidateVacancyState {

@@ -1,292 +1,328 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Building2, GitBranch, Search, User, X } from "lucide-react";
+import { useDebounce } from "@uidotdev/usehooks";
+import { Check, Link2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { LucideIcon } from "lucide-react";
+
+import { CANDIDATE_API_KEY, getAllCandidates } from "@/lib/api/candidate";
+import {
+  CANDIDATE_VACANCY_API_KEY,
+  getCandidateVacancies,
+} from "@/lib/api/candidate-vacancy";
+import { COMPANIES_API_KEY, getAllCompanies } from "@/lib/api/company";
+import { CONTACT_API_KEY, getContacts } from "@/lib/api/contact";
+import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
+import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
+import { usePermissions } from "@/contexts/permission-context";
+import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
+import { Button } from "@workspace/ui/components/button";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@workspace/ui/components/command";
 
 import {
-  CANDIDATE_API_KEY,
-  getAllCandidates,
-} from "@/lib/api/candidate";
-import { COMPANIES_API_KEY, getAllCompanies } from "@/lib/api/company";
-import { getAllVacancies, VACANCY_API_KEY } from "@/lib/api/vacancy";
-import type { TaskWithRelations } from "@workspace/shared/types/task";
-import { cn } from "@workspace/ui/lib/utils";
+  ATTACH_META,
+  ATTACH_ORDER,
+  AttachChip,
+  attachmentKey,
+  candidacyLabel,
+  sameAttachment,
+  sortAttachments,
+  type Attachment,
+} from "./attachments";
 
-export type AttachmentType = "candidate" | "vacancy" | "company";
-
-export type AttachmentValue = {
-  type: AttachmentType;
-  id: number;
-  label: string;
-  sub?: string;
-} | null;
-
-const TYPE_LABEL: Record<AttachmentType, string> = {
-  candidate: "Postulante",
-  vacancy: "Vacante",
-  company: "Empresa",
-};
-
-const TYPE_ICON: Record<AttachmentType, LucideIcon> = {
-  candidate: User,
-  vacancy: GitBranch,
-  company: Building2,
-};
-
-const ATTACH_TYPES: AttachmentType[] = ["candidate", "vacancy", "company"];
-
-export type AttachmentPayload = {
-  candidateId: number | null;
-  vacancyId: number | null;
-  companyId: number | null;
-};
-
-export function attachmentToPayload(
-  value: AttachmentValue,
-): AttachmentPayload {
-  return {
-    candidateId: value?.type === "candidate" ? value.id : null,
-    vacancyId: value?.type === "vacancy" ? value.id : null,
-    companyId: value?.type === "company" ? value.id : null,
-  };
-}
-
-export function taskToAttachment(task: TaskWithRelations): AttachmentValue {
-  if (task.candidateId != null) {
-    return {
-      type: "candidate",
-      id: task.candidateId,
-      label: task.candidate?.name ?? `Postulante #${task.candidateId}`,
-    };
-  }
-  if (task.vacancyId != null) {
-    return {
-      type: "vacancy",
-      id: task.vacancyId,
-      label: task.vacancy?.title ?? `Vacante #${task.vacancyId}`,
-    };
-  }
-  if (task.companyId != null) {
-    return {
-      type: "company",
-      id: task.companyId,
-      label: task.company?.name ?? `Empresa #${task.companyId}`,
-    };
-  }
-  return null;
-}
+const RESULTS_PER_TYPE = 8;
 
 interface AttachmentPickerProps {
-  value: AttachmentValue;
-  onChange: (next: AttachmentValue) => void;
+  value: Attachment[];
+  onChange: (next: Attachment[]) => void;
 }
 
+/**
+ * Attaches a Task to any number of records: the picks show as removable
+ * chips, and "Vincular a…" opens one command-palette search across every
+ * attachable type. Picking a record toggles it. Opportunities and Contacts
+ * are only offered to Users with commercial access.
+ */
 export function AttachmentPicker({ value, onChange }: AttachmentPickerProps) {
-  const [type, setType] = useState<AttachmentType | null>(value?.type ?? null);
-  const [query, setQuery] = useState("");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const attachments = sortAttachments(value);
 
-  useEffect(() => {
-    setType(value?.type ?? null);
-  }, [value?.type]);
-
-  if (value) {
-    return (
-      <SelectedPill
-        value={value}
-        onClear={() => {
-          onChange(null);
-          setQuery("");
-          setType(null);
-        }}
-      />
+  const toggle = (a: Attachment) =>
+    onChange(
+      value.some((v) => sameAttachment(v, a))
+        ? value.filter((v) => !sameAttachment(v, a))
+        : [...value, a],
     );
-  }
+
+  // "/" opens the palette (unless typing in a field).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (
+        e.key !== "/" ||
+        el?.closest("input, textarea, [contenteditable=true]")
+      )
+        return;
+      e.preventDefault();
+      setPaletteOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
-    <div className="rounded-xl border border-brand-border bg-canvas p-3">
-      <div className="flex flex-wrap gap-1.5">
-        <TypeChip active={type === null} onClick={() => setType(null)}>
-          Sin vínculo
-        </TypeChip>
-        {ATTACH_TYPES.map((t) => (
-          <TypeChip key={t} active={type === t} onClick={() => setType(t)}>
-            {TYPE_LABEL[t]}
-          </TypeChip>
-        ))}
-      </div>
-      {type && (
-        <div className="mt-3">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-brand" />
-            <input
-              value={query}
-              onChange={(ev) => setQuery(ev.target.value)}
-              placeholder={`Buscar ${TYPE_LABEL[type].toLowerCase()}…`}
-              className="w-full rounded-md border border-brand-border bg-surface py-1.5 pl-8 pr-2 text-sm outline-none focus:border-electric"
-            />
-          </div>
-          <ResultsList
-            type={type}
-            query={query}
-            onPick={(picked) => {
-              onChange(picked);
-              setQuery("");
-            }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TypeChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-md px-2.5 py-1 text-xs font-semibold transition-all",
-        active
-          ? "bg-electric text-white"
-          : "bg-surface text-ink hover:bg-brand-border-light",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function SelectedPill({
-  value,
-  onClear,
-}: {
-  value: NonNullable<AttachmentValue>;
-  onClear: () => void;
-}) {
-  const Icon = TYPE_ICON[value.type];
-  return (
-    <div className="flex items-center justify-between rounded-md border border-electric/30 bg-electric/[0.06] px-3 py-2">
-      <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-ink">
-        <Icon className="h-4 w-4 shrink-0 text-electric" />
-        <span className="truncate">{value.label}</span>
-        <span className="shrink-0 text-xs font-normal text-slate-brand">
-          · {TYPE_LABEL[value.type]}
-        </span>
-      </span>
-      <button
-        type="button"
-        onClick={onClear}
-        className="rounded-md p-1 text-slate-brand hover:bg-white"
-        aria-label="Quitar vínculo"
+    <>
+      <div
+        className="cursor-text rounded-xl border border-brand-border bg-canvas p-2.5"
+        onClick={() => setPaletteOpen(true)}
       >
-        <X className="h-4 w-4" />
-      </button>
-    </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {attachments.map((a) => (
+            <AttachChip
+              key={attachmentKey(a)}
+              a={a}
+              showType
+              onRemove={() => toggle(a)}
+              className="py-1 text-xs"
+            />
+          ))}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPaletteOpen(true);
+            }}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-electric hover:bg-electric/10"
+          >
+            {attachments.length === 0 ? (
+              <Link2 className="h-3.5 w-3.5" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" />
+            )}
+            {attachments.length === 0 ? "Vincular a…" : "Agregar"}
+            <kbd className="ml-1 rounded border border-brand-border bg-surface px-1 text-[10px] font-medium text-muted-brand">
+              /
+            </kbd>
+          </button>
+        </div>
+      </div>
+
+      <CommandDialog
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        title="Vincular a…"
+        description="Buscá cualquier registro"
+        className="sm:max-w-lg"
+        shouldFilter={false}
+      >
+        {paletteOpen && (
+          <PaletteBody
+            selected={value}
+            onToggle={toggle}
+            onDone={() => setPaletteOpen(false)}
+          />
+        )}
+      </CommandDialog>
+    </>
   );
 }
 
-function ResultsList({
-  type,
-  query,
-  onPick,
+function PaletteBody({
+  selected,
+  onToggle,
+  onDone,
 }: {
-  type: AttachmentType;
-  query: string;
-  onPick: (picked: NonNullable<AttachmentValue>) => void;
+  selected: Attachment[];
+  onToggle: (a: Attachment) => void;
+  onDone: () => void;
 }) {
-  const { items, isLoading } = useAttachmentResults(type, query);
+  const [query, setQuery] = useState("");
+  const debounced = useDebounce(query.trim(), 250);
+  const { permissionCodes } = usePermissions();
+  const commercial = hasCommercialAccess(permissionCodes);
+  const { results, isLoading } = useAttachmentSearch(debounced, commercial);
+  const hasResults = ATTACH_ORDER.some((t) => results[t].length > 0);
 
   return (
-    <div className="mt-2 max-h-44 space-y-1 overflow-auto">
-      {isLoading && (
-        <p className="px-2 py-3 text-center text-xs text-muted-brand">
-          Cargando…
-        </p>
-      )}
-      {!isLoading && items.length === 0 && (
-        <p className="px-2 py-3 text-center text-xs text-muted-brand">
-          Sin resultados
-        </p>
-      )}
-      {items.map((item) => (
-        <button
-          key={`${item.type}-${item.id}`}
-          type="button"
-          onClick={() => onPick(item)}
-          className="flex w-full flex-col items-start rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-electric/[0.06]"
+    <>
+      <CommandInput
+        value={query}
+        onValueChange={setQuery}
+        placeholder={
+          commercial
+            ? "Buscá oportunidades, contactos, empresas, vacantes…"
+            : "Buscá empresas, vacantes, candidaturas, postulantes…"
+        }
+      />
+      <CommandList className="max-h-[380px]">
+        {!hasResults && (
+          <CommandEmpty>
+            {isLoading ? "Buscando…" : "Sin resultados."}
+          </CommandEmpty>
+        )}
+        {ATTACH_ORDER.map((type) => {
+          const items = results[type];
+          if (items.length === 0) return null;
+          const meta = ATTACH_META[type];
+          const Icon = meta.icon;
+          return (
+            <CommandGroup key={type} heading={meta.plural}>
+              {items.map((item) => {
+                const isSelected = selected.some((s) =>
+                  sameAttachment(s, item),
+                );
+                return (
+                  <CommandItem
+                    key={attachmentKey(item)}
+                    value={attachmentKey(item)}
+                    onSelect={() => onToggle(item)}
+                    className="gap-2.5"
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-electric/5 text-electric ring-1 ring-electric/10">
+                      <Icon className="!h-3.5 !w-3.5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-ink">
+                        {item.label}
+                      </span>
+                      {item.sub && (
+                        <span className="block truncate text-[11px] text-slate-brand">
+                          {item.sub}
+                        </span>
+                      )}
+                    </span>
+                    {isSelected && (
+                      <Check className="!h-4 !w-4 text-electric" />
+                    )}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          );
+        })}
+      </CommandList>
+      <div className="flex items-center justify-between border-t px-3 py-2">
+        <span className="text-xs text-muted-brand">
+          {selected.length === 0
+            ? "Elegí uno o varios"
+            : `${selected.length} vinculados`}{" "}
+          · Enter para agregar o quitar
+        </span>
+        <Button
+          size="sm"
+          className="bg-electric text-white hover:bg-electric-light"
+          onClick={onDone}
         >
-          <span className="text-sm font-medium text-ink">{item.label}</span>
-          {item.sub && (
-            <span className="text-[11px] text-slate-brand">{item.sub}</span>
-          )}
-        </button>
-      ))}
-    </div>
+          Listo
+        </Button>
+      </div>
+    </>
   );
 }
 
-function useAttachmentResults(type: AttachmentType, query: string) {
-  const candidates = useQuery({
-    queryKey: [CANDIDATE_API_KEY, "picker", query],
-    queryFn: () =>
-      getAllCandidates({ name: query || undefined, limit: 20, page: 1 }),
-    enabled: type === "candidate",
+/**
+ * Searches every attachable type at once. Candidacies are found through the
+ * matching Candidates (a Candidacy reads "Candidate en Vacancy").
+ * Opportunities and Contacts are searched only with commercial access.
+ */
+function useAttachmentSearch(query: string, commercial: boolean) {
+  const term = query || undefined;
+  const page = { limit: RESULTS_PER_TYPE, page: 1 };
+
+  const opportunities = useQuery({
+    queryKey: [OPPORTUNITY_API_KEY, "attach-picker", query],
+    queryFn: () => getOpportunities({ search: term }),
+    enabled: commercial,
+    staleTime: 30_000,
+  });
+  const contacts = useQuery({
+    queryKey: [CONTACT_API_KEY, "attach-picker", query],
+    queryFn: () => getContacts({ search: term, ...page }),
+    enabled: commercial,
+    staleTime: 30_000,
+  });
+
+  const companies = useQuery({
+    queryKey: [COMPANIES_API_KEY, "attach-picker", query],
+    queryFn: () => getAllCompanies({ name: term, ...page }),
     staleTime: 30_000,
   });
   const vacancies = useQuery({
-    queryKey: [VACANCY_API_KEY, "picker", query],
-    queryFn: () =>
-      getAllVacancies({ title: query || undefined, limit: 20, page: 1 }),
-    enabled: type === "vacancy",
+    queryKey: [VACANCY_API_KEY, "attach-picker", query],
+    queryFn: () => getAllVacancies({ title: term, ...page }),
     staleTime: 30_000,
   });
-  const companies = useQuery({
-    queryKey: [COMPANIES_API_KEY, "picker", query],
-    queryFn: () =>
-      getAllCompanies({ name: query || undefined, limit: 20, page: 1 }),
-    enabled: type === "company",
+  const candidates = useQuery({
+    queryKey: [CANDIDATE_API_KEY, "attach-picker", query],
+    queryFn: () => getAllCandidates({ name: term, ...page }),
+    staleTime: 30_000,
+  });
+  const candidateIds = (candidates.data?.items ?? []).map((c) => c.id);
+  const candidacies = useQuery({
+    queryKey: [CANDIDATE_VACANCY_API_KEY, "attach-picker", candidateIds],
+    queryFn: () => getCandidateVacancies({ candidateIds, ...page }),
+    enabled: candidateIds.length > 0,
     staleTime: 30_000,
   });
 
-  if (type === "candidate") {
-    return {
-      items: (candidates.data?.items ?? []).map((c) => ({
-        type: "candidate" as const,
-        id: c.id,
-        label: c.name,
-        sub: c.shortDescription ?? undefined,
-      })),
-      isLoading: candidates.isLoading,
-    };
-  }
-  if (type === "vacancy") {
-    return {
-      items: (vacancies.data?.items ?? []).map((v) => ({
-        type: "vacancy" as const,
-        id: v.id,
-        label: v.title,
-        sub: v.company?.name,
-      })),
-      isLoading: vacancies.isLoading,
-    };
-  }
-  return {
-    items: (companies.data?.items ?? []).map((c) => ({
-      type: "company" as const,
+  const results: Record<Attachment["type"], Attachment[]> = {
+    opportunity: commercial
+      ? (opportunities.data ?? []).slice(0, RESULTS_PER_TYPE).map((o) => ({
+          type: "opportunity",
+          id: o.id,
+          label: o.title,
+          sub: o.company?.name,
+        }))
+      : [],
+    contact: commercial
+      ? (contacts.data?.items ?? []).map((c) => ({
+          type: "contact",
+          id: c.id,
+          label: c.name,
+          sub: c.company?.name ?? undefined,
+        }))
+      : [],
+    company: (companies.data?.items ?? []).map((c) => ({
+      type: "company",
       id: c.id,
       label: c.name,
-      sub: undefined as string | undefined,
     })),
-    isLoading: companies.isLoading,
+    vacancy: (vacancies.data?.items ?? []).map((v) => ({
+      type: "vacancy",
+      id: v.id,
+      label: v.title,
+      sub: v.company?.name,
+    })),
+    candidacy:
+      candidateIds.length > 0
+        ? (candidacies.data?.items ?? []).map((cv) => ({
+            type: "candidacy",
+            id: cv.id,
+            label: candidacyLabel(cv.candidate.name, cv.vacancy.title),
+            sub: cv.status?.name,
+          }))
+        : [],
+    candidate: (candidates.data?.items ?? []).map((c) => ({
+      type: "candidate",
+      id: c.id,
+      label: c.name,
+      sub: c.shortDescription ?? undefined,
+    })),
+  };
+
+  return {
+    results,
+    isLoading:
+      companies.isLoading ||
+      vacancies.isLoading ||
+      candidates.isLoading ||
+      (commercial && (opportunities.isLoading || contacts.isLoading)),
   };
 }

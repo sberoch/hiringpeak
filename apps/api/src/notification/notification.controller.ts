@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PermissionCode } from '@workspace/shared/enums';
+import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
+import { AuthzService } from '../auth/authz/authz.service';
 import { CurrentUser } from '../auth/auth.decorators';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
@@ -22,7 +24,16 @@ import { NotificationService } from './notification.service';
 @ApiTags('Notifications')
 @Controller('notification')
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(
+    private readonly notificationService: NotificationService,
+    private readonly authzService: AuthzService,
+  ) {}
+
+  private async commercialAccess(userId: number): Promise<boolean> {
+    return hasCommercialAccess(
+      await this.authzService.getPermissionCodesForUser(userId),
+    );
+  }
 
   @ApiOkResponse()
   @Get()
@@ -38,6 +49,7 @@ export class NotificationController {
       ...query,
       organizationId,
       recipientUserId,
+      commercialAccess: await this.commercialAccess(recipientUserId),
     });
   }
 
@@ -50,10 +62,10 @@ export class NotificationController {
   ) {
     const recipientUserId =
       typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    return this.notificationService.unreadCount(
-      organizationId,
-      recipientUserId,
-    );
+    return this.notificationService.unreadCount(organizationId, {
+      userId: recipientUserId,
+      commercialAccess: await this.commercialAccess(recipientUserId),
+    });
   }
 
   @ApiOkResponse()
@@ -66,11 +78,10 @@ export class NotificationController {
   ) {
     const recipientUserId =
       typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    return this.notificationService.markRead(
-      +id,
-      organizationId,
-      recipientUserId,
-    );
+    return this.notificationService.markRead(+id, organizationId, {
+      userId: recipientUserId,
+      commercialAccess: await this.commercialAccess(recipientUserId),
+    });
   }
 
   @ApiOkResponse()
@@ -83,10 +94,9 @@ export class NotificationController {
   ) {
     const recipientUserId =
       typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
-    return this.notificationService.dismiss(
-      +id,
-      organizationId,
-      recipientUserId,
-    );
+    return this.notificationService.dismiss(+id, organizationId, {
+      userId: recipientUserId,
+      commercialAccess: await this.commercialAccess(recipientUserId),
+    });
   }
 }

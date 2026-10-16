@@ -26,6 +26,7 @@ import {
   CreateCompanyDto,
   UpdateCompanyDto,
   CompanyQueryParams,
+  UpdateCompanyAccountOwnerDto,
 } from './company.dto';
 import { PermissionCode } from '@workspace/shared/enums';
 import { Permissions } from '../auth/permissions/permissions.decorator';
@@ -33,6 +34,8 @@ import { PermissionsGuard } from '../auth/permissions/permissions.guard';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { EXCEL_CONTENT_TYPE } from '../common/excel/excel.utils';
+import { CurrentUser } from '../auth/auth.decorators';
+import { AuthzService } from '../auth/authz/authz.service';
 
 @ApiBearerAuth()
 @UseGuards(OrganizationGuard, PermissionsGuard)
@@ -42,7 +45,14 @@ export class CompanyController {
   constructor(
     private readonly companyService: CompanyService,
     private readonly companyReportService: CompanyReportService,
+    private readonly authzService: AuthzService,
   ) {}
+
+  /** The caller's permission codes: they decide which Contact fields come back. */
+  private viewerCodes(user: { id: string | number }): Promise<string[]> {
+    const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+    return this.authzService.getPermissionCodesForUser(userId);
+  }
 
   @ApiOkResponse()
   @Permissions(PermissionCode.COMPANY_READ)
@@ -50,8 +60,12 @@ export class CompanyController {
   async findAll(
     @Query() query: CompanyQueryParams,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
-    return this.companyService.findAll({ ...query, organizationId });
+    return this.companyService.findAll(
+      { ...query, organizationId },
+      await this.viewerCodes(user),
+    );
   }
 
   @ApiOkResponse()
@@ -109,8 +123,13 @@ export class CompanyController {
   async findOne(
     @Param('id') id: string,
     @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
   ) {
-    return this.companyService.findOne(+id, organizationId);
+    return this.companyService.findOne(
+      +id,
+      organizationId,
+      await this.viewerCodes(user),
+    );
   }
 
   @ApiCreatedResponse()
@@ -148,6 +167,30 @@ export class CompanyController {
       ...updateCompanyDto,
       organizationId,
     });
+  }
+
+  @ApiOkResponse()
+  @AuditAction({
+    eventType: 'set_company_account_owner',
+    entityType: 'company',
+    labelField: 'name',
+    relatedFields: [
+      { type: 'account_owner_from', field: 'accountOwnerChange.from' },
+      { type: 'account_owner_to', field: 'accountOwnerChange.to' },
+    ],
+  })
+  @Permissions(PermissionCode.CRM_MANAGE)
+  @Patch(':id/account-owner')
+  async setAccountOwner(
+    @Param('id') id: string,
+    @Body() dto: UpdateCompanyAccountOwnerDto,
+    @OrganizationId() organizationId: number,
+  ) {
+    return this.companyService.setAccountOwner(
+      +id,
+      organizationId,
+      dto.accountOwnerId,
+    );
   }
 
   @ApiOkResponse()

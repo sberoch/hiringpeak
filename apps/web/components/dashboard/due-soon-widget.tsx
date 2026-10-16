@@ -15,7 +15,8 @@ import {
 } from "@/lib/api/tasks";
 import type { TaskWithRelations } from "@workspace/shared/types/task";
 
-import { TaskRow, todayIsoDay } from "../tasks/_shared";
+import { TaskRow } from "@/components/tasks/task-row";
+import { todayIsoDay } from "@/components/tasks/task-due-dates";
 import { TaskSheet } from "../tasks/task-sheet";
 
 export function DueSoonWidget() {
