@@ -138,6 +138,7 @@ export function TasksPage() {
   const completeMutation = useMutation({
     mutationFn: (id: number) => completeTask(id),
     onSuccess: () => {
+      toast.success("Tarea completada");
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
       // An Opportunity's next step is derived from its open Tasks.
       queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });
@@ -147,6 +148,7 @@ export function TasksPage() {
   const reopenMutation = useMutation({
     mutationFn: (id: number) => reopenTask(id),
     onSuccess: () => {
+      toast.success("Tarea reabierta");
       queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
       // An Opportunity's next step is derived from its open Tasks.
       queryClient.invalidateQueries({ queryKey: [OPPORTUNITY_API_KEY] });

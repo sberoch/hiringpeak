@@ -39,14 +39,18 @@ export function DueSoonWidget() {
 
   const completeMutation = useMutation({
     mutationFn: (id: number) => completeTask(id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] }),
+    onSuccess: () => {
+      toast.success("Tarea completada");
+      void queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+    },
     onError: () => toast.error("No se pudo completar la tarea"),
   });
   const reopenMutation = useMutation({
     mutationFn: (id: number) => reopenTask(id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] }),
+    onSuccess: () => {
+      toast.success("Tarea reabierta");
+      void queryClient.invalidateQueries({ queryKey: [TASK_API_KEY] });
+    },
     onError: () => toast.error("No se pudo reabrir la tarea"),
   });
   const busy = completeMutation.isPending || reopenMutation.isPending;
