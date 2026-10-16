@@ -50,8 +50,7 @@ function ContactsList({ canManage }: { canManage: boolean }) {
   const [captureOpen, setCaptureOpen] = useState(false);
   const { filters, params, setFilters, onPaginationChange, onSortingChange } =
     useContactFilters({
-      // Opens on "Seguimiento: Para contactar", sorted by due date.
-      initialValues: { limit: 50, order: "followUp:asc", followUp: "mine" },
+      initialValues: { limit: 50, order: "name:asc" },
     });
 
   const { data, isLoading } = useQuery({

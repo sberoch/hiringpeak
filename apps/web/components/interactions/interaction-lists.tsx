@@ -62,7 +62,7 @@ const chip = (active: boolean) =>
   cn(
     "rounded-lg px-2.5 py-1 text-xs font-medium ring-1 transition-all",
     active
-      ? "bg-ink text-white ring-ink"
+      ? "bg-electric text-white ring-electric"
       : "bg-surface text-slate-brand ring-brand-border hover:ring-electric/40",
   );
 
@@ -70,7 +70,7 @@ const pill = (active: boolean) =>
   cn(
     "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ring-1 transition-colors",
     active
-      ? "bg-ink text-white ring-ink"
+      ? "bg-electric text-white ring-electric"
       : "bg-surface text-slate-brand ring-brand-border hover:text-ink",
   );
 
