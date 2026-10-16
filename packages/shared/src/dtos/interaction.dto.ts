@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { InteractionType } from "../enums.js";
+import { InteractionType } from "../enums";
 
 /** Day-granular date string `YYYY-MM-DD`. */
 const DayDateSchema = z

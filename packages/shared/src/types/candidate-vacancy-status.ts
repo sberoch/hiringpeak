@@ -1,4 +1,4 @@
-import type { PaginationFilters } from "./api.js";
+import type { PaginationFilters } from "./api";
 
 export type BaseCandidateVacancyStatus = {
   name: string;

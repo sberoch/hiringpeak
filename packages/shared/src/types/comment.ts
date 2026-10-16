@@ -1,5 +1,5 @@
-import type { PaginationFilters } from "./api.js";
-import type { User } from "./user.js";
+import type { PaginationFilters } from "./api";
+import type { User } from "./user";
 
 export type BaseComment = {
   candidateId: number;

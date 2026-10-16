@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PaginationParamsSchema } from "./pagination.dto.js";
+import { PaginationParamsSchema } from "./pagination.dto";
 
 export const AuditLogQueryParamsSchema = PaginationParamsSchema.extend({
   /** Filter by user who performed the action. */

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { passwordSchema } from "../lib/password.schema.js";
-import { PaginationParamsSchema } from "./pagination.dto.js";
+import { passwordSchema } from "../lib/password.schema";
+import { PaginationParamsSchema } from "./pagination.dto";
 
 const CreateUserSchemaBase = z.object({
   email: z.email(),

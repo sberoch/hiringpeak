@@ -1,4 +1,4 @@
-import type { InteractionType } from "../enums.js";
+import type { InteractionType } from "../enums";
 
 /** A Contact involved in an Interaction, with where they are *now*. */
 export type InteractionContact = {

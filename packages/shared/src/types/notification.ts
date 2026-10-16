@@ -1,5 +1,5 @@
-import type { PaginationFilters } from "./api.js";
-import type { Notification } from "../schemas/notification.schema.js";
+import type { PaginationFilters } from "./api";
+import type { Notification } from "../schemas/notification.schema";
 
 export type { Notification };
 

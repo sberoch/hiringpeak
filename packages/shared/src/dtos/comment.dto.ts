@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PaginationParamsSchema } from "./pagination.dto.js";
+import { PaginationParamsSchema } from "./pagination.dto";
 
 export const CreateCommentSchema = z.object({
   candidateId: z.number().int(),

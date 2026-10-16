@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PaginationParamsSchema } from "./pagination.dto.js";
+import { PaginationParamsSchema } from "./pagination.dto";
 
 export const VacancyFiltersSchema = z.object({
   seniorityIds: z.array(z.number().int()).optional(),

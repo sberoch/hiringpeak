@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PaginationParamsSchema } from "./pagination.dto.js";
+import { PaginationParamsSchema } from "./pagination.dto";
 
 /** Day-granular date string `YYYY-MM-DD`. */
 const DayDateSchema = z

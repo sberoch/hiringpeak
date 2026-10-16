@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PaginationParamsSchema } from "./pagination.dto.js";
+import { PaginationParamsSchema } from "./pagination.dto";
 
 /**
  * Notification kinds. `assigned` is sync (Task service); `due`/`overdue`

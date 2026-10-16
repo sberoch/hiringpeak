@@ -1,6 +1,6 @@
-import type { PaginationFilters } from "./api.js";
-import type { Task } from "../schemas/task.schema.js";
-import type { User } from "./user.js";
+import type { PaginationFilters } from "./api";
+import type { Task } from "../schemas/task.schema";
+import type { User } from "./user";
 
 export type { Task };
 

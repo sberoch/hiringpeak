@@ -1,4 +1,4 @@
-import type { PaginatedResponse as SharedPaginatedResponse } from "./pagination.js";
+import type { PaginatedResponse as SharedPaginatedResponse } from "./pagination";
 
 type OrderDirection = "asc" | "desc";
 type OrderString<T> = T extends undefined

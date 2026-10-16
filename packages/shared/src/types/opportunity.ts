@@ -1,5 +1,5 @@
-import type { LastInteraction } from "./interaction.js";
-import type { CompanyStatus } from "../enums.js";
+import type { LastInteraction } from "./interaction";
+import type { CompanyStatus } from "../enums";
 
 export type OpportunityStage = {
   id: number;

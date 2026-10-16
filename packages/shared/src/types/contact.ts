@@ -1,6 +1,6 @@
-import type { PaginationFilters } from "./api.js";
-import type { InteractionType } from "../enums.js";
-import type { LastInteraction } from "./interaction.js";
+import type { PaginationFilters } from "./api";
+import type { InteractionType } from "../enums";
+import type { LastInteraction } from "./interaction";
 
 /**
  * A Contact as every Company reader sees it (recruiters included): who the

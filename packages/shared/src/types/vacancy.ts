@@ -1,14 +1,14 @@
-import type { PaginationFilters } from "./api.js";
-import type { Area } from "./area.js";
-import type { Candidate } from "./candidate.js";
-import type { Company } from "./company.js";
-import type { VacancyContactSummary } from "./contact.js";
-import type { Industry } from "./industry.js";
-import type { Seniority } from "./seniority.js";
-import type { User } from "./user.js";
-import type { VacancyStatus } from "./vacancy-status.js";
-import type { CandidateVacancyStatus } from "./candidate-vacancy-status.js";
-import type { RejectionReason } from "./rejection-reason.js";
+import type { PaginationFilters } from "./api";
+import type { Area } from "./area";
+import type { Candidate } from "./candidate";
+import type { Company } from "./company";
+import type { VacancyContactSummary } from "./contact";
+import type { Industry } from "./industry";
+import type { Seniority } from "./seniority";
+import type { User } from "./user";
+import type { VacancyStatus } from "./vacancy-status";
+import type { CandidateVacancyStatus } from "./candidate-vacancy-status";
+import type { RejectionReason } from "./rejection-reason";
 
 export type BaseCandidateVacancy = {
   status: CandidateVacancyStatus;

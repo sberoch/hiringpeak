@@ -1,4 +1,4 @@
-import { PermissionCode } from "../enums.js";
+import { PermissionCode } from "../enums";
 
 /** Permission codes that grant access to the commercial side (either one). */
 export const COMMERCIAL_ACCESS_CODES: readonly PermissionCode[] = [

@@ -1,6 +1,6 @@
-import { PermissionCode } from "../enums.js";
-import type { Contact, ContactView } from "../types/contact.js";
-import { hasCommercialAccess } from "./commercial-access.js";
+import { PermissionCode } from "../enums";
+import type { Contact, ContactView } from "../types/contact";
+import { hasCommercialAccess } from "./commercial-access";
 
 /**
  * Permission codes that allow creating, editing and deleting Contacts (either

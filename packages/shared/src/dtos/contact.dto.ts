@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { FirstInteractionSchema } from "./interaction.dto.js";
-import { PaginationParamsSchema } from "./pagination.dto.js";
+import { FirstInteractionSchema } from "./interaction.dto";
+import { PaginationParamsSchema } from "./pagination.dto";
 
 /** Optional free text: blank becomes null. */
 const optionalText = z

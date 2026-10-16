@@ -2,7 +2,7 @@ import {
   isOpenStage,
   sortOpportunityStages,
   type StageOutcomeFlags,
-} from "./opportunity-stage.js";
+} from "./opportunity-stage";
 
 /**
  * Groups a (filtered) set of Opportunities by Opportunity Stage and totals

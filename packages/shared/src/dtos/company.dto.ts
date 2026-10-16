@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { PaginationParamsSchema } from "./pagination.dto.js";
-import { CompanyStatus } from "../enums.js";
+import { PaginationParamsSchema } from "./pagination.dto";
+import { CompanyStatus } from "../enums";
 
 export const CreateCompanySchema = z.object({
   name: z.string().min(1),

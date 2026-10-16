@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { PaginationParamsSchema } from "./pagination.dto.js";
-import { CompanyStatus } from "../enums.js";
+import { PaginationParamsSchema } from "./pagination.dto";
+import { CompanyStatus } from "../enums";
 
 /** Day-granular date string `YYYY-MM-DD`. */
 const DayDateSchema = z

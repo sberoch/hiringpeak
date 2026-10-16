@@ -1,9 +1,9 @@
-import type { PaginationFilters } from "./api.js";
-import type { Area } from "./area.js";
-import type { Comment } from "./comment.js";
-import type { Industry } from "./industry.js";
-import type { Seniority } from "./seniority.js";
-import type { Vacancy } from "./vacancy.js";
+import type { PaginationFilters } from "./api";
+import type { Area } from "./area";
+import type { Comment } from "./comment";
+import type { Industry } from "./industry";
+import type { Seniority } from "./seniority";
+import type { Vacancy } from "./vacancy";
 
 export type BaseCandidateSource = {
   name: string;
@@ -115,4 +115,4 @@ export type CandidateFilters = PaginationFilters &
     areas?: Area[];
   };
 
-export type { ParsePdfResponseDto as ParsePdfResponse } from "../dtos/candidate.dto.js";
+export type { ParsePdfResponseDto as ParsePdfResponse } from "../dtos/candidate.dto";
