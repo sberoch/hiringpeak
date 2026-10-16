@@ -142,9 +142,6 @@ export function OpportunityDetail({ id }: { id: string }) {
                 <Building2 className="h-3.5 w-3.5" />
                 {opportunity.company.name}
               </Link>
-              <span className="text-muted-brand">
-                · Oportunidad #{opportunity.id}
-              </span>
             </div>
           </div>
         </div>

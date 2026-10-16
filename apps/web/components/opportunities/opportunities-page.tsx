@@ -1,23 +1,27 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Handshake, Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Handshake,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
-import { CompanyStatus } from "@workspace/shared/enums";
 import { groupOpportunitiesByStage } from "@workspace/shared/lib/opportunities-by-stage";
 import type {
   OpportunityFilters,
   OpportunityListItem,
   OpportunityStage,
 } from "@workspace/shared/types/opportunity";
-import { Checkbox } from "@workspace/ui/components/checkbox";
+import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
-import { Label } from "@workspace/ui/components/label";
 import { LoadingSpinner } from "@workspace/ui/components/loading-spinner";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import {
@@ -35,15 +39,15 @@ import { NextStepCell } from "./opportunity-next-step";
 import { opportunityHref } from "@/components/opportunities/opportunity-format";
 import { StageBadge, stageTone } from "@/components/opportunities/stage-badge";
 import { useCommercialAccess } from "@/components/opportunities/commercial-access";
+import { useOpportunityStages } from "@/components/opportunities/commercial-queries";
 import {
-  useCommercialUsers,
-  useLostReasons,
-  useOpportunityStages,
-} from "@/components/opportunities/commercial-queries";
+  ActiveFilterChips,
+  activeFilterCount,
+  OpportunityFilterPanel,
+  type OpportunityPanelFilters,
+} from "./opportunity-filter-panel";
 import { useStageChange } from "./stage-change";
 
-const ALL = "all";
-const MINE = "me";
 /** Table columns, for the full-width group header and empty rows. */
 const COLUMN_COUNT = 7;
 
@@ -65,10 +69,8 @@ export function OpportunitiesPage() {
       : undefined;
 
   const [search, setSearch] = useState("");
-  const [owner, setOwner] = useState(ALL);
-  const [lostReason, setLostReason] = useState(ALL);
-  const [companyStatus, setCompanyStatus] = useState(ALL);
-  const [onlyNoNextStep, setOnlyNoNextStep] = useState(false);
+  const [panelFilters, setPanelFilters] = useState<OpportunityPanelFilters>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
   /** Explicit expand/collapse choices; groups not in here use their default. */
   const [collapsedOverride, setCollapsedOverride] = useState<
     Record<number, boolean>
@@ -76,17 +78,12 @@ export function OpportunitiesPage() {
 
   const debouncedSearch = useDebounced(search);
   const filters: OpportunityFilters = {
+    ...panelFilters,
     search: debouncedSearch.trim() || undefined,
-    ownerId: owner === ALL ? undefined : owner === MINE ? myId : Number(owner),
-    lostReasonId: lostReason === ALL ? undefined : Number(lostReason),
-    companyStatus:
-      companyStatus === ALL ? undefined : (companyStatus as CompanyStatus),
-    noNextStep: onlyNoNextStep || undefined,
   };
+  const panelFilterCount = activeFilterCount(panelFilters);
 
   const { data: stages, isLoading: stagesLoading } = useOpportunityStages();
-  const { data: lostReasons = [] } = useLostReasons();
-  const { data: commercialUsers = [] } = useCommercialUsers();
   const { data: opportunities, isLoading } = useQuery({
     queryKey: [OPPORTUNITY_API_KEY, filters],
     queryFn: () => getOpportunities(filters),
@@ -95,15 +92,10 @@ export function OpportunitiesPage() {
   const { requestMove, dialog } = useStageChange();
 
   const summary = groupOpportunitiesByStage(stages ?? [], opportunities ?? []);
-  const filtering =
-    !!filters.search ||
-    owner !== ALL ||
-    lostReason !== ALL ||
-    companyStatus !== ALL ||
-    onlyNoNextStep;
+  const filtering = !!filters.search || panelFilterCount > 0;
   const isCollapsed = (stage: OpportunityStage, byDefault: boolean) =>
     collapsedOverride[stage.id] ??
-    (stage.isLost && lostReason !== ALL ? false : byDefault);
+    (stage.isLost && panelFilters.lostReasonId != null ? false : byDefault);
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -116,68 +108,30 @@ export function OpportunitiesPage() {
         <NewOpportunityButton />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-border bg-surface p-2">
-        <div className="relative w-64">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-brand" />
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-brand" />
           <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            type="search"
             placeholder="Buscar oportunidad o empresa…"
-            className="h-9 bg-surface pl-8 text-sm"
+            className="rounded-xl border-brand-border bg-surface pl-9 placeholder:text-muted-brand focus:border-electric focus:ring-electric/10"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <Select value={owner} onValueChange={setOwner}>
-          <SelectTrigger className="h-9 w-[210px] bg-surface text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>Todos los responsables</SelectItem>
-            {myId != null && <SelectItem value={MINE}>Mías</SelectItem>}
-            {commercialUsers.map((u) => (
-              <SelectItem key={u.id} value={String(u.id)}>
-                {u.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={lostReason} onValueChange={setLostReason}>
-          <SelectTrigger className="h-9 w-[220px] bg-surface text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>Todos los motivos</SelectItem>
-            {lostReasons.map((reason) => (
-              <SelectItem key={reason.id} value={String(reason.id)}>
-                {reason.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={companyStatus} onValueChange={setCompanyStatus}>
-          <SelectTrigger className="h-9 w-[200px] bg-surface text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>Prospectos y clientes</SelectItem>
-            <SelectItem value={CompanyStatus.PROSPECT}>
-              Solo prospectos
-            </SelectItem>
-            <SelectItem value={CompanyStatus.CLIENT}>Solo clientes</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="ml-1 flex items-center gap-2">
-          <Checkbox
-            id="only-no-next-step"
-            checked={onlyNoNextStep}
-            onCheckedChange={(checked) => setOnlyNoNextStep(checked === true)}
-          />
-          <Label
-            htmlFor="only-no-next-step"
-            className="cursor-pointer text-sm font-normal leading-none text-ink"
-          >
-            Solo sin próximo paso
-          </Label>
-        </div>
+        <Button
+          variant="outline"
+          onClick={() => setFiltersOpen(true)}
+          className="relative gap-2 rounded-xl border-brand-border text-slate-brand transition-all hover:border-electric hover:bg-electric/5 hover:text-ink"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filtros
+          {panelFilterCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-electric px-1.5 text-[11px] font-bold text-white">
+              {panelFilterCount}
+            </span>
+          )}
+        </Button>
         <div className="ml-auto flex items-center gap-3 text-xs text-slate-brand">
           <button
             type="button"
@@ -201,23 +155,24 @@ export function OpportunitiesPage() {
           >
             Colapsar todo
           </button>
-          {filtering && (
-            <button
-              type="button"
-              className="font-semibold text-electric"
-              onClick={() => {
-                setSearch("");
-                setOwner(ALL);
-                setLostReason(ALL);
-                setCompanyStatus(ALL);
-                setOnlyNoNextStep(false);
-              }}
-            >
-              Limpiar
-            </button>
-          )}
         </div>
       </div>
+
+      {panelFilterCount > 0 && (
+        <ActiveFilterChips
+          filters={panelFilters}
+          onFiltersChange={setPanelFilters}
+          myId={myId}
+        />
+      )}
+
+      <OpportunityFilterPanel
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        filters={panelFilters}
+        onFiltersChange={setPanelFilters}
+        myId={myId}
+      />
 
       <div className="overflow-clip rounded-2xl border border-brand-border bg-surface">
         {isLoading || stagesLoading ? (
@@ -227,13 +182,13 @@ export function OpportunitiesPage() {
         ) : (
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[22%]" />
+              <col className="w-[20%]" />
               <col className="w-[13%]" />
               <col className="w-[11%]" />
               <col className="w-[18%]" />
               <col className="w-[11%]" />
               <col className="w-[11%]" />
-              <col className="w-[14%]" />
+              <col className="w-[16%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-brand-border bg-canvas text-left text-[11px] font-semibold uppercase tracking-wide text-slate-brand">
@@ -275,7 +230,10 @@ export function OpportunitiesPage() {
                           <ChevronDown className="h-5 w-5 text-slate-brand" />
                         )}
                         <span
-                          className={cn("h-2.5 w-2.5 rounded-full", tone.dot)}
+                          className={cn(
+                            "h-2.5 w-2.5 shrink-0 rounded-full",
+                            tone.dot,
+                          )}
                         />
                         <span className={cn("text-sm font-bold", tone.text)}>
                           {group.stage.name}
@@ -283,18 +241,20 @@ export function OpportunitiesPage() {
                         <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-bold text-slate-brand ring-1 ring-brand-border">
                           {group.count}
                         </span>
-                        <span className="ml-3 text-sm text-slate-brand">
-                          Subtotal{" "}
-                          <FeeTotal
-                            total={group.estimatedFeeTotal}
-                            className="font-semibold text-ink"
-                          />
-                        </span>
-                        {noNextStepCount > 0 && (
-                          <span className="ml-3 text-sm font-semibold text-red-600">
-                            {noNextStepCount} sin próximo paso
+                        <div className="ml-auto flex items-center gap-6">
+                          {noNextStepCount > 0 && (
+                            <span className="text-sm font-semibold text-red-600">
+                              {noNextStepCount} sin próximo paso
+                            </span>
+                          )}
+                          <span className="text-sm text-slate-brand">
+                            Subtotal{" "}
+                            <FeeTotal
+                              total={group.estimatedFeeTotal}
+                              className="font-semibold text-ink"
+                            />
                           </span>
-                        )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -328,22 +288,6 @@ export function OpportunitiesPage() {
             Ninguna oportunidad coincide con los filtros.
           </p>
         )}
-      </div>
-
-      <div className="sticky bottom-4 z-20 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl border border-brand-border bg-surface/95 px-4 py-2.5 text-sm shadow-[0_-4px_16px_-8px_rgba(0,0,0,0.12)] backdrop-blur">
-        <span className="text-slate-brand">
-          Abiertas{filtering ? " (filtradas)" : ""}:{" "}
-          <span className="font-bold text-ink">{summary.open.count}</span>
-        </span>
-        <span className="text-slate-brand">
-          Total:{" "}
-          <span className="font-bold tabular-nums text-ink">
-            {formatMoney(summary.open.estimatedFeeTotal)}
-          </span>
-        </span>
-        <span className="text-xs text-muted-brand">
-          Sin ponderar. Ganadas y perdidas no suman.
-        </span>
       </div>
 
       {dialog}
@@ -441,11 +385,11 @@ function OpportunityRow({
                 >
                   <span
                     className={cn(
-                      "h-1.5 w-1.5 rounded-full",
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
                       stageTone(stage).dot,
                     )}
                   />
-                  {stage.name}
+                  <span className="truncate">{stage.name}</span>
                 </SelectItem>
               ))}
             </SelectContent>
