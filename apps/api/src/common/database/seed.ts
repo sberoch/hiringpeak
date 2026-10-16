@@ -22,6 +22,7 @@ import { seedVacancies } from './seed/vacancies';
 import { seedCandidates } from './seed/candidates';
 import { seedCandidateVacancies } from './seed/candidate-vacancies';
 import { seedTasks } from './seed/tasks';
+import { seedCommercial } from './seed/commercial';
 
 config();
 
@@ -55,7 +56,8 @@ async function main() {
     }
 
     // --- Permissions & Roles ---
-    const { adminRoleId } = await seedPermissionsAndRoles(tx, organizationId);
+    const { adminRoleId, managerRoleId, basicRoleId } =
+      await seedPermissionsAndRoles(tx, organizationId);
 
     // --- Users ---
     const { userId } = await seedUsers(tx, organizationId, adminRoleId);
@@ -104,6 +106,16 @@ async function main() {
       userId,
       vacancyIds,
       companyIds,
+    });
+
+    // --- Commercial side (CRM) ---
+    await seedCommercial(tx, {
+      organizationId,
+      adminUserId: userId,
+      managerRoleId,
+      basicRoleId,
+      companyIds,
+      vacancyIds,
     });
   });
 
