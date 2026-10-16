@@ -1,9 +1,13 @@
 "use client";
 
-import { MoreHorizontal, Plus, Users } from "lucide-react";
-import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal, Plus } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 
 import { Button } from "@workspace/ui/components/button";
+import { DataTable } from "@workspace/ui/components/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,11 +21,125 @@ import type { ContactView } from "@workspace/shared/types/contact";
 import {
   ContactAvatar,
   CopyChip,
-  LinkedinLink,
 } from "@/components/contacts/contact-avatar-and-links";
+import { linkedinUrl } from "@/components/contacts/contact-table-columns";
 import { ContactSheet } from "@/components/contacts/contact-sheet";
 import { DeleteContactDialog } from "@/components/contacts/delete-contact-dialog";
+import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import { usePermissions } from "@/contexts/permission-context";
+
+const PlainHeader = ({ label }: { label: string }) => (
+  <span className="font-semibold text-slate-brand">{label}</span>
+);
+
+function contactColumns({
+  linkToContact,
+  onEdit,
+  onDelete,
+}: {
+  /** The Contact page is commercial-only. */
+  linkToContact: boolean;
+  /** Without these, the row has no actions menu. */
+  onEdit?: (contact: ContactView) => void;
+  onDelete?: (contact: ContactView) => void;
+}): ColumnDef<ContactView>[] {
+  const columns: ColumnDef<ContactView>[] = [
+    {
+      id: "name",
+      header: () => <PlainHeader label="Contacto" />,
+      cell: ({ row }) => {
+        const contact = row.original;
+        return (
+          <div className="flex items-center gap-2.5">
+            <ContactAvatar name={contact.name} className="h-10 w-10" />
+            <div className="min-w-0">
+              <div className="flex items-center">
+                {linkToContact ? (
+                  <Link
+                    href={`/contacts/${contact.id}`}
+                    className="truncate font-medium text-ink transition-colors hover:text-electric"
+                  >
+                    {contact.name}
+                  </Link>
+                ) : (
+                  <span className="truncate font-medium text-ink">
+                    {contact.name}
+                  </span>
+                )}
+                {contact.linkedin && (
+                  <Link
+                    href={linkedinUrl(contact.linkedin)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0"
+                  >
+                    <Image
+                      src="/images/linkedin.svg"
+                      alt="LinkedIn"
+                      width={18}
+                      height={18}
+                      className="ml-2 inline-block"
+                    />
+                  </Link>
+                )}
+              </div>
+              <p className="mt-0.5 max-w-[220px] truncate text-xs text-slate-brand">
+                {contact.role || "Sin cargo"}
+              </p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "email",
+      header: () => <PlainHeader label="Email" />,
+      cell: ({ row }) => (
+        <div className="max-w-[240px]">
+          <CopyChip kind="email" value={row.original.email} />
+        </div>
+      ),
+    },
+    {
+      id: "phone",
+      header: () => <PlainHeader label="Teléfono" />,
+      cell: ({ row }) => <CopyChip kind="phone" value={row.original.phone} />,
+    },
+  ];
+  if (onEdit && onDelete) {
+    columns.push({
+      id: "actions",
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 cursor-pointer p-0">
+                <span className="sr-only">Abrir menú</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => onEdit(row.original)}
+              >
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer text-red-600"
+                onClick={() => onDelete(row.original)}
+              >
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ),
+    });
+  }
+  return columns;
+}
 
 /**
  * The Company's current Contacts. Managed with COMPANY_MANAGE or CRM_MANAGE;
@@ -35,6 +153,18 @@ export function CompanyContactsTab({ company }: { company: Company }) {
     null,
   );
   const [toDelete, setToDelete] = useState<ContactView | null>(null);
+  const { canRead: commercial } = useCommercialAccess();
+  const columns = useMemo(
+    () =>
+      contactColumns({
+        linkToContact: commercial,
+        ...(canManage && {
+          onEdit: (contact: ContactView) => setSheet({ contact }),
+          onDelete: setToDelete,
+        }),
+      }),
+    [commercial, canManage],
+  );
 
   return (
     <div className="space-y-3">
@@ -54,85 +184,7 @@ export function CompanyContactsTab({ company }: { company: Company }) {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-brand-border bg-surface">
-        {company.contacts.length === 0 ? (
-          <div className="px-6 py-10 text-center">
-            <Users className="mx-auto mb-2 h-6 w-6 text-muted-brand" />
-            <p className="text-sm font-medium text-ink">
-              Nadie cargado trabaja hoy en esta empresa.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-brand-border text-left text-xs font-semibold text-slate-brand">
-                  <th className="px-4 py-3">Nombre</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Teléfono</th>
-                  {canManage && <th className="w-10 px-2 py-3" />}
-                </tr>
-              </thead>
-              <tbody>
-                {company.contacts.map((contact) => (
-                  <tr
-                    key={contact.id}
-                    className="border-b border-brand-border-light last:border-0 hover:bg-canvas/60"
-                  >
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <ContactAvatar name={contact.name} />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-ink">
-                            {contact.name}
-                          </p>
-                          <p className="flex items-center gap-2 text-xs text-muted-brand">
-                            {contact.role || "Sin cargo"}
-                            <LinkedinLink url={contact.linkedin} />
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="max-w-[240px] px-4 py-3.5">
-                      <CopyChip kind="email" value={contact.email} />
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <CopyChip kind="phone" value={contact.phone} />
-                    </td>
-                    {canManage && (
-                      <td className="px-2 py-3.5">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Acciones</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="cursor-pointer"
-                              onClick={() => setSheet({ contact })}
-                            >
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="cursor-pointer text-red-600"
-                              onClick={() => setToDelete(contact)}
-                            >
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable columns={columns} data={company.contacts} hidePagination />
 
       {sheet && (
         <ContactSheet
