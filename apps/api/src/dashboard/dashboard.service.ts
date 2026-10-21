@@ -19,15 +19,31 @@ import {
 } from '@workspace/shared/schemas';
 import { computeCommercialSummary } from './commercial-metrics';
 
-const OPEN_STATUS_POSSIBLE_VALUES = ['Abierta', 'Abierto', 'Open'];
-const FILLED_STATUS_POSSIBLE_VALUES = ['Cubierta', 'Filled'];
-const CANCELLED_STATUS_POSSIBLE_VALUES = ['Cancelada', 'Cancelled'];
+const FILLED_STATUS_NAMES = ['Cubierta', 'Filled'];
+const CANCELLED_STATUS_NAMES = ['Cancelada', 'Cancelled'];
+
+/**
+ * How a closed (final) Vacancy ended, for fill rate and time-to-fill only.
+ * `isFinal` says a Vacancy is closed but not whether it was filled or
+ * cancelled, and no other flag does, so this is the one place the dashboard
+ * still reads a Vacancy Status name. Open/closed everywhere else is `isFinal`.
+ * A final status with any other name counts toward neither.
+ */
+function finalOutcome(status: {
+  name: string;
+  isFinal: boolean;
+}): 'filled' | 'cancelled' | null {
+  if (!status.isFinal) return null;
+  if (FILLED_STATUS_NAMES.includes(status.name)) return 'filled';
+  if (CANCELLED_STATUS_NAMES.includes(status.name)) return 'cancelled';
+  return null;
+}
 
 @Injectable()
 export class DashboardService {
   constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
 
-  async getDashboard(): Promise<Dashboard> {
+  async getDashboard(organizationId: number): Promise<Dashboard> {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -42,17 +58,28 @@ export class DashboardService {
       this.db
         .select({ count: count(candidates.id) })
         .from(candidates)
-        .where(eq(candidates.deleted, false)),
+        .where(
+          and(
+            eq(candidates.organizationId, organizationId),
+            eq(candidates.deleted, false),
+          ),
+        ),
       this.db
         .select({ count: count(vacancies.id) })
         .from(vacancies)
-        .fullJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
-        .where(inArray(vacancyStatuses.name, OPEN_STATUS_POSSIBLE_VALUES)),
+        .innerJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
+        .where(
+          and(
+            eq(vacancies.organizationId, organizationId),
+            eq(vacancyStatuses.isFinal, false),
+          ),
+        ),
       this.db
         .select({ count: count(candidates.id) })
         .from(candidates)
         .where(
           and(
+            eq(candidates.organizationId, organizationId),
             eq(candidates.deleted, false),
             gte(candidates.createdAt, currentMonthStart),
             lt(candidates.createdAt, nextMonthStart),
@@ -63,6 +90,7 @@ export class DashboardService {
         .from(vacancies)
         .where(
           and(
+            eq(vacancies.organizationId, organizationId),
             gte(vacancies.createdAt, currentMonthStart),
             lt(vacancies.createdAt, nextMonthStart),
           ),
@@ -75,7 +103,12 @@ export class DashboardService {
         })
         .from(vacancies)
         .innerJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
-        .where(inArray(vacancyStatuses.name, OPEN_STATUS_POSSIBLE_VALUES)),
+        .where(
+          and(
+            eq(vacancies.organizationId, organizationId),
+            eq(vacancyStatuses.isFinal, false),
+          ),
+        ),
     ]);
 
     return {
@@ -89,23 +122,18 @@ export class DashboardService {
     };
   }
 
-  async getRecruiterStats(): Promise<RecruiterStats[]> {
+  async getRecruiterStats(organizationId: number): Promise<RecruiterStats[]> {
     const yearStart = new Date(new Date().getFullYear(), 0, 1);
 
-    // Get all vacancy statuses to classify them
-    const allStatuses = await this.db
-      .select({ id: vacancyStatuses.id, name: vacancyStatuses.name })
-      .from(vacancyStatuses);
-
-    const openStatusIds = allStatuses
-      .filter((s) => OPEN_STATUS_POSSIBLE_VALUES.includes(s.name))
-      .map((s) => s.id);
-    const filledStatusIds = allStatuses
-      .filter((s) => FILLED_STATUS_POSSIBLE_VALUES.includes(s.name))
-      .map((s) => s.id);
-    const cancelledStatusIds = allStatuses
-      .filter((s) => CANCELLED_STATUS_POSSIBLE_VALUES.includes(s.name))
-      .map((s) => s.id);
+    const statuses = await this.db
+      .select({
+        id: vacancyStatuses.id,
+        name: vacancyStatuses.name,
+        isFinal: vacancyStatuses.isFinal,
+      })
+      .from(vacancyStatuses)
+      .where(eq(vacancyStatuses.organizationId, organizationId));
+    const statusById = new Map(statuses.map((s) => [s.id, s]));
 
     // Get all vacancies assigned this year with recruiter info
     const recruiterVacancies = await this.db
@@ -119,7 +147,12 @@ export class DashboardService {
       })
       .from(vacancies)
       .innerJoin(users, eq(users.id, vacancies.assignedTo))
-      .where(gte(vacancies.createdAt, yearStart));
+      .where(
+        and(
+          eq(vacancies.organizationId, organizationId),
+          gte(vacancies.createdAt, yearStart),
+        ),
+      );
 
     const vacancyIdList = recruiterVacancies.map((v) => v.vacancyId);
 
@@ -185,15 +218,14 @@ export class DashboardService {
 
       entry.total++;
 
-      if (rv.statusId && openStatusIds.includes(rv.statusId)) {
+      const status = rv.statusId ? statusById.get(rv.statusId) : undefined;
+      if (status && !status.isFinal) {
         entry.active++;
       }
 
-      const isFilled = rv.statusId && filledStatusIds.includes(rv.statusId);
-      const isCancelled =
-        rv.statusId && cancelledStatusIds.includes(rv.statusId);
+      const outcome = status ? finalOutcome(status) : null;
 
-      if (isFilled) {
+      if (outcome === 'filled') {
         entry.filled++;
         entry.resolved++;
         // Approximate time-to-fill using updatedAt - createdAt
@@ -204,7 +236,7 @@ export class DashboardService {
           entry.fillDaysSum += days;
           entry.fillCount++;
         }
-      } else if (isCancelled) {
+      } else if (outcome === 'cancelled') {
         entry.resolved++;
       }
     }

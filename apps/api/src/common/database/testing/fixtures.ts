@@ -72,6 +72,18 @@ export function fixtures(db: DrizzleDatabase) {
       });
     },
 
+    /** A User holding an existing Role (e.g. a default Role). */
+    member(organizationId: number, roleId: number) {
+      const n = next();
+      return insertId(users, {
+        organizationId,
+        roleId,
+        name: `User ${n}`,
+        email: `user${n}@example.com`,
+        password: 'x',
+      });
+    },
+
     company: (
       organizationId: number,
       fields: { name?: string; accountOwnerId?: number | null } = {},
@@ -133,6 +145,9 @@ export function fixtures(db: DrizzleDatabase) {
         title?: string;
         opportunityId?: number | null;
         vacancyContactId?: number | null;
+        statusId?: number | null;
+        createdAt?: Date;
+        updatedAt?: Date;
       },
     ) =>
       insertId(vacancies, {
@@ -143,8 +158,16 @@ export function fixtures(db: DrizzleDatabase) {
         ...fields,
       }),
 
-    vacancyStatus: (organizationId: number, name = 'Abierta') =>
-      insertId(vacancyStatuses, { organizationId, name }),
+    vacancyStatus: (
+      organizationId: number,
+      name = 'Abierta',
+      fields: { isFinal?: boolean } = {},
+    ) =>
+      insertId(vacancyStatuses, {
+        organizationId,
+        name,
+        isFinal: fields.isFinal ?? false,
+      }),
 
     candidate: (organizationId: number, name = `Candidate ${next()}`) =>
       insertId(candidates, {

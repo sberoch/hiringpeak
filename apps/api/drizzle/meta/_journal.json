@@ -110,8 +110,22 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1792606268518,
-      "tag": "0015_user_layouts",
+      "when": 1792606098245,
+      "tag": "0015_organization_branding",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792606275822,
+      "tag": "0016_organization_manage_permission",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792607002600,
+      "tag": "0017_user_layouts",
       "breakpoints": true
     }
   ]

@@ -42,6 +42,7 @@ import { OpportunityStageModule } from './opportunitystage/opportunitystage.modu
 import { LostReasonModule } from './lostreason/lostreason.module';
 import { PreferencesModule } from './preferences/preferences.module';
 import { OpportunityModule } from './opportunity/opportunity.module';
+import { BrandingModule } from './branding/branding.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { OpportunityModule } from './opportunity/opportunity.module';
     LostReasonModule,
     PreferencesModule,
     OpportunityModule,
+    BrandingModule,
   ],
   controllers: [AppController],
   providers: [

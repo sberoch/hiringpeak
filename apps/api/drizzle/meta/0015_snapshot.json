@@ -1,5 +1,5 @@
 {
-  "id": "5a7c7f13-24c3-4e7c-a460-be3468d15d73",
+  "id": "b3222185-8c40-4bb4-a385-a6a5a7817945",
   "prevId": "4f219bcd-b250-411c-ab8c-593d20c175bf",
   "version": "7",
   "dialect": "postgresql",
@@ -2527,6 +2527,24 @@
           "primaryKey": false,
           "notNull": true
         },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_logo_url": {
+          "name": "original_logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accent_color": {
+          "name": "accent_color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -3425,80 +3443,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user_layouts": {
-      "name": "user_layouts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "layout_key": {
-          "name": "layout_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_layouts_user_id_users_id_fk": {
-          "name": "user_layouts_user_id_users_id_fk",
-          "tableFrom": "user_layouts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "user_layouts_user_id_layout_key_unique": {
-          "name": "user_layouts_user_id_layout_key_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "layout_key"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

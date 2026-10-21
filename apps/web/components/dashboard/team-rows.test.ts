@@ -3,6 +3,8 @@ import type {
   RecruiterStats,
 } from "@workspace/shared/types/dashboard";
 
+import { PermissionCode } from "@workspace/shared/enums";
+
 import { buildTeamRows } from "./team-rows";
 
 function recruiter(userId: number, name: string): RecruiterStats {
@@ -29,7 +31,7 @@ function owner(ownerId: number, name: string): CommercialOwnerStats {
   };
 }
 
-const manager = { userId: 99, isManager: true };
+const manager = { userId: 99, permissionCodes: [PermissionCode.TASK_READ_ALL] };
 
 describe("buildTeamRows", () => {
   it("gives a user who is both recruiter and owner a single row with both stats", () => {
@@ -62,11 +64,24 @@ describe("buildTeamRows", () => {
     });
   });
 
-  it("shows a non-manager only their own row", () => {
+  it("shows a user with TASK_READ_ALL every row", () => {
+    const rows = buildTeamRows(
+      [recruiter(1, "Ana"), recruiter(2, "Beto")],
+      [owner(3, "Caro")],
+      { userId: 2, permissionCodes: [PermissionCode.TASK_READ_ALL] },
+    );
+
+    expect(rows.map((r) => r.userId).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("shows a user without TASK_READ_ALL only their own row, whatever else they can do", () => {
     const rows = buildTeamRows(
       [recruiter(1, "Ana"), recruiter(2, "Beto")],
       [owner(2, "Beto"), owner(3, "Caro")],
-      { userId: 2, isManager: false },
+      {
+        userId: 2,
+        permissionCodes: [PermissionCode.TASK_READ, PermissionCode.ROLE_MANAGE],
+      },
     );
 
     expect(rows.map((r) => r.userId)).toEqual([2]);

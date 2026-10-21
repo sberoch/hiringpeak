@@ -27,6 +27,7 @@ export const PermissionCode = {
   TASK_MANAGE_ALL: "TASK_MANAGE_ALL",
   CRM_READ: "CRM_READ",
   CRM_MANAGE: "CRM_MANAGE",
+  ORGANIZATION_MANAGE: "ORGANIZATION_MANAGE",
 } as const;
 export type PermissionCode =
   (typeof PermissionCode)[keyof typeof PermissionCode];

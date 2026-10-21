@@ -19,8 +19,12 @@ dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 interface LatestVacanciesProps {
-  openStatusId?: string;
-  closedStatusId?: string;
+  openStatusId?: number;
+  closedStatusId?: number;
+}
+
+function vacanciesWithStatus(statusId?: number) {
+  return statusId ? `/vacancies?status=${statusId}` : "/vacancies";
 }
 
 export function LatestVacancies({
@@ -48,7 +52,7 @@ export function LatestVacancies({
           </h3>
         </div>
         <div className="flex items-center gap-1">
-          <Link href={`/vacancies?status=${openStatusId || "abierta"}`}>
+          <Link href={vacanciesWithStatus(openStatusId)}>
             <Button
               variant="ghost"
               size="sm"
@@ -57,7 +61,7 @@ export function LatestVacancies({
               Abiertas
             </Button>
           </Link>
-          <Link href={`/vacancies?status=${closedStatusId || "cubierta"}`}>
+          <Link href={vacanciesWithStatus(closedStatusId)}>
             <Button
               variant="ghost"
               size="sm"

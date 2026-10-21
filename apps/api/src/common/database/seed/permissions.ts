@@ -111,6 +111,11 @@ const PERMISSION_SEED: { code: string; label: string; description: string }[] =
       description:
         'Crear, editar y eliminar oportunidades, contactos e interacciones, y configurar el área comercial',
     },
+    {
+      code: PermissionCode.ORGANIZATION_MANAGE,
+      label: 'Gestionar organización',
+      description: 'Configurar el branding de la organización (logo)',
+    },
   ];
 
 const ALL_PERMISSION_CODES = Object.values(PermissionCode);
@@ -124,8 +129,11 @@ const READ_ONLY_CODES = [
   PermissionCode.TASK_READ,
   PermissionCode.TASK_MANAGE,
 ];
+/** Administrador-only codes stay out of the Manager's defaults. */
 const MANAGER_CODES = ALL_PERMISSION_CODES.filter(
-  (c) => c !== PermissionCode.ROLE_MANAGE,
+  (c) =>
+    c !== PermissionCode.ROLE_MANAGE &&
+    c !== PermissionCode.ORGANIZATION_MANAGE,
 );
 
 function getPermissionIds(
