@@ -29,6 +29,8 @@ import {
   users,
   vacancies,
 } from '@workspace/shared/schemas';
+import type { OpportunitySortField } from '@workspace/shared/dtos';
+import type { SortOrder } from '@workspace/shared/lib/sort-order';
 import type { OpportunityNextStep } from '@workspace/shared/types/opportunity';
 import { AuthzService } from '../auth/authz/authz.service';
 import { companyStatusCondition } from '../company/company-status-filter';
@@ -614,28 +616,26 @@ export class OpportunityService {
   }
 }
 
-/** pg returns numeric as a string; the API speaks plain numbers. */
-/** The sortable fields of the list; anything else is a 400. */
+/** The column behind each sortable field (see `OPPORTUNITY_SORT_FIELDS`). */
 const SORTABLE = {
   closeDate: opportunities.closeDate,
   createdAt: opportunities.createdAt,
-} as const;
+} as const satisfies Record<OpportunitySortField, unknown>;
 
-/** `"field:asc|desc"`; newest first when omitted. Undated sort last. */
-function buildOrderBy(order: string | undefined): SQL[] {
+/** Newest first when no order is given. Undated sort last. */
+function buildOrderBy(
+  order: SortOrder<OpportunitySortField> | undefined,
+): SQL[] {
   if (!order) return [desc(opportunities.createdAt), desc(opportunities.id)];
-  const [sortBy, direction] = order.split(':');
-  if (!Object.hasOwn(SORTABLE, sortBy)) {
-    throw new BadRequestException('Invalid sortBy parameter');
-  }
-  const column = SORTABLE[sortBy as keyof typeof SORTABLE];
-  const descending = direction?.toLowerCase() === 'desc';
+  const column = SORTABLE[order.field];
+  const descending = order.direction === 'desc';
   return [
     sql`${column} ${descending ? sql`desc` : sql`asc`} nulls last`,
     desc(opportunities.id),
   ];
 }
 
+/** pg returns numeric as a string; the API speaks plain numbers. */
 function toResponse<T extends { estimatedFee: string | null }>(row: T) {
   return {
     ...row,

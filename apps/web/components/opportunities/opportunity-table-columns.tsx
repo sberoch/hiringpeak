@@ -26,6 +26,7 @@ import {
 } from "@/components/opportunities/opportunity-format";
 import { StageBadge, stageTone } from "@/components/opportunities/stage-badge";
 import { NextStepCell } from "./opportunity-next-step";
+import type { OpportunitySortField } from "@workspace/shared/dtos";
 
 /** What a row's cells need beyond the Opportunity itself. */
 export interface OpportunityCellContext {
@@ -35,7 +36,7 @@ export interface OpportunityCellContext {
 }
 
 /** The list fields the server can sort Opportunities by. */
-export type OpportunitySortField = "closeDate" | "createdAt";
+export type { OpportunitySortField };
 
 /** One column of the grouped Opportunities table. */
 export interface OpportunityColumn {
