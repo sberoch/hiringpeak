@@ -122,6 +122,44 @@ export class DashboardService {
     };
   }
 
+  /** «Mis búsquedas activas»: open Vacancies the User is Vacancy Owner of. */
+  async countMyActiveVacancies(
+    organizationId: number,
+    userId: number,
+  ): Promise<{ count: number }> {
+    const [{ count: c }] = await this.db
+      .select({ count: count(vacancies.id) })
+      .from(vacancies)
+      .innerJoin(vacancyStatuses, eq(vacancyStatuses.id, vacancies.statusId))
+      .where(
+        and(
+          eq(vacancies.organizationId, organizationId),
+          eq(vacancies.assignedTo, userId),
+          eq(vacancyStatuses.isFinal, false),
+        ),
+      );
+    return { count: c };
+  }
+
+  /** «Candidatos agregados (últ. 30 días)»: the Organization's, not deleted. */
+  async countCandidatesAddedLast30Days(
+    organizationId: number,
+    now = new Date(),
+  ): Promise<{ count: number }> {
+    const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const [{ count: c }] = await this.db
+      .select({ count: count(candidates.id) })
+      .from(candidates)
+      .where(
+        and(
+          eq(candidates.organizationId, organizationId),
+          eq(candidates.deleted, false),
+          gte(candidates.createdAt, since),
+        ),
+      );
+    return { count: c };
+  }
+
   async getRecruiterStats(organizationId: number): Promise<RecruiterStats[]> {
     const yearStart = new Date(new Date().getFullYear(), 0, 1);
 

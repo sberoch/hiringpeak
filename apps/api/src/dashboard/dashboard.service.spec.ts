@@ -72,6 +72,50 @@ describe('DashboardService.getDashboard', () => {
   });
 });
 
+describe('DashboardService.countMyActiveVacancies', () => {
+  it('counts the open Vacancies the User owns, by the final flag', async () => {
+    const { f, dashboard } = await setup();
+    const org = await f.organization();
+    const ana = await f.user(org, [], 'Ana');
+    const beto = await f.user(org, [], 'Beto');
+    const companyId = await f.company(org);
+    const open = await f.vacancyStatus(org, 'En curso');
+    const final = await f.vacancyStatus(org, 'Terminada', { isFinal: true });
+    const vacancy = (assignedTo: number, statusId: number | null) =>
+      f.vacancy(org, { companyId, createdBy: beto, assignedTo, statusId });
+    await vacancy(ana, open);
+    await vacancy(ana, open);
+    await vacancy(ana, final);
+    await vacancy(ana, null);
+    await vacancy(beto, open);
+
+    expect(await dashboard.countMyActiveVacancies(org, ana)).toEqual({
+      count: 2,
+    });
+  });
+});
+
+describe('DashboardService.countCandidatesAddedLast30Days', () => {
+  it("counts the Organization's Candidates created in the last 30 days", async () => {
+    const { f, dashboard } = await setup();
+    const now = new Date('2026-05-31T12:00:00');
+    const org = await f.organization();
+    const other = await f.organization();
+    const added = (organizationId: number, createdAt: string) =>
+      f.candidate(organizationId, undefined, {
+        createdAt: new Date(createdAt),
+      });
+    await added(org, '2026-05-30T09:00:00');
+    await added(org, '2026-05-02T12:00:00');
+    await added(org, '2026-05-01T11:00:00');
+    await added(other, '2026-05-30T09:00:00');
+
+    expect(await dashboard.countCandidatesAddedLast30Days(org, now)).toEqual({
+      count: 2,
+    });
+  });
+});
+
 describe('DashboardService.getRecruiterStats', () => {
   it('counts every non-final Vacancy as active, whatever its status is called', async () => {
     const { f, dashboard } = await setup();

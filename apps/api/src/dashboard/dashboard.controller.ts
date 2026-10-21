@@ -1,6 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PermissionCode } from '@workspace/shared/enums';
+import { CurrentUser } from '../auth/auth.decorators';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { Permissions } from '../auth/permissions/permissions.decorator';
@@ -25,6 +26,26 @@ export class DashboardController {
   @Get('recruiter-stats')
   async getRecruiterStats(@OrganizationId() organizationId: number) {
     return this.dashboardService.getRecruiterStats(organizationId);
+  }
+
+  @ApiOkResponse()
+  @UseGuards(OrganizationGuard)
+  @Get('my-active-vacancies')
+  async getMyActiveVacancies(
+    @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
+  ) {
+    return this.dashboardService.countMyActiveVacancies(
+      organizationId,
+      Number(user.id),
+    );
+  }
+
+  @ApiOkResponse()
+  @UseGuards(OrganizationGuard)
+  @Get('candidates-added')
+  async getCandidatesAdded(@OrganizationId() organizationId: number) {
+    return this.dashboardService.countCandidatesAddedLast30Days(organizationId);
   }
 
   @ApiOkResponse()

@@ -351,6 +351,32 @@ describe('TaskService.openCountFor', () => {
   });
 });
 
+describe('TaskService.overdueCountFor', () => {
+  const now = new Date('2026-05-20T10:00:00');
+  const overdueFor = (userId: number, commercialAccess = true) =>
+    tasks.overdueCountFor(org, { userId, commercialAccess }, now);
+
+  it("counts the User's own open Tasks due before today", async () => {
+    await newTask({ dueDate: '2026-05-19' });
+    await newTask({ dueDate: '2026-01-02' });
+    await newTask({ dueDate: '2026-05-20' });
+    await newTask();
+    const done = await newTask({ dueDate: '2026-05-18' });
+    await tasks.complete(done.id, org, ana);
+    await newTask({ dueDate: '2026-05-18', assignedTo: beto });
+
+    expect(await overdueFor(ana)).toEqual({ count: 2 });
+  });
+
+  it('leaves commercial Tasks out for an owner without commercial access', async () => {
+    const r = await records();
+    await newTask({ dueDate: '2026-05-18', contactIds: [r.contact] });
+    await newTask({ dueDate: '2026-05-18' });
+
+    expect(await overdueFor(ana, false)).toEqual({ count: 1 });
+  });
+});
+
 describe('TaskService.complete / reopen', () => {
   it('complete records who completed it and when', async () => {
     const task = await newTask();

@@ -1,17 +1,39 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Briefcase, Clock, Users } from "lucide-react";
+import {
+  AlarmClock,
+  ArrowDown,
+  ArrowUp,
+  Briefcase,
+  Clock,
+  DollarSign,
+  Target,
+  UserCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
-import type { Dashboard } from "@workspace/shared/types/dashboard";
+import type {
+  CommercialSummary,
+  Dashboard,
+} from "@workspace/shared/types/dashboard";
 
 import {
+  CANDIDATES_ADDED_API_KEY,
+  COMMERCIAL_SUMMARY_API_KEY,
   DASHBOARD_SUMMARY_API_KEY,
+  getCandidatesAddedCount,
+  getCommercialSummary,
   getDashboardSummary,
+  getMyActiveVacancyCount,
+  MY_ACTIVE_VACANCIES_API_KEY,
 } from "@/lib/api/dashboard";
+import { getMyOverdueTaskCount, TASK_API_KEY } from "@/lib/api/tasks";
+import { formatMoney } from "@/lib/utils";
 
 const VARIATION_POSITIVE = "text-emerald-600";
 const VARIATION_NEGATIVE = "text-red-500";
@@ -136,25 +158,28 @@ export function DashboardStatCard({
   );
 }
 
-interface SummaryStatConfig {
+interface StatConfig<T> {
   label: string;
   icon: LucideIcon;
   image: { src: string; position: string };
   accent: StatAccent;
   suffix?: string;
-  getValue: (d: Dashboard) => number | null;
-  getVariation?: (d: Dashboard) => number;
+  /** Widgets reading the same data share this key, so it loads once. */
+  queryKey: readonly unknown[];
+  queryFn: () => Promise<T>;
+  getValue: (data: T) => ReactNode;
+  getVariation?: (data: T) => number;
 }
 
 /**
- * A stat Widget read from the dashboard summary. The summary loads once
- * for every stat on screen, and only when one is shown.
+ * A stat Widget. Its data loads only while it is shown, once for every
+ * stat on screen that reads it.
  */
-function summaryStat(config: SummaryStatConfig) {
-  return function SummaryStat() {
+function stat<T>(config: StatConfig<T>) {
+  return function Stat() {
     const { data } = useQuery({
-      queryKey: [DASHBOARD_SUMMARY_API_KEY],
-      queryFn: getDashboardSummary,
+      queryKey: config.queryKey,
+      queryFn: config.queryFn,
     });
     const variation = data && config.getVariation?.(data);
 
@@ -172,6 +197,28 @@ function summaryStat(config: SummaryStatConfig) {
       />
     );
   };
+}
+
+/** A stat read from the dashboard summary. */
+function summaryStat(
+  config: Omit<StatConfig<Dashboard>, "queryKey" | "queryFn">,
+) {
+  return stat({
+    ...config,
+    queryKey: [DASHBOARD_SUMMARY_API_KEY],
+    queryFn: getDashboardSummary,
+  });
+}
+
+/** A commercial stat read from the «Comercial» summary. */
+function commercialStat(
+  config: Omit<StatConfig<CommercialSummary>, "queryKey" | "queryFn">,
+) {
+  return stat({
+    ...config,
+    queryKey: [COMMERCIAL_SUMMARY_API_KEY],
+    queryFn: getCommercialSummary,
+  });
 }
 
 export const ActiveVacanciesStat = summaryStat({
@@ -202,4 +249,54 @@ export const AvgDaysOpenStat = summaryStat({
   accent: "teal",
   suffix: "días",
   getValue: (d) => d.avgDaysOpen,
+});
+
+export const MyActiveVacanciesStat = stat({
+  label: "Mis búsquedas activas",
+  icon: UserCheck,
+  image: { src: "/images/stat-search.png", position: "-right-12 -top-4" },
+  accent: "electric",
+  queryKey: [MY_ACTIVE_VACANCIES_API_KEY],
+  queryFn: getMyActiveVacancyCount,
+  getValue: (d) => d.count,
+});
+
+export const MyOverdueTasksStat = stat({
+  label: "Mis tareas vencidas",
+  icon: AlarmClock,
+  image: { src: "/images/stat-time.png", position: "-right-10 -top-6" },
+  accent: "teal",
+  queryKey: [TASK_API_KEY, "overdue-count"],
+  queryFn: getMyOverdueTaskCount,
+  getValue: (d) => d.count,
+});
+
+export const CandidatesAddedStat = stat({
+  label: "Candidatos agregados (últ. 30 días)",
+  icon: UserPlus,
+  image: {
+    src: "/images/stat-ideal-candidate.jpeg",
+    position: "-right-8 top-0",
+  },
+  accent: "violet",
+  queryKey: [CANDIDATES_ADDED_API_KEY],
+  queryFn: getCandidatesAddedCount,
+  getValue: (d) => d.count,
+});
+
+export const OpenOpportunitiesStat = commercialStat({
+  label: "Oportunidades abiertas",
+  icon: Target,
+  image: { src: "/images/stat-search.png", position: "-right-12 -top-4" },
+  accent: "violet",
+  getValue: (d) => d.open,
+  getVariation: (d) => d.createdThisMonth,
+});
+
+export const PipelineFeeStat = commercialStat({
+  label: "Fee estimado en pipeline",
+  icon: DollarSign,
+  image: { src: "/images/stat-time.png", position: "-right-10 -top-6" },
+  accent: "electric",
+  getValue: (d) => formatMoney(d.openFee),
 });

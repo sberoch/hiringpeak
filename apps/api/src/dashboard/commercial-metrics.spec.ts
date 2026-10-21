@@ -20,6 +20,31 @@ function row(
 }
 
 describe('computeCommercialSummary', () => {
+  it('counts as open only Opportunities in a stage that is neither won nor lost', () => {
+    const summary = computeCommercialSummary(
+      [
+        row({}),
+        row({}),
+        row({ outcome: 'won', closeDate: '2026-02-01' }),
+        row({ outcome: 'lost', closeDate: '2026-03-01' }),
+      ],
+      NOW,
+    );
+    expect(summary.open).toBe(2);
+  });
+
+  it('sums the pipeline fee over open Opportunities only', () => {
+    const summary = computeCommercialSummary(
+      [
+        row({ estimatedFee: '1500.50' }),
+        row({ estimatedFee: '500' }),
+        row({ outcome: 'won', estimatedFee: '9000', closeDate: '2026-02-01' }),
+      ],
+      NOW,
+    );
+    expect(summary.openFee).toBe(2000.5);
+  });
+
   it('ignores Opportunities without an Estimated Fee in the open fee total', () => {
     const summary = computeCommercialSummary(
       [row({ estimatedFee: '1000.00' }), row({ estimatedFee: null })],

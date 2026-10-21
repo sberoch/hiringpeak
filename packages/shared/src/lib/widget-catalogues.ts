@@ -1,4 +1,7 @@
+import { PermissionCode } from "../enums";
 import type { LayoutCatalogueEntry } from "./layout";
+
+const COMMERCIAL = [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE];
 
 /**
  * Widget catalogues, one per dashboard Widget Area (Stat, Wide, Rail): the
@@ -19,6 +22,11 @@ export const STAT_WIDGETS = [
   { key: "activeVacancies", shownByDefault: true },
   { key: "activeCandidates", shownByDefault: true },
   { key: "avgDaysOpen", shownByDefault: true },
+  { key: "myActiveVacancies", shownByDefault: false },
+  { key: "myOverdueTasks", shownByDefault: false },
+  { key: "candidatesAddedLast30Days", shownByDefault: false },
+  { key: "openOpportunities", shownByDefault: false, requires: COMMERCIAL },
+  { key: "pipelineFee", shownByDefault: false, requires: COMMERCIAL },
 ] as const satisfies readonly LayoutCatalogueEntry[];
 
 /** Wide: the main column. */
@@ -31,6 +39,11 @@ export const WIDE_WIDGETS = [
 export const RAIL_WIDGETS = [
   { key: "dueSoonTasks", shownByDefault: true },
   { key: "latestCandidates", shownByDefault: true },
+  {
+    key: "noNextStepOpportunities",
+    shownByDefault: false,
+    requires: COMMERCIAL,
+  },
 ] as const satisfies readonly LayoutCatalogueEntry[];
 
 export type StatWidgetKey = (typeof STAT_WIDGETS)[number]["key"];

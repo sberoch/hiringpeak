@@ -187,3 +187,48 @@ describe('OpportunityService.createFromContact', () => {
     });
   });
 });
+
+describe('OpportunityService.findAll — No Next Step', () => {
+  it('lists exactly the open Opportunities without an open Task', async () => {
+    const { tasks } = await testServices(db);
+    const other = await f.organization();
+    const owner = await f.user(other, [PermissionCode.CRM_MANAGE]);
+    const company = await f.company(other);
+    const stages = await f.stages(other);
+    const opportunity = (title: string, stageId: number) =>
+      f.opportunity(other, {
+        companyId: company,
+        ownerId: owner,
+        stageId,
+        title,
+      });
+    const followUp = (opportunityId: number) =>
+      tasks.create({
+        title: 'Llamar',
+        assignedTo: owner,
+        createdBy: owner,
+        organizationId: other,
+        opportunityIds: [opportunityId],
+      });
+    await opportunity('Sin tarea', stages.open);
+    await opportunity('En propuesta sin tarea', stages.proposal);
+    await followUp(await opportunity('Con tarea', stages.open));
+    const done = await followUp(
+      await opportunity('Con tarea completada', stages.open),
+    );
+    await tasks.complete(done.id, other, owner);
+    await opportunity('Ganada', stages.won);
+    await opportunity('Perdida', stages.lost);
+
+    const listed = await opportunities.findAll({
+      organizationId: other,
+      noNextStep: true,
+    });
+
+    expect(listed.map((o) => o.title).sort()).toEqual([
+      'Con tarea completada',
+      'En propuesta sin tarea',
+      'Sin tarea',
+    ]);
+  });
+});

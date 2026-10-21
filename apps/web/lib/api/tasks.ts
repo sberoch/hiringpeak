@@ -25,6 +25,11 @@ export async function getMyOpenTaskCount() {
   return response.data;
 }
 
+export async function getMyOverdueTaskCount() {
+  const response = await api.get<{ count: number }>(`/task/overdue-count`);
+  return response.data;
+}
+
 export async function getMyDueSoonTasks() {
   const response = await api.get<TaskWithRelations[]>(`/task/due-soon`);
   return response.data;
