@@ -25,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import { cn } from "@workspace/ui/lib/utils";
 
 import type { SavedLayoutState } from "@/hooks/use-saved-layout";
@@ -65,6 +66,18 @@ export function WidgetArea<E extends LayoutCatalogueEntry>({
   );
   const definitionOf = (entry: E) => definitions[entry.key as E["key"]];
 
+  // Until the saved layout is known, Widgets stay unmounted so a Widget
+  // the User hid never loads its data.
+  if (layout.isLoading) {
+    return (
+      <div className={className}>
+        {layout.entries.map((entry) => (
+          <Skeleton key={entry.key} className="h-32 rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
+
   if (!editing) {
     if (layout.entries.length === 0) return null;
     return (
@@ -92,7 +105,7 @@ export function WidgetArea<E extends LayoutCatalogueEntry>({
   return (
     <section
       aria-label={title}
-      className="flex min-w-0 flex-col gap-3 rounded-2xl border border-dashed border-electric/30 bg-electric/[0.02] p-3"
+      className="flex min-w-0 flex-col gap-6 rounded-2xl border border-dashed border-electric/30 bg-electric/[0.02] p-3"
     >
       <div className="flex items-center justify-between gap-2 px-1">
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-muted-brand">
@@ -178,7 +191,7 @@ function SortableWidget({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn("relative min-w-0", isDragging && "z-20 opacity-80")}
     >
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-lg border border-brand-border bg-surface p-0.5 shadow-sm">
+      <div className="absolute -top-3.5 right-4 z-10 flex items-center gap-1 rounded-lg border border-brand-border bg-surface p-0.5 shadow-sm">
         <button
           type="button"
           aria-label={`Mover ${label}`}
