@@ -58,6 +58,7 @@ export async function testServices(db: DrizzleDatabase) {
     lostReasons: module.get(LostReasonService),
     notifications: module.get(NotificationService),
     opportunities: module.get(OpportunityService),
+    roles: module.get(RoleService),
     stages: module.get(OpportunityStageService),
     tasks: module.get(TaskService),
     vacancies: module.get(VacancyService),

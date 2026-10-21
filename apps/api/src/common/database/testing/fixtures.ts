@@ -72,6 +72,18 @@ export function fixtures(db: DrizzleDatabase) {
       });
     },
 
+    /** A User holding an existing Role (e.g. a default Role). */
+    member(organizationId: number, roleId: number) {
+      const n = next();
+      return insertId(users, {
+        organizationId,
+        roleId,
+        name: `User ${n}`,
+        email: `user${n}@example.com`,
+        password: 'x',
+      });
+    },
+
     company: (
       organizationId: number,
       fields: { name?: string; accountOwnerId?: number | null } = {},
