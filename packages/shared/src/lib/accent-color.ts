@@ -9,6 +9,8 @@ export const DEFAULT_ACCENT_COLOR = "#0066ff";
 
 /** An accent color as stored and sent: `#RRGGBB`. */
 export const ACCENT_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+export const ACCENT_COLOR_FORMAT_MESSAGE =
+  "El color debe tener el formato #RRGGBB";
 
 export type AccentTextColor = "#000000" | "#ffffff";
 
@@ -32,6 +34,9 @@ const WHITE: AccentTextColor = "#ffffff";
  * WCAG contrast ratio, or why neither is readable enough.
  */
 export function accentTextColor(color: string): AccentReadability {
+  if (!ACCENT_COLOR_PATTERN.test(color)) {
+    return { ok: false, reason: ACCENT_COLOR_FORMAT_MESSAGE };
+  }
   const luminance = relativeLuminance(color);
   const onBlack = contrastRatio(luminance, 0);
   const onWhite = contrastRatio(luminance, 1);

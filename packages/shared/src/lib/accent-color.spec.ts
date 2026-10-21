@@ -24,4 +24,14 @@ describe("accentTextColor", () => {
       });
     },
   );
+
+  it.each(["blue", "#fff", "#12345g", ""])(
+    "rejects %j, which is not a #RRGGBB color",
+    (color) => {
+      expect(accentTextColor(color)).toEqual({
+        ok: false,
+        reason: expect.stringMatching(/#RRGGBB/),
+      });
+    },
+  );
 });

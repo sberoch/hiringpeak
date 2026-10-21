@@ -5,8 +5,12 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PermissionCode } from '@workspace/shared/enums';
+import { accentTextColor } from '@workspace/shared/lib/accent-color';
 import { isBrandingStorageUrl } from '@workspace/shared/lib/branding-storage';
-import type { UpdateBrandingLogoDto } from '@workspace/shared/dtos';
+import type {
+  UpdateBrandingAccentDto,
+  UpdateBrandingLogoDto,
+} from '@workspace/shared/dtos';
 import { organizations } from '@workspace/shared/schemas';
 import type { Branding } from '@workspace/shared/types/branding';
 import { eq } from 'drizzle-orm';
@@ -69,6 +73,23 @@ export class BrandingService {
   /** Clears the logo: the sidebar goes back to HiringPeak's. */
   async removeLogo(actor: BrandingActor): Promise<Branding> {
     return this.write(actor, { logoUrl: null, originalLogoUrl: null });
+  }
+
+  /** Sets the client PDFs' accent color, if text on it can be made readable. */
+  async updateAccent(
+    actor: BrandingActor,
+    { accentColor }: UpdateBrandingAccentDto,
+  ): Promise<Branding> {
+    const readability = accentTextColor(accentColor);
+    if (readability.ok === false) {
+      throw new BadRequestException(readability.reason);
+    }
+    return this.write(actor, { accentColor: accentColor.toLowerCase() });
+  }
+
+  /** Clears the accent color: the client PDFs go back to the default blue. */
+  async removeAccent(actor: BrandingActor): Promise<Branding> {
+    return this.write(actor, { accentColor: null });
   }
 
   private async write(

@@ -15,7 +15,7 @@ import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PermissionsGuard } from '../auth/permissions/permissions.guard';
-import { UpdateBrandingLogoDto } from './branding.dto';
+import { UpdateBrandingAccentDto, UpdateBrandingLogoDto } from './branding.dto';
 import { BrandingService, type BrandingActor } from './branding.service';
 
 /**
@@ -72,6 +72,32 @@ export class BrandingController {
     @OrganizationId() organizationId: number,
   ): Promise<Branding> {
     return this.brandingService.removeLogo(
+      await this.actor(user, organizationId),
+    );
+  }
+
+  @ApiOkResponse()
+  @Permissions(PermissionCode.ORGANIZATION_MANAGE)
+  @Patch('accent')
+  async updateAccent(
+    @Body() dto: UpdateBrandingAccentDto,
+    @CurrentUser() user: { id: string | number },
+    @OrganizationId() organizationId: number,
+  ): Promise<Branding> {
+    return this.brandingService.updateAccent(
+      await this.actor(user, organizationId),
+      dto,
+    );
+  }
+
+  @ApiOkResponse()
+  @Permissions(PermissionCode.ORGANIZATION_MANAGE)
+  @Delete('accent')
+  async removeAccent(
+    @CurrentUser() user: { id: string | number },
+    @OrganizationId() organizationId: number,
+  ): Promise<Branding> {
+    return this.brandingService.removeAccent(
       await this.actor(user, organizationId),
     );
   }
