@@ -1,3 +1,7 @@
+import {
+  buildReportBrand,
+  type ReportBranding,
+} from '../common/reports/report-brand';
 import type { VacancyApiResponse } from './vacancy.service';
 import {
   VACANCY_REPORT_HIRED_STATUS_NAME,
@@ -31,6 +35,7 @@ export function buildVacancyReportFileName(
 export function buildVacancyReportData(params: {
   generatedAt: Date;
   organizationName: string;
+  branding: ReportBranding;
   vacancy: VacancyApiResponse;
 }): VacancyReportDocumentData {
   const candidates = params.vacancy.candidates
@@ -42,6 +47,7 @@ export function buildVacancyReportData(params: {
     .sort((a, b) => a.name.localeCompare(b.name, VACANCY_REPORT_LOCALE));
 
   return {
+    brand: buildReportBrand(params.organizationName, params.branding),
     candidates,
     description: params.vacancy.description || undefined,
     hiredCandidates,

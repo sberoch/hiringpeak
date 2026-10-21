@@ -1,3 +1,5 @@
+import type { ReportBrand } from '../common/reports/report-brand';
+
 export interface VacancyReportSummary {
   totalCandidates: number;
   hiredCandidates: number;
@@ -41,6 +43,8 @@ export interface VacancyReportMetadata {
 }
 
 export interface VacancyReportDocumentData {
+  /** Header mark: the Organization's logo, or its name as a wordmark. */
+  brand: ReportBrand;
   candidates: VacancyReportCandidateRow[];
   description?: string;
   hiredCandidates: VacancyReportCandidateRow[];

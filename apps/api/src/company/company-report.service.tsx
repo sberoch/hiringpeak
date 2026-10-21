@@ -41,6 +41,7 @@ export class CompanyReportService {
       company,
       generatedAt,
       organizationName: organization.name,
+      branding: organization,
       vacancies,
     });
 
