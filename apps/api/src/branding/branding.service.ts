@@ -76,11 +76,15 @@ export class BrandingService {
     fields: Partial<Branding>,
   ): Promise<Branding> {
     if (!actor.codes.includes(PermissionCode.ORGANIZATION_MANAGE)) {
-      throw new ForbiddenException('Solo un administrador puede cambiar el branding');
+      throw new ForbiddenException(
+        'Solo un administrador puede cambiar el branding',
+      );
     }
     const [row] = await this.db
       .update(organizations)
-      .set({ ...fields, updatedAt: new Date() })
+      .set({ ...fields, updatedAt: new Date() } as Partial<
+        typeof organizations.$inferInsert
+      >)
       .where(eq(organizations.id, actor.organizationId))
       .returning(BRANDING_COLUMNS);
     await this.audit.record({

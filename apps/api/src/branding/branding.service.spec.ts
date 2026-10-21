@@ -130,9 +130,9 @@ describe('BrandingService', () => {
     it('cannot remove the logo', async () => {
       await services.branding.update(admin, logoOf(org));
 
-      await expect(
-        services.branding.removeLogo(member),
-      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(services.branding.removeLogo(member)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
       expect((await services.branding.get(org)).logoUrl).toBe(
         logoOf(org).logoUrl,
       );
