@@ -4,14 +4,20 @@ describe("accentTextColor", () => {
   it.each(["#0066ff", "#1a1a2e", "#8b0000"])(
     "puts white text on the dark color %s",
     (color) => {
-      expect(accentTextColor(color)).toEqual({ ok: true, textColor: "#ffffff" });
+      expect(accentTextColor(color)).toEqual({
+        ok: true,
+        textColor: "#ffffff",
+      });
     },
   );
 
   it.each(["#ffd400", "#a0e7e5", "#ff8c00"])(
     "puts black text on the light color %s",
     (color) => {
-      expect(accentTextColor(color)).toEqual({ ok: true, textColor: "#000000" });
+      expect(accentTextColor(color)).toEqual({
+        ok: true,
+        textColor: "#000000",
+      });
     },
   );
 
