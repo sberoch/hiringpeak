@@ -26,7 +26,7 @@ export function SidebarBrand({
               width={600}
               height={600}
               unoptimized
-              className="h-9 w-auto max-w-[96px] shrink-0 object-contain object-left transition-transform duration-200 group-hover:scale-105 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-center"
+              className="h-9 w-auto max-w-[96px] shrink-0 object-contain object-left group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-center"
             />
             {organizationName && (
               <span
@@ -44,7 +44,7 @@ export function SidebarBrand({
               alt="HiringPeak"
               width={36}
               height={36}
-              className="h-9 w-auto transition-transform duration-200 group-hover:scale-105 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-contain"
+              className="h-9 w-auto group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-contain"
             />
             <span className="font-sans text-lg font-bold tracking-tight text-ink group-data-[collapsible=icon]:sr-only">
               HiringPeak
