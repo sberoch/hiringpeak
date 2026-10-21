@@ -114,10 +114,10 @@ _Avoid_: Rejection Stage / Rejection Status (that's the `isRejection` **Pipeline
 Optional free-text elaboration on a **Candidacy**'s **Rejection Reason** (e.g. "wanted 20% above band, declined our counter"). Was historically the *only* rejection field (then named `rejectionReason`); demoted to a note when the structured **Rejection Reason** was introduced. Optional even when the Rejection Reason is required, and governed by the same lifecycle: present only while in a rejection **Pipeline Stage**, cleared on leaving. Internal-only, never surfaced to the **Company**.
 _Avoid_: Rejection Reason (that's now the structured category), Comment (the **Comment** entity is a Candidate-level note, a different concept).
 
-**Candidate**:
+**Candidate** (UI Spanish: "Postulante"):
 A person known to an **Organization** as a potential placement, sourced and curated by recruiters. Belongs to exactly one Organization (`unique(name, organizationId)`). Today, Candidates are not self-registered and have no platform login — they're recruiter-curated records. Self-registration is technically possible to add later but is unusual for executive search.
 A Candidate exists independently of any **Vacancy**: zero, one, or many **Candidacies** can reference the same Candidate. Has structured taxonomy (**Areas**, **Industries**, **Seniorities**), locality (countries / provinces / languages), curation fields (`stars`, `shortDescription`, **Comments**, **Blacklist**), and attached **Candidate Files** (CVs and similar).
-_Avoid_: Applicant, User, Talent, Profile.
+_Avoid_: Applicant (in English), User, Talent, Profile. "Postulante" is the established Spanish UI word and does not imply self-application.
 
 **Stars** (`candidates.stars`):
 A 0–5 numeric rating reflecting recruiter judgement of a **Candidate**. No automated computation; not enforced by the DB; fractional values are allowed. Referenced by the **Search Brief**'s `minStars` as a non-binding preference.
@@ -201,12 +201,34 @@ The two on-demand renderings every **Report** (**Vacancy Report**, **Company Rep
 _Avoid_: Export / Download (names the action, not the artifact — same rule as **Vacancy List Report**).
 
 **Vacancy List Report**:
-An **internal** listing Report of **Vacancies** across the Organization, rendered as PDF or Excel (see **Report Format**) on demand, scoped by whatever **Search**/filter criteria the recruiter has active on the vacancies list screen (status, **Company**, **Vacancy Owner**, **Search Brief** facets, etc.). One block per Vacancy summarising it (title, Company, **Vacancy Status**, **Vacancy Owner**, **Search Brief** facets — **Seniority** / **Area** / **Industry**, salary, candidate count, created date, **Close Date**, days-open) — *not* the per-Vacancy shortlist. Rendered portrait, one stacked multi-line block per Vacancy (not a single-line table row), reusing the existing **Vacancy Report** / **Company Report** PDF visual language (slim header, summary band, card surfaces). The candidate count is the number of **Candidacies** (**Pipeline** size), never labelled "postulants"/"applicants" (candidates are sourced, not self-applied). "Created" is `createdAt` (system audit timestamp); days-open is derived (close-or-today minus created, clamped at 0). Unlike the **Vacancy Report** and **Company Report**, this is **not** a client-facing deliverable: it spans multiple Companies and may surface internal-only data, so it is exempt from the client-facing change-with-care rule and must never be conflated with the two client deliverables. Mirrors the *filtered set*, ignoring the screen's pagination (exports all matches, not the current page).
+An **internal** listing Report of **Vacancies** across the Organization, rendered as PDF or Excel (see **Report Format**) on demand, scoped by whatever **Search**/filter criteria the recruiter has active on the vacancies list screen (status, **Company**, **Vacancy Owner**, **Search Brief** facets, etc.). One block per Vacancy summarising it (title, Company, **Vacancy Status**, **Vacancy Owner**, **Search Brief** facets — **Seniority** / **Area** / **Industry**, salary, candidate count, created date, **Close Date**, days-open) — *not* the per-Vacancy shortlist. Rendered portrait, one stacked multi-line block per Vacancy (not a single-line table row), reusing the existing **Vacancy Report** / **Company Report** PDF visual language (slim header, summary band, card surfaces). The candidate count is the number of **Candidacies** (**Pipeline** size), labelled in UI Spanish as "postulantes" (the Spanish UI word for **Candidate**), never "applicants" in English copy. "Created" is `createdAt` (system audit timestamp); days-open is derived (close-or-today minus created, clamped at 0). Unlike the **Vacancy Report** and **Company Report**, this is **not** a client-facing deliverable: it spans multiple Companies and may surface internal-only data, so it is exempt from the client-facing change-with-care rule and must never be conflated with the two client deliverables. Mirrors the *filtered set*, ignoring the screen's pagination (exports all matches, not the current page).
 _Avoid_: Vacancy Report (that's the single-Vacancy client deliverable), Export / Download (name the artifact, not the action)._
 
 **Onboarding** (module: `onboard`):
 The Internal-User-driven flow that provisions a new tenant. In one transaction: creates an **Organization**, seeds its default **Roles**, and creates the first **End User** (assigned the administrator Role). Run from the **Backoffice app**, protected by `InternalUserGuard`. There is **no self-service tenant signup** today — every new Organization is created by hand by a HiringPeak operator.
 _Avoid_: Signup, Registration (imply self-service), Provisioning (too generic).
+
+**Column Layout**:
+A **User**'s own choice of which columns a list screen shows and in what order, picked from that screen's **Column Catalogue**. Personal: changing it never affects another User. A preference, never a permission: columns the User may not see are skipped, not granted. Does not shape any **Report**.
+_Avoid_: View, Saved View (reserved for a future saved filter set), Table settings.
+
+**Column Catalogue**:
+The fixed set of columns a list screen *can* show, each declaring whether it is shown by default. The identifier column is locked first and the actions column locked last; every other column can be hidden or reordered.
+
+**Dashboard Layout**:
+A **User**'s own choice of which **Widgets** their dashboard shows and in what order, kept separately for each **Widget Area**. Same personal, preference-not-permission rules as **Column Layout**.
+_Avoid_: Dashboard config, Home settings.
+
+**Widget**:
+One self-contained block of the dashboard (e.g. a single stat, the team table, due-soon Tasks), offered from the catalogue of exactly one **Widget Area**. A Widget never moves to another Area.
+_Avoid_: Card, Tile, Panel.
+
+**Widget Area** (`Stat` | `Wide` | `Rail`):
+One of the three regions of the dashboard, each with its own Widget catalogue: **Stat** (the row of single-number stats), **Wide** (the main column) and **Rail** (the side rail). Widgets are reordered only within their Area.
+
+**Branding**:
+An **Organization**'s logo and accent color. The logo replaces HiringPeak's in the **Web app** sidebar and in the PDF renderings of the **Vacancy Report** and **Company Report**; the accent color applies to those PDFs only. A branded PDF carries no HiringPeak mark. Without Branding, the PDFs show the Organization's name as a text wordmark in the default color. The login page and favicon always stay HiringPeak's.
+_Avoid_: Theme (implies restyling the app), White-label (implies custom domains), Logo (only one part of it).
 
 ## Relationships
 
