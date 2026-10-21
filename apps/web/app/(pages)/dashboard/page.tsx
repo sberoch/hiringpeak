@@ -1,15 +1,10 @@
 import { Metadata } from "next";
-import {
-  ExternalLink,
-  FileSpreadsheet,
-  TrendingUp,
-} from "lucide-react";
+import { ExternalLink, FileSpreadsheet, TrendingUp } from "lucide-react";
 import { LatestVacancies } from "@/components/vacancies/latest-vacancies";
 import { LatestCandidates } from "@/components/candidates/latest-candidates";
-import { CommercialSection } from "@/components/dashboard/commercial-section";
 import { DashboardStatCards } from "@/components/dashboard/dashboard-stat-cards";
 import { DueSoonWidget } from "@/components/dashboard/due-soon-widget";
-import { RecruiterStatsTable } from "@/components/dashboard/recruiter-stats";
+import { TeamPerformanceTable } from "@/components/dashboard/team-performance";
 import { getMePermissions } from "@/lib/api/auth";
 import { getDashboardSummary } from "@/lib/api/dashboard";
 import { getAllVacancyStatuses } from "@/lib/api/vacancy-status";
@@ -34,14 +29,14 @@ export default async function Dashboard() {
     (status) =>
       status.name.toLowerCase().includes("abierto") ||
       status.name.toLowerCase().includes("abierta") ||
-      status.name.toLowerCase().includes("open")
+      status.name.toLowerCase().includes("open"),
   );
   const closedStatus = vacancyStatuses.items.find(
     (status) =>
       status.name.toLowerCase().includes("cerrado") ||
       status.name.toLowerCase().includes("cubierta") ||
       status.name.toLowerCase().includes("closed") ||
-      status.name.toLowerCase().includes("finalizado")
+      status.name.toLowerCase().includes("finalizado"),
   );
 
   const currentHour = new Date().getHours();
@@ -53,9 +48,9 @@ export default async function Dashboard() {
         : "Buenas noches";
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {/* Hero header */}
-      <div className="relative overflow-hidden rounded-2xl border border-brand-border bg-surface p-6 md:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-brand-border bg-surface p-6">
         {/* Subtle background orbs */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-electric/[0.04] blur-3xl" />
         <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-teal/[0.04] blur-3xl" />
@@ -98,29 +93,26 @@ export default async function Dashboard() {
       {/* Stat cards */}
       <DashboardStatCards data={dashboardData} />
 
-      {/* Due-soon / overdue tasks for the current user */}
-      <DueSoonWidget />
+      {/* Analytics on the left; the user's own tasks and recent arrivals on a sticky rail */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <TeamPerformanceTable
+            currentUserId={data.id}
+            isManager={permissions?.roleName !== "Reclutador"}
+            commercialAccess={hasCommercialAccess(
+              permissions?.permissionCodes ?? [],
+            )}
+          />
+          <LatestVacancies
+            openStatusId={String(openStatus?.id || "abierta")}
+            closedStatusId={String(closedStatus?.id || "cubierta")}
+          />
+        </div>
 
-      {/* Commercial summary, only for users with commercial access */}
-      {hasCommercialAccess(permissions?.permissionCodes ?? []) && (
-        <CommercialSection />
-      )}
-
-      {/* Recruiter performance */}
-      <RecruiterStatsTable
-        currentUserId={data.id}
-        isManager={
-          permissions?.roleName !== "Reclutador"
-        }
-      />
-
-      {/* Main content: vacancies + candidates side by side */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <LatestVacancies
-          openStatusId={String(openStatus?.id || "abierta")}
-          closedStatusId={String(closedStatus?.id || "cubierta")}
-        />
-        <LatestCandidates />
+        <aside className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-6 xl:self-start">
+          <DueSoonWidget />
+          <LatestCandidates />
+        </aside>
       </div>
     </div>
   );

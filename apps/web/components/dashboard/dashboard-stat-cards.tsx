@@ -70,10 +70,10 @@ const accentStyles = {
   },
 };
 
-export type StatAccent = keyof typeof accentStyles;
+type StatAccent = keyof typeof accentStyles;
 
 /** "+N este mes" line under a stat value. */
-export function MonthlyVariation({ variation }: { variation: number }) {
+function MonthlyVariation({ variation }: { variation: number }) {
   return (
     <div className="flex items-center gap-1 text-sm font-medium text-slate-brand">
       <span
@@ -100,7 +100,7 @@ interface DashboardStatCardProps {
   footer?: ReactNode;
 }
 
-export function DashboardStatCard({
+function DashboardStatCard({
   label,
   icon: Icon,
   accent,

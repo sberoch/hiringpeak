@@ -214,9 +214,7 @@ export function getVacancyFilterTags(
     );
   }
   if (filters?.areas) {
-    filters.areas.forEach((a) =>
-      tags.push({ label: a.name, type: "area" }),
-    );
+    filters.areas.forEach((a) => tags.push({ label: a.name, type: "area" }));
   }
   if (filters?.industries) {
     filters.industries.forEach((i) =>
@@ -261,4 +259,14 @@ export function mergeCandidatesWithVacancies(
 /** Amounts carry no currency; rendered like salaries: "$ 18.500.000". */
 export function formatMoney(amount: number): string {
   return `$ ${amount.toLocaleString("es-AR")}`;
+}
+
+const compactMoneyFormat = new Intl.NumberFormat("es-AR", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+/** Short form for tight columns: "$ 50,5 M", "$ 185 k". */
+export function formatCompactMoney(amount: number): string {
+  return `$ ${compactMoneyFormat.format(amount)}`;
 }
