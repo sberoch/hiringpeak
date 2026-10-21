@@ -3,6 +3,7 @@ import { AuditLogService } from '../../../audit-log/audit-log.service';
 import { AuditService } from '../../../audit-log/audit.service';
 import { AuthzService } from '../../../auth/authz/authz.service';
 import { CompanyService } from '../../../company/company.service';
+import { DashboardService } from '../../../dashboard/dashboard.service';
 import { ContactService } from '../../../contact/contact.service';
 import { ContactSourceService } from '../../../contactsource/contactsource.service';
 import { InteractionService } from '../../../interaction/interaction.service';
@@ -25,6 +26,7 @@ const SERVICES = [
   AuthzService,
   CompanyService,
   ContactService,
+  DashboardService,
   ContactSourceService,
   InteractionService,
   LostReasonService,
@@ -51,6 +53,7 @@ export async function testServices(db: DrizzleDatabase) {
     companies: module.get(CompanyService),
     contacts: module.get(ContactService),
     contactSources: module.get(ContactSourceService),
+    dashboard: module.get(DashboardService),
     interactions: module.get(InteractionService),
     lostReasons: module.get(LostReasonService),
     notifications: module.get(NotificationService),
