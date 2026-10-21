@@ -156,7 +156,10 @@ export class ContactService {
         opportunities,
         eq(opportunities.id, opportunityContacts.opportunityId),
       )
-      .innerJoin(opportunityStages, eq(opportunityStages.id, opportunities.stageId))
+      .innerJoin(
+        opportunityStages,
+        eq(opportunityStages.id, opportunities.stageId),
+      )
       .where(
         and(
           inArray(opportunityContacts.contactId, contactIds),
