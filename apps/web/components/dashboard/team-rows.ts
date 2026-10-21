@@ -1,3 +1,4 @@
+import { PermissionCode } from "@workspace/shared/enums";
 import type {
   CommercialOwnerStats,
   RecruiterStats,
@@ -13,12 +14,13 @@ export interface TeamRow {
 
 /**
  * A user can be both a recruiter and an Opportunity Owner, so the two stat
- * lists merge into one row per user. Non-managers only see their own row.
+ * lists merge into one row per user. Users who can read every Task
+ * (`TASK_READ_ALL`) see the whole team; everyone else only their own row.
  */
 export function buildTeamRows(
   recruiters: RecruiterStats[],
   owners: CommercialOwnerStats[],
-  viewer: { userId: number; isManager: boolean },
+  viewer: { userId: number; permissionCodes: readonly string[] },
 ): TeamRow[] {
   const rows = new Map<number, TeamRow>();
   for (const r of recruiters)
@@ -28,7 +30,12 @@ export function buildTeamRows(
     rows.set(o.ownerId, { ...row, commercial: o });
   }
   const all = [...rows.values()];
-  return viewer.isManager
+  return seesWholeTeam(viewer.permissionCodes)
     ? all
     : all.filter((row) => row.userId === viewer.userId);
+}
+
+/** Whether «Rendimiento del equipo» shows the whole team or just the viewer. */
+export function seesWholeTeam(permissionCodes: readonly string[]): boolean {
+  return permissionCodes.includes(PermissionCode.TASK_READ_ALL);
 }
