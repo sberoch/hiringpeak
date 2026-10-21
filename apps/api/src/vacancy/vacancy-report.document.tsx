@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import {
   Document,
   Image,
@@ -10,6 +8,7 @@ import {
   Text,
   View,
 } from '@react-pdf/renderer';
+import { ReportBrandMark } from '../common/reports/report-brand-mark';
 import { stringToColor } from '@workspace/shared/utils';
 import type {
   VacancyReportCandidateRow,
@@ -24,10 +23,6 @@ import {
 interface VacancyReportDocumentProps {
   report: VacancyReportDocumentData;
 }
-
-const LOGO_BUFFER = readFileSync(
-  join(__dirname, '../common/assets/logo.png'),
-);
 
 const COLORS = {
   bg: '#fafbfc',
@@ -74,21 +69,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: COLORS.surface,
     borderBottom: `1 solid ${COLORS.border}`,
-  },
-  pageHeaderBrand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pageHeaderLogo: {
-    width: 22,
-    height: 22,
-    marginRight: 8,
-  },
-  pageHeaderTitle: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: COLORS.ink,
-    letterSpacing: 0.2,
   },
   pageHeaderMeta: {
     fontSize: 8,
@@ -394,10 +374,7 @@ export function VacancyReportDocument({
       <Page size="A4" style={styles.page} wrap>
         {/* Repeating slim header */}
         <View style={styles.pageHeader} fixed>
-          <View style={styles.pageHeaderBrand}>
-            <Image src={LOGO_BUFFER} style={styles.pageHeaderLogo} />
-            <Text style={styles.pageHeaderTitle}>HiringPeak</Text>
-          </View>
+          <ReportBrandMark brand={report.brand} />
           <Text style={styles.pageHeaderMeta}>
             Reporte · {generationDateLabel}
           </Text>
