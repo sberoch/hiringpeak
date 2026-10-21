@@ -40,8 +40,10 @@ const addable = (
 describe("New Widgets", () => {
   const commercial = [PermissionCode.CRM_READ];
 
-  it("offers every new stat, hidden, to a User with commercial access", () => {
-    expect(addable(STAT_WIDGETS, commercial)).toEqual([
+  it("offers every new stat, hidden, to a User with commercial access and TASK_READ", () => {
+    expect(
+      addable(STAT_WIDGETS, [...commercial, PermissionCode.TASK_READ]),
+    ).toEqual([
       "myActiveVacancies",
       "myOverdueTasks",
       "candidatesAddedLast30Days",
@@ -51,7 +53,7 @@ describe("New Widgets", () => {
   });
 
   it("never offers the commercial stats without commercial access", () => {
-    expect(addable(STAT_WIDGETS, [])).toEqual([
+    expect(addable(STAT_WIDGETS, [PermissionCode.TASK_READ])).toEqual([
       "myActiveVacancies",
       "myOverdueTasks",
       "candidatesAddedLast30Days",
@@ -63,5 +65,19 @@ describe("New Widgets", () => {
       commercial: addable(RAIL_WIDGETS, commercial),
       without: addable(RAIL_WIDGETS, []),
     }).toEqual({ commercial: ["noNextStepOpportunities"], without: [] });
+  });
+
+  it("never offers My overdue Tasks without TASK_READ, which its count needs", () => {
+    expect({
+      withTaskRead: addable(STAT_WIDGETS, [PermissionCode.TASK_READ]),
+      without: addable(STAT_WIDGETS, []),
+    }).toEqual({
+      withTaskRead: [
+        "myActiveVacancies",
+        "myOverdueTasks",
+        "candidatesAddedLast30Days",
+      ],
+      without: ["myActiveVacancies", "candidatesAddedLast30Days"],
+    });
   });
 });

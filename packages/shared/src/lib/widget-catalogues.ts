@@ -23,7 +23,11 @@ export const STAT_WIDGETS = [
   { key: "activeCandidates", shownByDefault: true },
   { key: "avgDaysOpen", shownByDefault: true },
   { key: "myActiveVacancies", shownByDefault: false },
-  { key: "myOverdueTasks", shownByDefault: false },
+  {
+    key: "myOverdueTasks",
+    shownByDefault: false,
+    requires: [PermissionCode.TASK_READ],
+  },
   { key: "candidatesAddedLast30Days", shownByDefault: false },
   { key: "openOpportunities", shownByDefault: false, requires: COMMERCIAL },
   { key: "pipelineFee", shownByDefault: false, requires: COMMERCIAL },
