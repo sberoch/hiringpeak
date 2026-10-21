@@ -300,3 +300,61 @@ describe('ContactService.findAll — last Interaction', () => {
     expect(page.items[0].lastInteraction).toBeNull();
   });
 });
+
+describe('ContactService.findAll — Column Catalogue fields', () => {
+  const listAll = async (order?: string) =>
+    (
+      await contacts.findAll({
+        organizationId: org,
+        viewer: { userId: lucia, readsAllTasks: true },
+        order,
+      })
+    ).items;
+
+  it('returns Cargo, email, phone, LinkedIn and the created date', async () => {
+    await f.contact(org, {
+      name: 'Paula',
+      role: 'CFO',
+      email: 'paula@acme.com',
+      phone: '+54 11 5555-0000',
+      linkedin: 'linkedin.com/in/paula',
+      createdAt: new Date('2026-03-04T12:00:00Z'),
+    });
+
+    expect(await listAll()).toEqual([
+      expect.objectContaining({
+        role: 'CFO',
+        email: 'paula@acme.com',
+        phone: '+54 11 5555-0000',
+        linkedin: 'linkedin.com/in/paula',
+        createdAt: '2026-03-04T12:00:00.000Z',
+      }),
+    ]);
+  });
+
+  it('counts only the open Opportunities each Contact is involved in', async () => {
+    const stages = await f.stages(org);
+    const acme = await f.company(org, { name: 'Acme' });
+    const paula = await f.contact(org, { name: 'Paula', companyId: acme });
+    await f.contact(org, { name: 'Zoe', companyId: acme });
+    const opportunityIn = async (stageId: number) => {
+      const id = await f.opportunity(org, {
+        companyId: acme,
+        ownerId: lucia,
+        stageId,
+      });
+      await f.opportunityContact(id, paula);
+    };
+    await opportunityIn(stages.open);
+    await opportunityIn(stages.proposal);
+    await opportunityIn(stages.won);
+    await opportunityIn(stages.lost);
+
+    expect(
+      (await listAll()).map((c) => [c.name, c.openOpportunityCount]),
+    ).toEqual([
+      ['Paula', 2],
+      ['Zoe', 0],
+    ]);
+  });
+});
