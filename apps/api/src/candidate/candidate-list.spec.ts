@@ -37,4 +37,38 @@ describe('Listing Candidates', () => {
       createdAt: new Date('2026-03-04T10:00:00Z'),
     });
   });
+
+  it('sorts by email', async () => {
+    const { candidates, f, org } = await setup();
+    await f.candidate(org, 'Bruno', { email: 'bruno@example.com' });
+    await f.candidate(org, 'Carla', { email: 'carla@example.com' });
+    await f.candidate(org, 'Ana', { email: 'ana@example.com' });
+
+    const { items } = await candidates.findAll({
+      organizationId: org,
+      order: 'email:desc',
+    });
+
+    expect(items.map((c) => c.name)).toEqual(['Carla', 'Bruno', 'Ana']);
+  });
+
+  it('sorts by created date', async () => {
+    const { candidates, f, org } = await setup();
+    await f.candidate(org, 'Bruno', {
+      createdAt: new Date('2026-02-01T00:00:00Z'),
+    });
+    await f.candidate(org, 'Carla', {
+      createdAt: new Date('2026-03-01T00:00:00Z'),
+    });
+    await f.candidate(org, 'Ana', {
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    });
+
+    const { items } = await candidates.findAll({
+      organizationId: org,
+      order: 'createdAt:asc',
+    });
+
+    expect(items.map((c) => c.name)).toEqual(['Ana', 'Bruno', 'Carla']);
+  });
 });
