@@ -53,7 +53,8 @@ export function organizationSettingsCards(
             href: "/organization-settings/branding",
             icon: Palette,
             title: "Branding",
-            description: "Logo de tu organización en la aplicación",
+            description:
+              "Logo en la aplicación y en los PDF para clientes, y color de acento de esos PDF",
           },
         ]
       : []),
