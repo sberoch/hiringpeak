@@ -31,3 +31,24 @@ export async function getCommercialSummary() {
 
   return data;
 }
+
+export const MY_ACTIVE_VACANCIES_API_KEY = "my-active-vacancies";
+
+export async function getMyActiveVacancyCount() {
+  const { data } = await api.get<{ count: number }>(
+    "/dashboard/my-active-vacancies",
+  );
+
+  return data;
+}
+
+export const CANDIDATES_ADDED_API_KEY = "candidates-added";
+
+/** Candidates added in the last 30 days. */
+export async function getCandidatesAddedCount() {
+  const { data } = await api.get<{ count: number }>(
+    "/dashboard/candidates-added",
+  );
+
+  return data;
+}

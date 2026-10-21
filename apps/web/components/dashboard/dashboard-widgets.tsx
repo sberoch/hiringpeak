@@ -14,8 +14,14 @@ import {
   ActiveCandidatesStat,
   ActiveVacanciesStat,
   AvgDaysOpenStat,
+  CandidatesAddedStat,
+  MyActiveVacanciesStat,
+  MyOverdueTasksStat,
+  OpenOpportunitiesStat,
+  PipelineFeeStat,
 } from "./dashboard-stat-cards";
 import { DueSoonWidget } from "./due-soon-widget";
+import { NoNextStepWidget } from "./no-next-step-widget";
 import { TeamPerformanceTable } from "./team-performance";
 
 /**
@@ -45,6 +51,26 @@ export const STAT_WIDGET_DEFINITIONS: Record<StatWidgetKey, WidgetDefinition> =
       label: "Prom. días de gestión",
       Component: AvgDaysOpenStat,
     },
+    myActiveVacancies: {
+      label: "Mis búsquedas activas",
+      Component: MyActiveVacanciesStat,
+    },
+    myOverdueTasks: {
+      label: "Mis tareas vencidas",
+      Component: MyOverdueTasksStat,
+    },
+    candidatesAddedLast30Days: {
+      label: "Candidatos agregados (últ. 30 días)",
+      Component: CandidatesAddedStat,
+    },
+    openOpportunities: {
+      label: "Oportunidades abiertas",
+      Component: OpenOpportunitiesStat,
+    },
+    pipelineFee: {
+      label: "Fee estimado en pipeline",
+      Component: PipelineFeeStat,
+    },
   };
 
 export const WIDE_WIDGET_DEFINITIONS: Record<WideWidgetKey, WidgetDefinition> =
@@ -62,5 +88,9 @@ export const RAIL_WIDGET_DEFINITIONS: Record<RailWidgetKey, WidgetDefinition> =
     latestCandidates: {
       label: "Últimos candidatos",
       Component: LatestCandidates,
+    },
+    noNextStepOpportunities: {
+      label: "Oportunidades sin próximo paso",
+      Component: NoNextStepWidget,
     },
   };
