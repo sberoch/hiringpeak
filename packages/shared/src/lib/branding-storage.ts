@@ -35,7 +35,7 @@ export function isBrandingStorageUrl(
   }
   const match = DOWNLOAD_PATH.exec(parsed.pathname);
   if (!match) return false;
-  const [, urlBucket, encodedPath] = match;
+  const [, urlBucket = "", encodedPath = ""] = match;
   if (bucket !== undefined && decodeSafely(urlBucket) !== bucket) return false;
   const objectPath = decodeSafely(encodedPath);
   if (objectPath === null || /[%\\]/.test(objectPath)) return false;
