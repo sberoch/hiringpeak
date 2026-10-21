@@ -143,6 +143,19 @@ export class TaskController {
   }
 
   @ApiOkResponse()
+  @Get('overdue-count')
+  @Permissions(PermissionCode.TASK_READ)
+  async overdueCount(
+    @OrganizationId() organizationId: number,
+    @CurrentUser() user: { id: string | number },
+  ) {
+    return this.taskService.overdueCountFor(
+      organizationId,
+      await this.viewer(user),
+    );
+  }
+
+  @ApiOkResponse()
   @Get('due-soon')
   @Permissions(PermissionCode.TASK_READ)
   async dueSoon(

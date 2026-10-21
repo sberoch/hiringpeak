@@ -4,7 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, count, desc, eq, isNotNull, lte, SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  isNotNull,
+  lt,
+  lte,
+  SQL,
+} from 'drizzle-orm';
 import {
   excludePassword,
   tasks,
@@ -126,6 +136,27 @@ export class TaskService {
           eq(tasks.organizationId, organizationId),
           eq(tasks.assignedTo, owner.userId),
           eq(tasks.completed, false),
+          ...attachmentClassFilters(owner),
+        ),
+      );
+    return { count: c };
+  }
+
+  /** The User's own open Tasks whose Due Date is before today (local day). */
+  async overdueCountFor(
+    organizationId: number,
+    owner: TaskViewer,
+    now: Date = new Date(),
+  ) {
+    const [{ count: c }] = await this.db
+      .select({ count: count(tasks.id) })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.organizationId, organizationId),
+          eq(tasks.assignedTo, owner.userId),
+          eq(tasks.completed, false),
+          lt(tasks.dueDate, formatLocalDay(now)),
           ...attachmentClassFilters(owner),
         ),
       );
