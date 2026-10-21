@@ -2,8 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 /**
- * The sidebar's top brand: the Organization's logo when its Branding has one,
- * otherwise HiringPeak's logo and wordmark.
+ * The sidebar's top brand: the Organization's logo and name when its Branding
+ * has a logo, otherwise HiringPeak's logo and wordmark.
  */
 export function SidebarBrand({
   logoUrl,
@@ -19,14 +19,24 @@ export function SidebarBrand({
         className="group flex min-w-0 items-center gap-2.5 group-data-[collapsible=icon]:gap-0"
       >
         {logoUrl ? (
-          <Image
-            src={logoUrl}
-            alt={organizationName ?? "Logo de la organización"}
-            width={600}
-            height={600}
-            unoptimized
-            className="h-10 w-auto max-w-[180px] object-contain object-left transition-transform duration-200 group-hover:scale-105 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-center"
-          />
+          <>
+            <Image
+              src={logoUrl}
+              alt={organizationName ?? "Logo de la organización"}
+              width={600}
+              height={600}
+              unoptimized
+              className="h-9 w-auto max-w-[96px] shrink-0 object-contain object-left transition-transform duration-200 group-hover:scale-105 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-center"
+            />
+            {organizationName && (
+              <span
+                className="truncate font-sans text-lg font-bold tracking-tight text-ink group-data-[collapsible=icon]:sr-only"
+                title={organizationName}
+              >
+                {organizationName}
+              </span>
+            )}
+          </>
         ) : (
           <>
             <Image

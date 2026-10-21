@@ -23,6 +23,10 @@ describe("sidebar branding", () => {
       );
     });
 
+    it("shows the Organization's name next to its logo", () => {
+      expect(screen.getByText("Acme Talent")).toBeInTheDocument();
+    });
+
     it("leaves HiringPeak only as a small mark at the bottom", () => {
       expect(
         screen.getAllByRole("img", { name: /HiringPeak/ }).map((img) =>
