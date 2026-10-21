@@ -133,6 +133,9 @@ export function fixtures(db: DrizzleDatabase) {
         title?: string;
         opportunityId?: number | null;
         vacancyContactId?: number | null;
+        statusId?: number | null;
+        createdAt?: Date;
+        updatedAt?: Date;
       },
     ) =>
       insertId(vacancies, {
@@ -143,8 +146,16 @@ export function fixtures(db: DrizzleDatabase) {
         ...fields,
       }),
 
-    vacancyStatus: (organizationId: number, name = 'Abierta') =>
-      insertId(vacancyStatuses, { organizationId, name }),
+    vacancyStatus: (
+      organizationId: number,
+      name = 'Abierta',
+      fields: { isFinal?: boolean } = {},
+    ) =>
+      insertId(vacancyStatuses, {
+        organizationId,
+        name,
+        isFinal: fields.isFinal ?? false,
+      }),
 
     candidate: (organizationId: number, name = `Candidate ${next()}`) =>
       insertId(candidates, {

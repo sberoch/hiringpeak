@@ -14,15 +14,17 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @ApiOkResponse()
+  @UseGuards(OrganizationGuard)
   @Get()
-  async getDashboard() {
-    return this.dashboardService.getDashboard();
+  async getDashboard(@OrganizationId() organizationId: number) {
+    return this.dashboardService.getDashboard(organizationId);
   }
 
   @ApiOkResponse()
+  @UseGuards(OrganizationGuard)
   @Get('recruiter-stats')
-  async getRecruiterStats() {
-    return this.dashboardService.getRecruiterStats();
+  async getRecruiterStats(@OrganizationId() organizationId: number) {
+    return this.dashboardService.getRecruiterStats(organizationId);
   }
 
   @ApiOkResponse()
