@@ -1,4 +1,8 @@
 import { type Company } from '@workspace/shared/types/company';
+import {
+  buildReportBrand,
+  type ReportBranding,
+} from '../common/reports/report-brand';
 import type { VacancyApiResponse } from '../vacancy/vacancy.service';
 import {
   COMPANY_REPORT_DESCRIPTION_TRUNCATE_LENGTH,
@@ -48,6 +52,7 @@ export function buildCompanyReportData(params: {
   company: Company;
   generatedAt: Date;
   organizationName: string;
+  branding: ReportBranding;
   vacancies: VacancyApiResponse[];
 }): CompanyReportDocumentData {
   const vacancyRows = sortVacancyRows(
@@ -60,6 +65,7 @@ export function buildCompanyReportData(params: {
   const rejectionBreakdown = buildRejectionBreakdown(params.vacancies);
 
   return {
+    brand: buildReportBrand(params.organizationName, params.branding),
     organizationName: params.organizationName,
     companyName: params.company.name,
     companyDescription: params.company.description?.trim() || undefined,
