@@ -57,8 +57,16 @@ describe('OpportunityService.findAll — catalogue fields', () => {
   it('counts the Vacancies linked to each Opportunity', async () => {
     const won = await opportunity({ stageId: stages.won });
     await opportunity({});
-    await f.vacancy(org, { companyId: acme, createdBy: owner, opportunityId: won });
-    await f.vacancy(org, { companyId: acme, createdBy: owner, opportunityId: won });
+    await f.vacancy(org, {
+      companyId: acme,
+      createdBy: owner,
+      opportunityId: won,
+    });
+    await f.vacancy(org, {
+      companyId: acme,
+      createdBy: owner,
+      opportunityId: won,
+    });
     await f.vacancy(org, { companyId: acme, createdBy: owner });
 
     expect((await listed(won)).vacancyCount).toBe(2);
