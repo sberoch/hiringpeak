@@ -1,3 +1,4 @@
+import { PermissionCode } from '@workspace/shared/enums';
 import { createTestDatabase } from '../common/database/testing/test-database';
 import { fixtures } from '../common/database/testing/fixtures';
 import { testServices } from '../common/database/testing/test-services';
@@ -116,6 +117,12 @@ describe('DashboardService.countCandidatesAddedLast30Days', () => {
   });
 });
 
+/** A viewer who can read every Task, so sees the whole team. */
+const wholeTeam = (userId: number) => ({
+  userId,
+  codes: [PermissionCode.TASK_READ, PermissionCode.TASK_READ_ALL],
+});
+
 describe('DashboardService.getRecruiterStats', () => {
   it('counts every non-final Vacancy as active, whatever its status is called', async () => {
     const { f, dashboard } = await setup();
@@ -129,7 +136,7 @@ describe('DashboardService.getRecruiterStats', () => {
     const final = await f.vacancyStatus(org, 'Terminada', { isFinal: true });
     await f.vacancy(org, { companyId, createdBy: recruiter, statusId: final });
 
-    const [row] = await dashboard.getRecruiterStats(org);
+    const [row] = await dashboard.getRecruiterStats(org, wholeTeam(recruiter));
 
     expect(row.activeVacancies).toBe(2);
   });
@@ -144,7 +151,7 @@ describe('DashboardService.getRecruiterStats', () => {
       await f.vacancy(org, { companyId, createdBy: recruiter, statusId });
     }
 
-    const [row] = await dashboard.getRecruiterStats(org);
+    const [row] = await dashboard.getRecruiterStats(org, wholeTeam(recruiter));
 
     expect(row.fillRate).toBe(67);
   });
@@ -157,8 +164,57 @@ describe('DashboardService.getRecruiterStats', () => {
     });
     await organizationWithStatuses(f, { open: 'Abierta', final: 'Cubierta' });
 
-    const rows = await dashboard.getRecruiterStats(mine);
+    const rows = await dashboard.getRecruiterStats(mine, wholeTeam(0));
 
     expect(rows).toHaveLength(1);
+  });
+
+  describe('who sees which rows', () => {
+    async function twoRecruiters() {
+      const { f, dashboard } = await setup();
+      const org = await f.organization();
+      const ana = await f.user(org, [], 'Ana');
+      const beto = await f.user(org, [], 'Beto');
+      const companyId = await f.company(org);
+      const statusId = await f.vacancyStatus(org, 'Abierta');
+      for (const recruiter of [ana, beto]) {
+        await f.vacancy(org, { companyId, createdBy: recruiter, statusId });
+      }
+      return { dashboard, org, ana, beto };
+    }
+
+    it('shows only their own row to a recruiter without TASK_READ_ALL', async () => {
+      const { dashboard, org, ana } = await twoRecruiters();
+
+      const rows = await dashboard.getRecruiterStats(org, {
+        userId: ana,
+        codes: [PermissionCode.TASK_READ],
+      });
+
+      expect(rows.map((row) => row.name)).toEqual(['Ana']);
+    });
+
+    it('shows the whole team to a viewer with TASK_READ_ALL', async () => {
+      const { dashboard, org, ana } = await twoRecruiters();
+
+      const rows = await dashboard.getRecruiterStats(org, wholeTeam(ana));
+
+      expect(rows.map((row) => row.name).sort()).toEqual(['Ana', 'Beto']);
+    });
+  });
+
+  it('counts only Vacancies created in the year of `now`', async () => {
+    const { f, dashboard } = await setup();
+    const org = await f.organization();
+    const recruiter = await f.user(org, [], 'Ana');
+    const companyId = await f.company(org);
+    const statusId = await f.vacancyStatus(org, 'Abierta');
+    await f.vacancy(org, { companyId, createdBy: recruiter, statusId });
+
+    const nextYear = new Date(new Date().getFullYear() + 1, 5, 1);
+
+    expect(
+      await dashboard.getRecruiterStats(org, wholeTeam(recruiter), nextYear),
+    ).toEqual([]);
   });
 });
