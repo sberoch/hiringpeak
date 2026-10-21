@@ -32,6 +32,8 @@ export function buildVacancyReportWorkbook(params: {
   const data = buildVacancyReportData({
     generatedAt,
     organizationName,
+    // The workbook has no header mark, so the brand is never read.
+    branding: { logoUrl: null },
     vacancy,
   });
 

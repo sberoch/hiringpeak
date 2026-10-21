@@ -7,6 +7,9 @@ import {
   isNoProfileCandidateStatus,
 } from './vacancy-report.utils';
 
+const ACME_LOGO_URL =
+  'https://firebasestorage.googleapis.com/v0/b/demo/o/organizations%2F7%2Fbranding%2Flogo.png?alt=media';
+
 describe('vacancy-report.utils', () => {
   it('keeps only exact status names for contratado and no es el perfil', () => {
     expect(isHiredCandidateStatus('Contratado')).toBe(true);
@@ -19,6 +22,7 @@ describe('vacancy-report.utils', () => {
     const report = buildVacancyReportData({
       generatedAt: new Date('2026-04-08T10:00:00.000Z'),
       organizationName: 'Organización Demo',
+      branding: { logoUrl: null },
       vacancy: createVacancy({
         candidates: [
           {
@@ -73,6 +77,42 @@ describe('vacancy-report.utils', () => {
       { name: 'Contratado', count: 1, sort: 6 },
     ]);
     expect(report.metadata.compensation).toBeUndefined();
+  });
+
+  it("puts the Organization's logo in the header when it has one", () => {
+    const report = buildVacancyReportData({
+      generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      organizationName: 'Acme Talent',
+      branding: { logoUrl: ACME_LOGO_URL },
+      vacancy: createVacancy({ candidates: [] }),
+    });
+
+    expect(report.brand).toEqual({ kind: 'logo', logoUrl: ACME_LOGO_URL });
+  });
+
+  it("falls back to the Organization's name as a wordmark without a logo", () => {
+    const report = buildVacancyReportData({
+      generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      organizationName: 'Acme Talent',
+      branding: { logoUrl: null },
+      vacancy: createVacancy({ candidates: [] }),
+    });
+
+    expect(report.brand).toEqual({ kind: 'wordmark', text: 'Acme Talent' });
+  });
+
+  it.each([
+    ['with a logo', ACME_LOGO_URL],
+    ['without a logo', null],
+  ])('never carries a HiringPeak mark %s', (_variant, logoUrl) => {
+    const report = buildVacancyReportData({
+      generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      organizationName: 'Acme Talent',
+      branding: { logoUrl },
+      vacancy: createVacancy({ candidates: [] }),
+    });
+
+    expect(JSON.stringify(report)).not.toMatch(/hiring\s*peak/i);
   });
 
   it('builds a deterministic filename slug', () => {
