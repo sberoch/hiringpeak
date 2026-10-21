@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ACCENT_COLOR_PATTERN } from "../lib/accent-color";
 
 /** Setting the logo: the downscaled copy and the original it came from. */
 export const UpdateBrandingLogoSchema = z.object({
@@ -7,3 +8,14 @@ export const UpdateBrandingLogoSchema = z.object({
 });
 
 export type UpdateBrandingLogoDto = z.infer<typeof UpdateBrandingLogoSchema>;
+
+/** Setting the accent color for the client-facing PDFs. */
+export const UpdateBrandingAccentSchema = z.object({
+  accentColor: z
+    .string()
+    .regex(ACCENT_COLOR_PATTERN, "El color debe tener el formato #RRGGBB"),
+});
+
+export type UpdateBrandingAccentDto = z.infer<
+  typeof UpdateBrandingAccentSchema
+>;
