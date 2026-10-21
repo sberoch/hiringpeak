@@ -87,12 +87,17 @@ export function fixtures(db: DrizzleDatabase) {
 
     company: (
       organizationId: number,
-      fields: { name?: string; accountOwnerId?: number | null } = {},
+      fields: {
+        name?: string;
+        accountOwnerId?: number | null;
+        createdAt?: Date;
+      } = {},
     ) =>
       insertId(companies, {
         organizationId,
-        name: fields.name ?? `Company ${next()}`,
         description: '',
+        ...fields,
+        name: fields.name ?? `Company ${next()}`,
         accountOwnerId: fields.accountOwnerId ?? null,
       }),
 
@@ -143,6 +148,7 @@ export function fixtures(db: DrizzleDatabase) {
         ownerId: number;
         stageId: number;
         title?: string;
+        estimatedFee?: string | null;
       },
     ) =>
       insertId(opportunities, {

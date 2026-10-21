@@ -1,3 +1,4 @@
+import { COMMERCIAL_ACCESS_CODES } from "./commercial-access";
 import type { LayoutCatalogueEntry } from "./layout";
 
 /**
@@ -41,3 +42,31 @@ export const CONTACT_COLUMNS = [
 ] as const satisfies readonly LayoutCatalogueEntry[];
 
 export type ContactColumnKey = (typeof CONTACT_COLUMNS)[number]["key"];
+
+export const COMPANY_COLUMNS = [
+  { key: "name", shownByDefault: true, lock: "first" },
+  { key: "status", shownByDefault: true },
+  { key: "accountOwner", shownByDefault: true },
+  { key: "contacts", shownByDefault: true },
+  { key: "activeVacancies", shownByDefault: true },
+  {
+    key: "openOpportunities",
+    shownByDefault: true,
+    requires: COMMERCIAL_ACCESS_CODES,
+  },
+  {
+    key: "lastInteraction",
+    shownByDefault: true,
+    requires: COMMERCIAL_ACCESS_CODES,
+  },
+  { key: "totalVacancies", shownByDefault: false },
+  {
+    key: "openOpportunityFee",
+    shownByDefault: false,
+    requires: COMMERCIAL_ACCESS_CODES,
+  },
+  { key: "createdAt", shownByDefault: false },
+  { key: "actions", shownByDefault: true, lock: "last" },
+] as const satisfies readonly LayoutCatalogueEntry[];
+
+export type CompanyColumnKey = (typeof COMPANY_COLUMNS)[number]["key"];
