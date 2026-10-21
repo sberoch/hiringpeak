@@ -26,3 +26,4 @@ export * from "./notification.dto";
 export * from "./opportunity.dto";
 export * from "./commercial-settings.dto";
 export * from "./interaction.dto";
+export * from "./user-layout.dto";
