@@ -3,6 +3,7 @@ import { AuditLogService } from '../../../audit-log/audit-log.service';
 import { AuditService } from '../../../audit-log/audit.service';
 import { AuthzService } from '../../../auth/authz/authz.service';
 import { BrandingService } from '../../../branding/branding.service';
+import { CandidateService } from '../../../candidate/candidate.service';
 import { CompanyService } from '../../../company/company.service';
 import { DashboardService } from '../../../dashboard/dashboard.service';
 import { ContactService } from '../../../contact/contact.service';
@@ -27,6 +28,7 @@ const SERVICES = [
   AuditService,
   AuthzService,
   BrandingService,
+  CandidateService,
   CompanyService,
   ContactService,
   DashboardService,
@@ -55,6 +57,7 @@ export async function testServices(db: DrizzleDatabase) {
     auditLog: module.get(AuditLogService),
     authz: module.get(AuthzService),
     branding: module.get(BrandingService),
+    candidates: module.get(CandidateService),
     companies: module.get(CompanyService),
     contacts: module.get(ContactService),
     contactSources: module.get(ContactSourceService),

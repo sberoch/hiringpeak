@@ -81,6 +81,11 @@ export const OpportunityQueryParamsSchema = z.object({
     .union([z.boolean(), z.enum(["true", "false"])])
     .transform((v) => (typeof v === "string" ? v === "true" : v))
     .optional(),
+  /**
+   * `"closeDate:asc|desc"` or `"createdAt:asc|desc"`; newest first when
+   * omitted. Groups by stage keep this order.
+   */
+  order: z.string().optional(),
 });
 
 export const OpportunityStageQueryParamsSchema = PaginationParamsSchema;
