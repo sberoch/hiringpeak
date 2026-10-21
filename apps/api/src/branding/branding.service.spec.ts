@@ -1,3 +1,4 @@
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PermissionCode } from '@workspace/shared/enums';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fixtures } from '../common/database/testing/fixtures';
@@ -7,6 +8,7 @@ import type { BrandingActor } from './branding.service';
 
 let services: Awaited<ReturnType<typeof testServices>>;
 let org: number;
+let f: ReturnType<typeof fixtures>;
 let admin: BrandingActor;
 
 const logoOf = (organizationId: number, name = 'logo') => ({
@@ -17,7 +19,7 @@ const logoOf = (organizationId: number, name = 'logo') => ({
 beforeEach(async () => {
   const db = await createTestDatabase();
   services = await testServices(db);
-  const f = fixtures(db);
+  f = fixtures(db);
   org = await f.organization();
   const userId = await f.user(org, [PermissionCode.ORGANIZATION_MANAGE]);
   admin = {
@@ -34,6 +36,75 @@ describe('BrandingService', () => {
     expect(await services.branding.get(org)).toEqual({
       ...logoOf(org),
       accentColor: null,
+    });
+  });
+
+  it('goes back to no logo once the logo is removed', async () => {
+    await services.branding.update(admin, logoOf(org));
+
+    await services.branding.removeLogo(admin);
+
+    expect(await services.branding.get(org)).toEqual({
+      logoUrl: null,
+      originalLogoUrl: null,
+      accentColor: null,
+    });
+  });
+
+  describe('across Organizations', () => {
+    let other: number;
+
+    beforeEach(async () => {
+      other = await f.organization();
+    });
+
+    it("never reads another Organization's logo", async () => {
+      await services.branding.update(admin, logoOf(org));
+
+      expect((await services.branding.get(other)).logoUrl).toBeNull();
+    });
+
+    it("rejects a logo stored under another Organization's path", async () => {
+      await expect(
+        services.branding.update(admin, logoOf(other)),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  it('rejects a logo stored outside the Branding path', async () => {
+    await expect(
+      services.branding.update(admin, {
+        logoUrl: 'https://example.com/logo.png',
+        originalLogoUrl: 'https://example.com/logo-original.png',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  describe('without ORGANIZATION_MANAGE', () => {
+    let member: BrandingActor;
+
+    beforeEach(() => {
+      member = {
+        ...admin,
+        codes: [PermissionCode.SETTINGS_MANAGE, PermissionCode.ROLE_MANAGE],
+      };
+    });
+
+    it('cannot set the logo', async () => {
+      await expect(
+        services.branding.update(member, logoOf(org)),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('cannot remove the logo', async () => {
+      await services.branding.update(admin, logoOf(org));
+
+      await expect(
+        services.branding.removeLogo(member),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect((await services.branding.get(org)).logoUrl).toBe(
+        logoOf(org).logoUrl,
+      );
     });
   });
 });

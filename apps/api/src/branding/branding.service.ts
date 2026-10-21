@@ -1,4 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
+import { PermissionCode } from '@workspace/shared/enums';
+import { isBrandingStorageUrl } from '@workspace/shared/lib/branding-storage';
 import type { UpdateBrandingLogoDto } from '@workspace/shared/dtos';
 import { organizations } from '@workspace/shared/schemas';
 import type { Branding } from '@workspace/shared/types/branding';
@@ -37,13 +44,35 @@ export class BrandingService {
     actor: BrandingActor,
     logo: UpdateBrandingLogoDto,
   ): Promise<Branding> {
+    const outside = [logo.logoUrl, logo.originalLogoUrl].some(
+      (url) => !isBrandingStorageUrl(url, actor.organizationId),
+    );
+    if (outside) {
+      throw new BadRequestException(
+        'El logo debe estar guardado en el espacio de la organización',
+      );
+    }
+    return this.write(actor, {
+      logoUrl: logo.logoUrl,
+      originalLogoUrl: logo.originalLogoUrl,
+    });
+  }
+
+  /** Clears the logo: the sidebar goes back to HiringPeak's. */
+  async removeLogo(actor: BrandingActor): Promise<Branding> {
+    return this.write(actor, { logoUrl: null, originalLogoUrl: null });
+  }
+
+  private async write(
+    actor: BrandingActor,
+    fields: Partial<Branding>,
+  ): Promise<Branding> {
+    if (!actor.codes.includes(PermissionCode.ORGANIZATION_MANAGE)) {
+      throw new ForbiddenException('Solo un administrador puede cambiar el branding');
+    }
     const [row] = await this.db
       .update(organizations)
-      .set({
-        logoUrl: logo.logoUrl,
-        originalLogoUrl: logo.originalLogoUrl,
-        updatedAt: new Date(),
-      })
+      .set({ ...fields, updatedAt: new Date() })
       .where(eq(organizations.id, actor.organizationId))
       .returning(BRANDING_COLUMNS);
     return row;
