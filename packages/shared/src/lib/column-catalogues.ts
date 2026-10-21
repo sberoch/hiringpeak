@@ -19,6 +19,14 @@ export const CANDIDATE_COLUMNS = [
   { key: "areas", shownByDefault: true },
   { key: "industries", shownByDefault: true },
   { key: "stars", shownByDefault: true },
+  // Date of birth and gender are deliberately not offered as columns.
+  { key: "email", shownByDefault: false },
+  { key: "phone", shownByDefault: false },
+  { key: "linkedin", shownByDefault: false },
+  { key: "source", shownByDefault: false },
+  { key: "countries", shownByDefault: false },
+  { key: "languages", shownByDefault: false },
+  { key: "createdAt", shownByDefault: false },
   { key: "actions", shownByDefault: true, lock: "last" },
 ] as const satisfies readonly LayoutCatalogueEntry[];
 

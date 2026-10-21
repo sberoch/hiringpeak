@@ -1,6 +1,6 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import type { Column, ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -112,6 +112,41 @@ function CatalogBadges({
   );
 }
 
+/** Header of a column the server can sort by: a button with the sort icon. */
+function SortableHeader({
+  column,
+  label,
+}: {
+  column: Column<Candidate, unknown>;
+  label: string;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
+    >
+      {label}
+      <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
+    </Button>
+  );
+}
+
+/** Header of a column that can't be sorted: plain text, no sort icon. */
+function PlainHeader({ label }: { label: string }) {
+  return <span className="pl-4 font-semibold text-slate-brand">{label}</span>;
+}
+
+function TextList({ items }: { items?: string[] | null }) {
+  if (!items?.length) return null;
+  return <span className="text-sm text-ink">{items.join(", ")}</span>;
+}
+
+const externalUrl = (url: string) =>
+  url.startsWith("http://") || url.startsWith("https://")
+    ? url
+    : `https://${url}`;
+
 /** How the Candidates list draws each column of its Column Catalogue. */
 export const candidateColumns: Record<
   CandidateColumnKey,
@@ -121,18 +156,7 @@ export const candidateColumns: Record<
     label: "Nombre",
     column: {
       accessorKey: "name",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
-          >
-            Nombre
-            <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-          </Button>
-        );
-      },
+      header: ({ column }) => <SortableHeader column={column} label="Nombre" />,
       cell: ({ row }) => {
         const shortDescription = row.original.shortDescription;
         return (
@@ -314,19 +338,96 @@ export const candidateColumns: Record<
     label: "Estrellas",
     column: {
       accessorKey: "stars",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
-          >
-            Estrellas
-            <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-          </Button>
-        );
-      },
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Estrellas" />
+      ),
       cell: ({ row }) => <CandidateStars stars={+row.original.stars} size="sm" />,
+    },
+  },
+  email: {
+    label: "Email",
+    column: {
+      accessorKey: "email",
+      header: ({ column }) => <SortableHeader column={column} label="Email" />,
+      cell: ({ row }) =>
+        row.original.email ? (
+          <a
+            href={`mailto:${row.original.email}`}
+            className="text-sm text-ink hover:text-electric transition-colors"
+          >
+            {row.original.email}
+          </a>
+        ) : null,
+    },
+  },
+  phone: {
+    label: "Teléfono",
+    column: {
+      id: "phone",
+      header: () => <PlainHeader label="Teléfono" />,
+      cell: ({ row }) => (
+        <span className="text-sm text-ink whitespace-nowrap">
+          {row.original.phone}
+        </span>
+      ),
+    },
+  },
+  linkedin: {
+    label: "LinkedIn",
+    column: {
+      id: "linkedin",
+      header: () => <PlainHeader label="LinkedIn" />,
+      cell: ({ row }) =>
+        row.original.linkedin ? (
+          <Link
+            href={externalUrl(row.original.linkedin)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-ink hover:text-electric transition-colors"
+          >
+            Ver perfil
+          </Link>
+        ) : null,
+    },
+  },
+  source: {
+    label: "Origen",
+    column: {
+      id: "source",
+      header: () => <PlainHeader label="Origen" />,
+      cell: ({ row }) => (
+        <span className="text-sm text-ink">{row.original.source?.name}</span>
+      ),
+    },
+  },
+  countries: {
+    label: "Países",
+    column: {
+      id: "countries",
+      header: () => <PlainHeader label="Países" />,
+      cell: ({ row }) => <TextList items={row.original.countries} />,
+    },
+  },
+  languages: {
+    label: "Idiomas",
+    column: {
+      id: "languages",
+      header: () => <PlainHeader label="Idiomas" />,
+      cell: ({ row }) => <TextList items={row.original.languages} />,
+    },
+  },
+  createdAt: {
+    label: "Fecha de alta",
+    column: {
+      accessorKey: "createdAt",
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Fecha de alta" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-sm text-slate-brand whitespace-nowrap">
+          {new Date(row.original.createdAt).toLocaleDateString("es-AR")}
+        </span>
+      ),
     },
   },
   actions: {

@@ -1,5 +1,6 @@
 import { inArray } from 'drizzle-orm';
 import {
+  candidateSources,
   candidateVacancies,
   candidateVacancyStatuses,
   candidates,
@@ -197,11 +198,27 @@ export function fixtures(db: DrizzleDatabase) {
         isFinal: fields.isFinal ?? false,
       }),
 
-    candidate: (organizationId: number, name = `Candidate ${next()}`) =>
+    candidateSource: (organizationId: number, name = `Source ${next()}`) =>
+      insertId(candidateSources, { organizationId, name }),
+
+    candidate: (
+      organizationId: number,
+      name = `Candidate ${next()}`,
+      fields: {
+        email?: string;
+        phone?: string;
+        linkedin?: string;
+        sourceId?: number;
+        countries?: string[];
+        languages?: string[];
+        createdAt?: Date;
+      } = {},
+    ) =>
       insertId(candidates, {
         organizationId,
         name,
         email: `c${next()}@example.com`,
+        ...fields,
       }),
 
     async candidacy(
