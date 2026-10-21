@@ -67,7 +67,9 @@ export function TeamPerformanceTable({
             <Users className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-bold tracking-tight text-ink">
-            {seesWholeTeam(permissionCodes) ? "Rendimiento del equipo" : "Tu rendimiento"}
+            {seesWholeTeam(permissionCodes)
+              ? "Rendimiento del equipo"
+              : "Tu rendimiento"}
           </h3>
         </div>
         <span className="text-[11px] font-medium text-muted-brand">
