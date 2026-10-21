@@ -3,9 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
-import dayjs from "dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@workspace/ui/components/button";
@@ -18,6 +17,11 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import type { CompanyColumnKey } from "@workspace/shared/lib/column-catalogues";
 import type { Company } from "@workspace/shared/types/company";
+import {
+  CreatedDateCell,
+  PlainHeader,
+  SortableHeader,
+} from "@/components/column-layout/table-cells";
 import type { ColumnDefinition } from "@/components/column-layout/use-column-layout";
 import { formatMoney } from "@/lib/utils";
 import { downloadFile } from "@/lib/download";
@@ -129,26 +133,6 @@ const CellActions = ({ company }: CellActionsProps) => {
   );
 };
 
-const headerLabel = (label: string, className = "") => (
-  <span className={`font-semibold text-slate-brand ${className}`}>{label}</span>
-);
-
-/** A header that sorts the list on the server by its column id. */
-function sortableHeader(label: string): ColumnDef<Company>["header"] {
-  return function SortableHeader({ column }) {
-    return (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
-      >
-        {label}
-        <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-      </Button>
-    );
-  };
-}
-
 const count = (value: number) => (
   <span
     className={
@@ -168,7 +152,7 @@ export const companyColumns: Record<
     label: "Nombre",
     column: {
       accessorKey: "name",
-      header: sortableHeader("Nombre"),
+      header: ({ column }) => <SortableHeader column={column} label="Nombre" />,
       cell: ({ row }) => (
         <Link
           href={`/companies/${row.original.id}`}
@@ -183,7 +167,7 @@ export const companyColumns: Record<
     label: "Estado",
     column: {
       id: "status",
-      header: () => headerLabel("Estado"),
+      header: () => <PlainHeader label="Estado" />,
       cell: ({ row }) => <CompanyStatusBadge status={row.original.status} />,
     },
   },
@@ -191,7 +175,7 @@ export const companyColumns: Record<
     label: "Responsable de cuenta",
     column: {
       id: "accountOwner",
-      header: () => headerLabel("Responsable de cuenta"),
+      header: () => <PlainHeader label="Responsable de cuenta" />,
       cell: ({ row }) => (
         <AccountOwnerControl company={row.original} size="sm" />
       ),
@@ -201,7 +185,7 @@ export const companyColumns: Record<
     label: "Contactos",
     column: {
       id: "contacts",
-      header: () => headerLabel("Contactos"),
+      header: () => <PlainHeader label="Contactos" />,
       cell: ({ row }) => {
         const contacts = row.original.contacts;
         if (contacts.length === 0) {
@@ -232,7 +216,7 @@ export const companyColumns: Record<
     label: "Vacantes activas",
     column: {
       id: "activeVacancies",
-      header: () => headerLabel("Vacantes activas"),
+      header: () => <PlainHeader label="Vacantes activas" />,
       cell: ({ row }) => count(row.original.activeVacancyCount),
     },
   },
@@ -240,7 +224,7 @@ export const companyColumns: Record<
     label: "Oportunidades abiertas",
     column: {
       id: "openOpportunities",
-      header: () => headerLabel("Oportunidades abiertas"),
+      header: () => <PlainHeader label="Oportunidades abiertas" />,
       cell: ({ row }) => {
         const summary = row.original.commercial;
         if (!summary?.openOpportunityCount) {
@@ -266,7 +250,7 @@ export const companyColumns: Record<
     label: "Última interacción",
     column: {
       id: "lastInteraction",
-      header: () => headerLabel("Última interacción"),
+      header: () => <PlainHeader label="Última interacción" />,
       cell: ({ row }) => (
         <LastInteractionLabel
           last={row.original.commercial?.lastInteraction ?? null}
@@ -278,7 +262,7 @@ export const companyColumns: Record<
     label: "Vacantes totales",
     column: {
       id: "totalVacancies",
-      header: () => headerLabel("Vacantes totales"),
+      header: () => <PlainHeader label="Vacantes totales" />,
       cell: ({ row }) => count(row.original.vacancyCount),
     },
   },
@@ -286,7 +270,7 @@ export const companyColumns: Record<
     label: "Fee estimado abierto",
     column: {
       id: "openOpportunityFee",
-      header: () => headerLabel("Fee estimado abierto"),
+      header: () => <PlainHeader label="Fee estimado abierto" />,
       cell: ({ row }) => {
         const fee = row.original.commercial?.openOpportunityFee ?? 0;
         if (fee <= 0) return <span className="text-muted-brand">—</span>;
@@ -300,12 +284,10 @@ export const companyColumns: Record<
     label: "Fecha de alta",
     column: {
       accessorKey: "createdAt",
-      header: sortableHeader("Fecha de alta"),
-      cell: ({ row }) => (
-        <span className="tabular-nums text-slate-brand">
-          {dayjs(row.original.createdAt).format("DD/MM/YYYY")}
-        </span>
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Fecha de alta" />
       ),
+      cell: ({ row }) => <CreatedDateCell createdAt={row.original.createdAt} />,
     },
   },
   actions: {

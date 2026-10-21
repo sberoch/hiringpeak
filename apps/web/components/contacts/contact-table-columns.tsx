@@ -1,7 +1,7 @@
 "use client";
 
-import type { Column, ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,15 @@ import type {
   NetworkContactListItem,
 } from "@workspace/shared/types/contact";
 
+import {
+  CreatedDateCell,
+  EmailCell,
+  LinkedInCell,
+  linkedinUrl,
+  PhoneCell,
+  PlainHeader,
+  SortableHeader,
+} from "@/components/column-layout/table-cells";
 import type { ColumnDefinition } from "@/components/column-layout/use-column-layout";
 import { LastInteractionLabel } from "@/components/interactions/interaction-format";
 import { usePermissions } from "@/contexts/permission-context";
@@ -38,31 +47,7 @@ import {
 import { useCurrentUserId } from "./contact-lookups";
 import { DeleteContactDialog } from "./delete-contact-dialog";
 
-export const linkedinUrl = (url: string) =>
-  `https://${url.replace(/^https?:\/\//, "")}`;
-
-function SortHeader({
-  column,
-  label,
-}: {
-  column: Column<NetworkContactListItem, unknown>;
-  label: string;
-}) {
-  return (
-    <Button
-      variant="ghost"
-      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      className="h-auto font-semibold text-slate-brand transition-colors hover:bg-transparent hover:text-ink"
-    >
-      {label}
-      <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-    </Button>
-  );
-}
-
-const PlainHeader = ({ label }: { label: string }) => (
-  <span className="font-semibold text-slate-brand">{label}</span>
-);
+export { linkedinUrl };
 
 function CellActions({ contact }: { contact: NetworkContact }) {
   const router = useRouter();
@@ -189,7 +174,9 @@ export const contactColumns: Record<
     column: {
       id: "name",
       accessorKey: "name",
-      header: ({ column }) => <SortHeader column={column} label="Contacto" />,
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Contacto" />
+      ),
       cell: ({ row }) => {
         const contact = row.original;
         return (
@@ -292,7 +279,7 @@ export const contactColumns: Record<
     column: {
       id: "role",
       accessorKey: "role",
-      header: ({ column }) => <SortHeader column={column} label="Cargo" />,
+      header: ({ column }) => <SortableHeader column={column} label="Cargo" />,
       cell: ({ row }) =>
         row.original.role ? (
           <span className="text-ink">{row.original.role}</span>
@@ -306,18 +293,10 @@ export const contactColumns: Record<
     column: {
       id: "email",
       accessorKey: "email",
-      header: ({ column }) => <SortHeader column={column} label="Email" />,
-      cell: ({ row }) =>
-        row.original.email ? (
-          <a
-            href={`mailto:${row.original.email}`}
-            className="text-ink transition-colors hover:text-electric"
-          >
-            {row.original.email}
-          </a>
-        ) : (
-          <Muted>Sin email</Muted>
-        ),
+      header: ({ column }) => <SortableHeader column={column} label="Email" />,
+      cell: ({ row }) => (
+        <EmailCell email={row.original.email} emptyLabel="Sin email" />
+      ),
     },
   },
   phone: {
@@ -325,14 +304,9 @@ export const contactColumns: Record<
     column: {
       id: "phone",
       header: () => <PlainHeader label="Teléfono" />,
-      cell: ({ row }) =>
-        row.original.phone ? (
-          <span className="whitespace-nowrap text-ink">
-            {row.original.phone}
-          </span>
-        ) : (
-          <Muted>Sin teléfono</Muted>
-        ),
+      cell: ({ row }) => (
+        <PhoneCell phone={row.original.phone} emptyLabel="Sin teléfono" />
+      ),
     },
   },
   linkedin: {
@@ -340,19 +314,12 @@ export const contactColumns: Record<
     column: {
       id: "linkedin",
       header: () => <PlainHeader label="LinkedIn" />,
-      cell: ({ row }) =>
-        row.original.linkedin ? (
-          <Link
-            href={linkedinUrl(row.original.linkedin)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block max-w-[220px] truncate text-ink transition-colors hover:text-electric"
-          >
-            {row.original.linkedin.replace(/^https?:\/\/(www\.)?/, "")}
-          </Link>
-        ) : (
-          <Muted>Sin LinkedIn</Muted>
-        ),
+      cell: ({ row }) => (
+        <LinkedInCell
+          linkedin={row.original.linkedin}
+          emptyLabel="Sin LinkedIn"
+        />
+      ),
     },
   },
   openOpportunities: {
@@ -373,13 +340,9 @@ export const contactColumns: Record<
       id: "createdAt",
       accessorKey: "createdAt",
       header: ({ column }) => (
-        <SortHeader column={column} label="Fecha de alta" />
+        <SortableHeader column={column} label="Fecha de alta" />
       ),
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap text-ink">
-          {new Date(row.original.createdAt).toLocaleDateString("es-AR")}
-        </span>
-      ),
+      cell: ({ row }) => <CreatedDateCell createdAt={row.original.createdAt} />,
     },
   },
   actions: {

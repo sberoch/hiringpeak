@@ -1,32 +1,6 @@
 import { PermissionCode } from "../enums";
-import { canSeeWith, layoutChoices, resolveLayout } from "./layout";
-import { RAIL_WIDGETS, STAT_WIDGETS, WIDE_WIDGETS } from "./widget-catalogues";
-
-const keysFor = (
-  catalogue: readonly { key: string; shownByDefault: boolean }[],
-) =>
-  resolveLayout(catalogue, undefined, canSeeWith([])).map((entry) => entry.key);
-
-describe("Widget catalogues", () => {
-  it("show today's stats by default: active Vacancies, active Candidates, average days open", () => {
-    expect(keysFor(STAT_WIDGETS)).toEqual([
-      "activeVacancies",
-      "activeCandidates",
-      "avgDaysOpen",
-    ]);
-  });
-
-  it("show today's main column by default: team performance, then latest Vacancies", () => {
-    expect(keysFor(WIDE_WIDGETS)).toEqual([
-      "teamPerformance",
-      "latestVacancies",
-    ]);
-  });
-
-  it("show today's rail by default: due-soon Tasks, then latest Candidates", () => {
-    expect(keysFor(RAIL_WIDGETS)).toEqual(["dueSoonTasks", "latestCandidates"]);
-  });
-});
+import { canSeeWith, layoutChoices } from "./layout";
+import { RAIL_WIDGETS, STAT_WIDGETS } from "./widget-catalogues";
 
 /** The hidden Widgets an Area's "Agregar" picker offers a new User. */
 const addable = (
@@ -40,8 +14,10 @@ const addable = (
 describe("New Widgets", () => {
   const commercial = [PermissionCode.CRM_READ];
 
-  it("offers every new stat, hidden, to a User with commercial access", () => {
-    expect(addable(STAT_WIDGETS, commercial)).toEqual([
+  it("offers every new stat, hidden, to a User with commercial access and TASK_READ", () => {
+    expect(
+      addable(STAT_WIDGETS, [...commercial, PermissionCode.TASK_READ]),
+    ).toEqual([
       "myActiveVacancies",
       "myOverdueTasks",
       "candidatesAddedLast30Days",
@@ -51,7 +27,7 @@ describe("New Widgets", () => {
   });
 
   it("never offers the commercial stats without commercial access", () => {
-    expect(addable(STAT_WIDGETS, [])).toEqual([
+    expect(addable(STAT_WIDGETS, [PermissionCode.TASK_READ])).toEqual([
       "myActiveVacancies",
       "myOverdueTasks",
       "candidatesAddedLast30Days",
@@ -63,5 +39,19 @@ describe("New Widgets", () => {
       commercial: addable(RAIL_WIDGETS, commercial),
       without: addable(RAIL_WIDGETS, []),
     }).toEqual({ commercial: ["noNextStepOpportunities"], without: [] });
+  });
+
+  it("never offers My overdue Tasks without TASK_READ, which its count needs", () => {
+    expect({
+      withTaskRead: addable(STAT_WIDGETS, [PermissionCode.TASK_READ]),
+      without: addable(STAT_WIDGETS, []),
+    }).toEqual({
+      withTaskRead: [
+        "myActiveVacancies",
+        "myOverdueTasks",
+        "candidatesAddedLast30Days",
+      ],
+      without: ["myActiveVacancies", "candidatesAddedLast30Days"],
+    });
   });
 });

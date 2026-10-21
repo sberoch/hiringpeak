@@ -31,7 +31,7 @@ beforeEach(async () => {
 
 describe('BrandingService', () => {
   it('reads back the logo an administrator set', async () => {
-    await services.branding.update(admin, logoOf(org));
+    await services.branding.updateLogo(admin, logoOf(org));
 
     expect(await services.branding.get(org)).toEqual({
       ...logoOf(org),
@@ -40,7 +40,7 @@ describe('BrandingService', () => {
   });
 
   it('goes back to no logo once the logo is removed', async () => {
-    await services.branding.update(admin, logoOf(org));
+    await services.branding.updateLogo(admin, logoOf(org));
 
     await services.branding.removeLogo(admin);
 
@@ -52,7 +52,7 @@ describe('BrandingService', () => {
   });
 
   it('records every change, including removing the logo, in the audit log', async () => {
-    await services.branding.update(admin, logoOf(org));
+    await services.branding.updateLogo(admin, logoOf(org));
     await services.branding.removeLogo(admin);
 
     const page = await services.auditLog.findAll({
@@ -142,21 +142,21 @@ describe('BrandingService', () => {
     });
 
     it("never reads another Organization's logo", async () => {
-      await services.branding.update(admin, logoOf(org));
+      await services.branding.updateLogo(admin, logoOf(org));
 
       expect((await services.branding.get(other)).logoUrl).toBeNull();
     });
 
     it("rejects a logo stored under another Organization's path", async () => {
       await expect(
-        services.branding.update(admin, logoOf(other)),
+        services.branding.updateLogo(admin, logoOf(other)),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
   it('rejects a logo stored outside the Branding path', async () => {
     await expect(
-      services.branding.update(admin, {
+      services.branding.updateLogo(admin, {
         logoUrl: 'https://example.com/logo.png',
         originalLogoUrl: 'https://example.com/logo-original.png',
       }),
@@ -175,12 +175,12 @@ describe('BrandingService', () => {
 
     it('cannot set the logo', async () => {
       await expect(
-        services.branding.update(member, logoOf(org)),
+        services.branding.updateLogo(member, logoOf(org)),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('cannot remove the logo', async () => {
-      await services.branding.update(admin, logoOf(org));
+      await services.branding.updateLogo(admin, logoOf(org));
 
       await expect(services.branding.removeLogo(member)).rejects.toBeInstanceOf(
         ForbiddenException,

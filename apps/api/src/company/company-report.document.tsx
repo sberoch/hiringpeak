@@ -1,8 +1,8 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import {
   accentTextOnWhite,
-  type ReportAccent,
-} from '../common/reports/report-brand';
+  type ReadableAccent,
+} from '@workspace/shared/lib/accent-color';
 import { ReportBrandMark } from '../common/reports/report-brand-mark';
 import { stringToColor } from '@workspace/shared/utils';
 import type {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     color: COLORS.hiredText,
     marginRight: 6,
   },
-  hiredArrow: {
+  hiredSeparator: {
     fontSize: 10,
     color: COLORS.hiredText,
     marginRight: 6,
@@ -400,7 +400,8 @@ export function CompanyReportDocument({
                   style={styles.hiredRow}
                 >
                   <Text style={styles.hiredName}>{hire.candidateName}</Text>
-                  <Text style={styles.hiredArrow}>→</Text>
+                  {/* Plus Jakarta Sans (latin subset) has no "→": use "·". */}
+                  <Text style={styles.hiredSeparator}>·</Text>
                   <Text style={styles.hiredVacancy}>{hire.vacancyTitle}</Text>
                 </View>
               ))}
@@ -501,7 +502,7 @@ function buildSummaryCards(report: CompanyReportDocumentData): SummaryCard[] {
 }
 
 interface SectionHeaderProps {
-  accent: ReportAccent;
+  accent: ReadableAccent;
   title: string;
   count?: number;
 }

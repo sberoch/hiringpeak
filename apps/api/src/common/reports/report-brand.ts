@@ -1,8 +1,3 @@
-import {
-  type AccentTextColor,
-  accentTextColor,
-  DEFAULT_ACCENT_COLOR,
-} from '@workspace/shared/lib/accent-color';
 import type { Branding } from '@workspace/shared/types/branding';
 
 /**
@@ -13,21 +8,6 @@ import type { Branding } from '@workspace/shared/types/branding';
 export type ReportBrand =
   | { kind: 'logo'; logoUrl: string }
   | { kind: 'wordmark'; text: string };
-
-/**
- * The color accenting a client-facing PDF, and the text color (black or white)
- * that reads on it.
- */
-export type ReportAccent = { color: string; textColor: AccentTextColor };
-
-/**
- * The color for text drawn in the accent on the white page. The accent reads
- * on white exactly when white text reads on the accent; a light accent would
- * fade into the page, so that text falls back to `ink`.
- */
-export function accentTextOnWhite(accent: ReportAccent, ink: string): string {
-  return accent.textColor === '#ffffff' ? accent.color : ink;
-}
 
 /** What the report data builders need to know about the Organization's brand. */
 export type ReportBranding = Pick<Branding, 'logoUrl' | 'accentColor'>;
@@ -40,20 +20,4 @@ export function buildReportBrand(
     return { kind: 'logo', logoUrl: branding.logoUrl };
   }
   return { kind: 'wordmark', text: organizationName };
-}
-
-/**
- * The Organization's accent color, or the default blue when it has none. A
- * stored color that fails the readability rule (the API never saves one) also
- * falls back to the default rather than ship an unreadable PDF.
- */
-export function buildReportAccent({
-  accentColor,
-}: ReportBranding): ReportAccent {
-  const color = accentColor ?? DEFAULT_ACCENT_COLOR;
-  const readability = accentTextColor(color);
-  if (readability.ok === true) {
-    return { color, textColor: readability.textColor };
-  }
-  return buildReportAccent({ logoUrl: null, accentColor: null });
 }

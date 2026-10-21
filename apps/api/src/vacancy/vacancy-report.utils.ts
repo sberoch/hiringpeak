@@ -1,5 +1,5 @@
+import { readableAccent } from '@workspace/shared/lib/accent-color';
 import {
-  buildReportAccent,
   buildReportBrand,
   type ReportBranding,
 } from '../common/reports/report-brand';
@@ -49,7 +49,7 @@ export function buildVacancyReportData(params: {
 
   return {
     brand: buildReportBrand(params.organizationName, params.branding),
-    accent: buildReportAccent(params.branding),
+    accent: readableAccent(params.branding.accentColor),
     candidates,
     description: params.vacancy.description || undefined,
     hiredCandidates,

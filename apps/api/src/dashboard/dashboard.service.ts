@@ -18,6 +18,7 @@ import {
   vacancyStatuses,
 } from '@workspace/shared/schemas';
 import { computeCommercialSummary } from './commercial-metrics';
+import { hasTaskReadAll } from '../task/task-access';
 
 const FILLED_STATUS_NAMES = ['Cubierta', 'Filled'];
 const CANCELLED_STATUS_NAMES = ['Cancelada', 'Cancelled'];
@@ -38,6 +39,12 @@ function finalOutcome(status: {
   if (CANCELLED_STATUS_NAMES.includes(status.name)) return 'cancelled';
   return null;
 }
+
+/** Who asks for the recruiter stats: decides whose rows they get. */
+export type RecruiterStatsViewer = {
+  userId: number;
+  codes: readonly string[];
+};
 
 @Injectable()
 export class DashboardService {
@@ -160,8 +167,17 @@ export class DashboardService {
     return { count: c };
   }
 
-  async getRecruiterStats(organizationId: number): Promise<RecruiterStats[]> {
-    const yearStart = new Date(new Date().getFullYear(), 0, 1);
+  /**
+   * «Rendimiento del equipo» recruiting rows for Vacancies created this year.
+   * Only Users who can read every Task (`TASK_READ_ALL`) get the whole team;
+   * everyone else gets just their own row.
+   */
+  async getRecruiterStats(
+    organizationId: number,
+    viewer: RecruiterStatsViewer,
+    now = new Date(),
+  ): Promise<RecruiterStats[]> {
+    const yearStart = new Date(now.getFullYear(), 0, 1);
 
     const statuses = await this.db
       .select({
@@ -189,6 +205,9 @@ export class DashboardService {
         and(
           eq(vacancies.organizationId, organizationId),
           gte(vacancies.createdAt, yearStart),
+          hasTaskReadAll(viewer.codes)
+            ? undefined
+            : eq(vacancies.assignedTo, viewer.userId),
         ),
       );
 

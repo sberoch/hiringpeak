@@ -1,15 +1,27 @@
 "use client";
 
-import type { Column, ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 import { PermissionGuard } from "@/components/auth/permission-guard";
+import {
+  CreatedDateCell,
+  EmailCell,
+  LinkedInCell,
+  PhoneCell,
+  PlainHeader,
+  SortableHeader,
+} from "@/components/column-layout/table-cells";
 import type { ColumnDefinition } from "@/components/column-layout/use-column-layout";
 import type { CandidateColumnKey } from "@workspace/shared/lib/column-catalogues";
-import { CATALOG_TYPE_COLORS, type CatalogTagType, getInitials } from "@/lib/utils";
+import {
+  CATALOG_TYPE_COLORS,
+  type CatalogTagType,
+  getInitials,
+} from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
 import type { Candidate } from "@workspace/shared/types/candidate";
 import {
@@ -112,40 +124,10 @@ function CatalogBadges({
   );
 }
 
-/** Header of a column the server can sort by: a button with the sort icon. */
-function SortableHeader({
-  column,
-  label,
-}: {
-  column: Column<Candidate, unknown>;
-  label: string;
-}) {
-  return (
-    <Button
-      variant="ghost"
-      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
-    >
-      {label}
-      <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-    </Button>
-  );
-}
-
-/** Header of a column that can't be sorted: plain text, no sort icon. */
-function PlainHeader({ label }: { label: string }) {
-  return <span className="pl-4 font-semibold text-slate-brand">{label}</span>;
-}
-
 function TextList({ items }: { items?: string[] | null }) {
   if (!items?.length) return null;
   return <span className="text-sm text-ink">{items.join(", ")}</span>;
 }
-
-const externalUrl = (url: string) =>
-  url.startsWith("http://") || url.startsWith("https://")
-    ? url
-    : `https://${url}`;
 
 /** How the Candidates list draws each column of its Column Catalogue. */
 export const candidateColumns: Record<
@@ -178,12 +160,20 @@ export const candidateColumns: Record<
                   {row.original.name}
                 </Link>
                 {row.original.blacklist && (
-                  <Badge variant="destructive" className="ml-2 rounded-lg text-xs font-semibold shrink-0">
+                  <Badge
+                    variant="destructive"
+                    className="ml-2 rounded-lg text-xs font-semibold shrink-0"
+                  >
                     BL
                   </Badge>
                 )}
-                {Boolean(row.original.isInCompanyViaPratt && !row.original.blacklist) && (
-                  <Badge variant="secondary" className="ml-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-50 shrink-0">
+                {Boolean(
+                  row.original.isInCompanyViaPratt && !row.original.blacklist,
+                ) && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-50 shrink-0"
+                  >
                     P
                   </Badge>
                 )}
@@ -275,9 +265,18 @@ export const candidateColumns: Record<
       meta: { className: "2xl:hidden" },
       cell: ({ row }) => {
         const allTags = [
-          ...row.original.seniorities.map((s) => ({ label: s.name, type: "seniority" as CatalogTagType })),
-          ...row.original.areas.map((a) => ({ label: a.name, type: "area" as CatalogTagType })),
-          ...row.original.industries.map((i) => ({ label: i.name, type: "industry" as CatalogTagType })),
+          ...row.original.seniorities.map((s) => ({
+            label: s.name,
+            type: "seniority" as CatalogTagType,
+          })),
+          ...row.original.areas.map((a) => ({
+            label: a.name,
+            type: "area" as CatalogTagType,
+          })),
+          ...row.original.industries.map((i) => ({
+            label: i.name,
+            type: "industry" as CatalogTagType,
+          })),
         ];
         if (!allTags.length) return null;
         return (
@@ -341,7 +340,9 @@ export const candidateColumns: Record<
       header: ({ column }) => (
         <SortableHeader column={column} label="Estrellas" />
       ),
-      cell: ({ row }) => <CandidateStars stars={+row.original.stars} size="sm" />,
+      cell: ({ row }) => (
+        <CandidateStars stars={+row.original.stars} size="sm" />
+      ),
     },
   },
   email: {
@@ -349,52 +350,30 @@ export const candidateColumns: Record<
     column: {
       accessorKey: "email",
       header: ({ column }) => <SortableHeader column={column} label="Email" />,
-      cell: ({ row }) =>
-        row.original.email ? (
-          <a
-            href={`mailto:${row.original.email}`}
-            className="text-sm text-ink hover:text-electric transition-colors"
-          >
-            {row.original.email}
-          </a>
-        ) : null,
+      cell: ({ row }) => <EmailCell email={row.original.email} />,
     },
   },
   phone: {
     label: "Teléfono",
     column: {
       id: "phone",
-      header: () => <PlainHeader label="Teléfono" />,
-      cell: ({ row }) => (
-        <span className="text-sm text-ink whitespace-nowrap">
-          {row.original.phone}
-        </span>
-      ),
+      header: () => <PlainHeader className="pl-4" label="Teléfono" />,
+      cell: ({ row }) => <PhoneCell phone={row.original.phone} />,
     },
   },
   linkedin: {
     label: "LinkedIn",
     column: {
       id: "linkedin",
-      header: () => <PlainHeader label="LinkedIn" />,
-      cell: ({ row }) =>
-        row.original.linkedin ? (
-          <Link
-            href={externalUrl(row.original.linkedin)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-ink hover:text-electric transition-colors"
-          >
-            Ver perfil
-          </Link>
-        ) : null,
+      header: () => <PlainHeader className="pl-4" label="LinkedIn" />,
+      cell: ({ row }) => <LinkedInCell linkedin={row.original.linkedin} />,
     },
   },
   source: {
     label: "Origen",
     column: {
       id: "source",
-      header: () => <PlainHeader label="Origen" />,
+      header: () => <PlainHeader className="pl-4" label="Origen" />,
       cell: ({ row }) => (
         <span className="text-sm text-ink">{row.original.source?.name}</span>
       ),
@@ -404,7 +383,7 @@ export const candidateColumns: Record<
     label: "Países",
     column: {
       id: "countries",
-      header: () => <PlainHeader label="Países" />,
+      header: () => <PlainHeader className="pl-4" label="Países" />,
       cell: ({ row }) => <TextList items={row.original.countries} />,
     },
   },
@@ -412,7 +391,7 @@ export const candidateColumns: Record<
     label: "Idiomas",
     column: {
       id: "languages",
-      header: () => <PlainHeader label="Idiomas" />,
+      header: () => <PlainHeader className="pl-4" label="Idiomas" />,
       cell: ({ row }) => <TextList items={row.original.languages} />,
     },
   },
@@ -423,11 +402,7 @@ export const candidateColumns: Record<
       header: ({ column }) => (
         <SortableHeader column={column} label="Fecha de alta" />
       ),
-      cell: ({ row }) => (
-        <span className="text-sm text-slate-brand whitespace-nowrap">
-          {new Date(row.original.createdAt).toLocaleDateString("es-AR")}
-        </span>
-      ),
+      cell: ({ row }) => <CreatedDateCell createdAt={row.original.createdAt} />,
     },
   },
   actions: {

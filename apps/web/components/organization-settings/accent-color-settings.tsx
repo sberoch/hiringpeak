@@ -5,15 +5,15 @@ import { useState } from "react";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import {
-  type AccentTextColor,
   accentTextColor,
+  accentTextOnWhite,
   DEFAULT_ACCENT_COLOR,
+  type ReadableAccent,
+  readableAccent,
 } from "@workspace/shared/lib/accent-color";
 
 /** The PDFs' ink, used for text that would fade on the page in a light accent. */
 const PDF_INK = "#0a0f1c";
-
-type ReadableAccent = { color: string; textColor: AccentTextColor };
 
 /**
  * The accent color part of the Branding card: a color picker with hex input
@@ -39,7 +39,7 @@ export function AccentColorSettings({
   const saved = accentColor ?? DEFAULT_ACCENT_COLOR;
   const [draft, setDraft] = useState(saved);
   const [previewed, setPreviewed] = useState<ReadableAccent>(() =>
-    readable(saved, DEFAULT_ACCENT_COLOR),
+    readableAccent(accentColor),
   );
 
   const readability = accentTextColor(draft);
@@ -124,7 +124,7 @@ function PdfHeaderPreview({
   organizationName: string;
 }) {
   // Mirrors the PDFs: the eyebrow keeps the accent only when it reads on white.
-  const eyebrowColor = accent.textColor === "#ffffff" ? accent.color : PDF_INK;
+  const eyebrowColor = accentTextOnWhite(accent, PDF_INK);
   return (
     <figure
       aria-label="Vista previa del encabezado del PDF"
@@ -178,11 +178,4 @@ function PdfHeaderPreview({
       </div>
     </figure>
   );
-}
-
-/** `color` with its text color, or `fallback`'s if `color` isn't readable. */
-function readable(color: string, fallback: string): ReadableAccent {
-  const result = accentTextColor(color);
-  if (result.ok) return { color, textColor: result.textColor };
-  return readable(fallback, fallback);
 }

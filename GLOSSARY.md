@@ -213,7 +213,7 @@ A **User**'s own choice of which columns a list screen shows and in what order, 
 _Avoid_: View, Saved View (reserved for a future saved filter set), Table settings.
 
 **Column Catalogue**:
-The fixed set of columns a list screen *can* show, each declaring whether it is shown by default. The identifier column is locked first and the actions column locked last; every other column can be hidden or reordered.
+The fixed set of columns a list screen *can* show, each declaring whether it is shown by default. The identifier column is locked first and the actions column, where the screen has one, locked last; every other column can be hidden or reordered.
 
 **Dashboard Layout**:
 A **User**'s own choice of which **Widgets** their dashboard shows and in what order, kept separately for each **Widget Area**. Same personal, preference-not-permission rules as **Column Layout**.

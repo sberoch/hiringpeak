@@ -1,5 +1,7 @@
 import type { LastInteraction } from "./interaction";
 import type { CompanyStatus } from "../enums";
+import type { OpportunitySortField } from "../dtos/opportunity.dto";
+import type { SortOrderParam } from "../lib/sort-order";
 
 export type OpportunityStage = {
   id: number;
@@ -116,8 +118,7 @@ export type OpportunityFilters = {
   companyStatus?: CompanyStatus;
   /** "Solo sin próximo paso": only open Opportunities with No Next Step. */
   noNextStep?: boolean;
-  /** `"closeDate:asc|desc"` or `"createdAt:asc|desc"`. */
-  order?: string;
+  order?: SortOrderParam<OpportunitySortField>;
 };
 
 export type CreateOpportunityPayload = {

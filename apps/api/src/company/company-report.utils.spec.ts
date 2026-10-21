@@ -260,73 +260,19 @@ describe('company-report.utils', () => {
     expect(closedOnly.closedVacancies).toBe(1);
   });
 
-  it("puts the Organization's logo in the header when it has one", () => {
+  it("passes the Organization's brand and accent color through", () => {
     const report = buildCompanyReportData({
       company: baseCompany,
       generatedAt,
       organizationName: 'Acme Talent',
-      branding: { logoUrl: ACME_LOGO_URL, accentColor: null },
+      branding: { logoUrl: ACME_LOGO_URL, accentColor: '#1a1a2e' },
       vacancies: [],
     });
 
-    expect(report.brand).toEqual({ kind: 'logo', logoUrl: ACME_LOGO_URL });
-  });
-
-  it("falls back to the Organization's name as a wordmark without a logo", () => {
-    const report = buildCompanyReportData({
-      company: baseCompany,
-      generatedAt,
-      organizationName: 'Acme Talent',
-      branding: { logoUrl: null, accentColor: null },
-      vacancies: [],
+    expect({ brand: report.brand, accent: report.accent }).toEqual({
+      brand: { kind: 'logo', logoUrl: ACME_LOGO_URL },
+      accent: { color: '#1a1a2e', textColor: '#ffffff' },
     });
-
-    expect(report.brand).toEqual({ kind: 'wordmark', text: 'Acme Talent' });
-  });
-
-  it.each([
-    ['a dark', '#1a1a2e', '#ffffff'],
-    ['a light', '#ffd400', '#000000'],
-  ])(
-    'accents the report with %s accent color and the text color that reads on it',
-    (_variant, accentColor, textColor) => {
-      const report = buildCompanyReportData({
-        company: baseCompany,
-        generatedAt,
-        organizationName: 'Acme Talent',
-        branding: { logoUrl: ACME_LOGO_URL, accentColor },
-        vacancies: [],
-      });
-
-      expect(report.accent).toEqual({ color: accentColor, textColor });
-    },
-  );
-
-  it('accents the report with the default blue and white text without an accent color', () => {
-    const report = buildCompanyReportData({
-      company: baseCompany,
-      generatedAt,
-      organizationName: 'Acme Talent',
-      branding: { logoUrl: null, accentColor: null },
-      vacancies: [],
-    });
-
-    expect(report.accent).toEqual({ color: '#0066ff', textColor: '#ffffff' });
-  });
-
-  it.each([
-    ['with a logo', ACME_LOGO_URL],
-    ['without a logo', null],
-  ])('never carries a HiringPeak mark %s', (_variant, logoUrl) => {
-    const report = buildCompanyReportData({
-      company: baseCompany,
-      generatedAt,
-      organizationName: 'Acme Talent',
-      branding: { logoUrl, accentColor: null },
-      vacancies: [],
-    });
-
-    expect(JSON.stringify(report)).not.toMatch(/hiring\s*peak/i);
   });
 
   it('builds a deterministic filename slug', () => {

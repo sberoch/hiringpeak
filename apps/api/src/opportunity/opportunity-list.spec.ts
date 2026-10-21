@@ -1,4 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
+import type { OpportunitySortField } from '@workspace/shared/dtos';
+import type { SortDirection } from '@workspace/shared/lib/sort-order';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PermissionCode } from '@workspace/shared/enums';
 import { fixtures } from '../common/database/testing/fixtures';
@@ -89,10 +90,16 @@ describe('OpportunityService.findAll — catalogue fields', () => {
 });
 
 describe('OpportunityService.findAll — sorting', () => {
-  const titles = async (order: string) =>
-    (await opportunities.findAll({ organizationId: org, order })).map(
-      (o) => o.title,
-    );
+  const titles = async (
+    field: OpportunitySortField,
+    direction: SortDirection,
+  ) =>
+    (
+      await opportunities.findAll({
+        organizationId: org,
+        order: { field, direction },
+      })
+    ).map((o) => o.title);
 
   it('sorts by Close Date, Opportunities without one last', async () => {
     await opportunity({ title: 'Open' });
@@ -108,8 +115,8 @@ describe('OpportunityService.findAll — sorting', () => {
     });
 
     expect({
-      asc: await titles('closeDate:asc'),
-      desc: await titles('closeDate:desc'),
+      asc: await titles('closeDate', 'asc'),
+      desc: await titles('closeDate', 'desc'),
     }).toEqual({
       asc: ['August', 'October', 'Open'],
       desc: ['October', 'August', 'Open'],
@@ -121,12 +128,10 @@ describe('OpportunityService.findAll — sorting', () => {
     await opportunity({ title: 'January', createdAt: new Date('2026-01-01') });
     await opportunity({ title: 'May', createdAt: new Date('2026-05-01') });
 
-    expect(await titles('createdAt:asc')).toEqual(['January', 'March', 'May']);
-  });
-
-  it('rejects sorting by a field that is not sortable', async () => {
-    await expect(titles('estimatedFee:asc')).rejects.toThrow(
-      BadRequestException,
-    );
+    expect(await titles('createdAt', 'asc')).toEqual([
+      'January',
+      'March',
+      'May',
+    ]);
   });
 });

@@ -1,7 +1,8 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PermissionCode } from '@workspace/shared/enums';
-import { CurrentUser } from '../auth/auth.decorators';
+import { CurrentUserId } from '../auth/auth.decorators';
+import { AuthzService } from '../auth/authz/authz.service';
 import { OrganizationId } from '../auth/organization/organization.decorator';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { Permissions } from '../auth/permissions/permissions.decorator';
@@ -12,7 +13,10 @@ import { DashboardService } from './dashboard.service';
 @ApiTags('Dashboard')
 @Controller('dashboard')
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(
+    private readonly dashboardService: DashboardService,
+    private readonly authzService: AuthzService,
+  ) {}
 
   @ApiOkResponse()
   @UseGuards(OrganizationGuard)
@@ -24,8 +28,15 @@ export class DashboardController {
   @ApiOkResponse()
   @UseGuards(OrganizationGuard)
   @Get('recruiter-stats')
-  async getRecruiterStats(@OrganizationId() organizationId: number) {
-    return this.dashboardService.getRecruiterStats(organizationId);
+  async getRecruiterStats(
+    @OrganizationId() organizationId: number,
+    @CurrentUserId() userId: number,
+  ) {
+    const codes = await this.authzService.getPermissionCodesForUser(userId);
+    return this.dashboardService.getRecruiterStats(organizationId, {
+      userId,
+      codes,
+    });
   }
 
   @ApiOkResponse()
@@ -33,12 +44,9 @@ export class DashboardController {
   @Get('my-active-vacancies')
   async getMyActiveVacancies(
     @OrganizationId() organizationId: number,
-    @CurrentUser() user: { id: string | number },
+    @CurrentUserId() userId: number,
   ) {
-    return this.dashboardService.countMyActiveVacancies(
-      organizationId,
-      Number(user.id),
-    );
+    return this.dashboardService.countMyActiveVacancies(organizationId, userId);
   }
 
   @ApiOkResponse()

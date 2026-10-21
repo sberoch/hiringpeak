@@ -9,7 +9,7 @@ import {
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PermissionCode } from '@workspace/shared/enums';
 import type { Branding } from '@workspace/shared/types/branding';
-import { CurrentUser } from '../auth/auth.decorators';
+import { CurrentUserId } from '../auth/auth.decorators';
 import { AuthzService } from '../auth/authz/authz.service';
 import { OrganizationGuard } from '../auth/organization/organization.guard';
 import { OrganizationId } from '../auth/organization/organization.decorator';
@@ -34,11 +34,9 @@ export class BrandingController {
   ) {}
 
   private async actor(
-    user: { id: string | number },
+    userId: number,
     organizationId: number,
   ): Promise<BrandingActor> {
-    const userId =
-      typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
     const codes = await this.authzService.getPermissionCodesForUser(userId);
     return { organizationId, userId, codes };
   }
@@ -55,11 +53,11 @@ export class BrandingController {
   @Patch('logo')
   async updateLogo(
     @Body() dto: UpdateBrandingLogoDto,
-    @CurrentUser() user: { id: string | number },
+    @CurrentUserId() userId: number,
     @OrganizationId() organizationId: number,
   ): Promise<Branding> {
-    return this.brandingService.update(
-      await this.actor(user, organizationId),
+    return this.brandingService.updateLogo(
+      await this.actor(userId, organizationId),
       dto,
     );
   }
@@ -68,11 +66,11 @@ export class BrandingController {
   @Permissions(PermissionCode.ORGANIZATION_MANAGE)
   @Delete('logo')
   async removeLogo(
-    @CurrentUser() user: { id: string | number },
+    @CurrentUserId() userId: number,
     @OrganizationId() organizationId: number,
   ): Promise<Branding> {
     return this.brandingService.removeLogo(
-      await this.actor(user, organizationId),
+      await this.actor(userId, organizationId),
     );
   }
 
@@ -81,11 +79,11 @@ export class BrandingController {
   @Patch('accent')
   async updateAccent(
     @Body() dto: UpdateBrandingAccentDto,
-    @CurrentUser() user: { id: string | number },
+    @CurrentUserId() userId: number,
     @OrganizationId() organizationId: number,
   ): Promise<Branding> {
     return this.brandingService.updateAccent(
-      await this.actor(user, organizationId),
+      await this.actor(userId, organizationId),
       dto,
     );
   }
@@ -94,11 +92,11 @@ export class BrandingController {
   @Permissions(PermissionCode.ORGANIZATION_MANAGE)
   @Delete('accent')
   async removeAccent(
-    @CurrentUser() user: { id: string | number },
+    @CurrentUserId() userId: number,
     @OrganizationId() organizationId: number,
   ): Promise<Branding> {
     return this.brandingService.removeAccent(
-      await this.actor(user, organizationId),
+      await this.actor(userId, organizationId),
     );
   }
 }

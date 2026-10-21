@@ -10,8 +10,8 @@ import {
 } from '@react-pdf/renderer';
 import {
   accentTextOnWhite,
-  type ReportAccent,
-} from '../common/reports/report-brand';
+  type ReadableAccent,
+} from '@workspace/shared/lib/accent-color';
 import { ReportBrandMark } from '../common/reports/report-brand-mark';
 import { stringToColor } from '@workspace/shared/utils';
 import type {
@@ -532,7 +532,7 @@ function MetaCell({ label, value }: MetaCellProps) {
 }
 
 interface SectionHeaderProps {
-  accent: ReportAccent;
+  accent: ReadableAccent;
   title: string;
   count?: number;
 }
