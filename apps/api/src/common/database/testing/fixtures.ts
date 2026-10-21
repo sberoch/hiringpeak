@@ -6,6 +6,7 @@ import {
   companies,
   contacts,
   opportunities,
+  opportunityContacts,
   opportunityStages,
   organizations,
   permissions,
@@ -97,13 +98,27 @@ export function fixtures(db: DrizzleDatabase) {
 
     contact: (
       organizationId: number,
-      fields: { name?: string; companyId?: number | null } = {},
+      fields: {
+        name?: string;
+        companyId?: number | null;
+        role?: string;
+        email?: string | null;
+        phone?: string | null;
+        linkedin?: string | null;
+        createdAt?: Date;
+      } = {},
     ) =>
       insertId(contacts, {
+        ...fields,
         organizationId,
         name: fields.name ?? `Contact ${next()}`,
         companyId: fields.companyId ?? null,
       }),
+
+    /** Names a Contact as involved in an Opportunity. */
+    async opportunityContact(opportunityId: number, contactId: number) {
+      await db.insert(opportunityContacts).values({ opportunityId, contactId });
+    },
 
     /** Two open stages, then won and lost. */
     async stages(organizationId: number) {

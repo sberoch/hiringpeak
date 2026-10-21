@@ -22,3 +22,22 @@ export const CANDIDATE_COLUMNS = [
 ] as const satisfies readonly LayoutCatalogueEntry[];
 
 export type CandidateColumnKey = (typeof CANDIDATE_COLUMNS)[number]["key"];
+
+/** Contacts (the whole screen needs commercial access, so no `requires`). */
+export const CONTACT_COLUMNS = [
+  { key: "name", shownByDefault: true, lock: "first" },
+  { key: "company", shownByDefault: true },
+  { key: "source", shownByDefault: true },
+  { key: "owner", shownByDefault: true },
+  { key: "lastInteraction", shownByDefault: true },
+  { key: "followUp", shownByDefault: true },
+  { key: "role", shownByDefault: false },
+  { key: "email", shownByDefault: false },
+  { key: "phone", shownByDefault: false },
+  { key: "linkedin", shownByDefault: false },
+  { key: "openOpportunities", shownByDefault: false },
+  { key: "createdAt", shownByDefault: false },
+  { key: "actions", shownByDefault: true, lock: "last" },
+] as const satisfies readonly LayoutCatalogueEntry[];
+
+export type ContactColumnKey = (typeof CONTACT_COLUMNS)[number]["key"];
