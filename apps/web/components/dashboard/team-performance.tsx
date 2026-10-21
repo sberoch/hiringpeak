@@ -18,11 +18,11 @@ import {
 } from "@/lib/api/dashboard";
 import { formatCompactMoney, getInitials } from "@/lib/utils";
 
-import { buildTeamRows } from "./team-rows";
+import { buildTeamRows, seesWholeTeam } from "./team-rows";
 
 interface TeamPerformanceTableProps {
   currentUserId: number;
-  isManager: boolean;
+  permissionCodes: string[];
   commercialAccess: boolean;
 }
 
@@ -38,7 +38,7 @@ const HEADER_CELL =
  */
 export function TeamPerformanceTable({
   currentUserId,
-  isManager,
+  permissionCodes,
   commercialAccess,
 }: TeamPerformanceTableProps) {
   const recruiters = useQuery<RecruiterStats[]>({
@@ -56,7 +56,7 @@ export function TeamPerformanceTable({
   const rows = buildTeamRows(
     recruiters.data ?? [],
     commercialAccess ? (commercial.data?.owners ?? []) : [],
-    { userId: currentUserId, isManager },
+    { userId: currentUserId, permissionCodes },
   );
 
   return (
@@ -67,7 +67,7 @@ export function TeamPerformanceTable({
             <Users className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-bold tracking-tight text-ink">
-            {isManager ? "Rendimiento del equipo" : "Tu rendimiento"}
+            {seesWholeTeam(permissionCodes) ? "Rendimiento del equipo" : "Tu rendimiento"}
           </h3>
         </div>
         <span className="text-[11px] font-medium text-muted-brand">

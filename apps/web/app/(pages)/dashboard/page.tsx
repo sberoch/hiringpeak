@@ -98,7 +98,7 @@ export default async function Dashboard() {
         <div className="flex min-w-0 flex-col gap-6">
           <TeamPerformanceTable
             currentUserId={data.id}
-            isManager={permissions?.roleName !== "Reclutador"}
+            permissionCodes={permissions?.permissionCodes ?? []}
             commercialAccess={hasCommercialAccess(
               permissions?.permissionCodes ?? [],
             )}
