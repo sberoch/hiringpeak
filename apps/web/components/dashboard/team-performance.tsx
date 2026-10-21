@@ -2,14 +2,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
+import { useSession } from "next-auth/react";
 import type { ReactNode } from "react";
 
 import type {
   CommercialSummary,
   RecruiterStats,
 } from "@workspace/shared/types/dashboard";
+import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { usePermissions } from "@/contexts/permission-context";
 import {
   COMMERCIAL_SUMMARY_API_KEY,
   getCommercialSummary,
@@ -19,12 +22,6 @@ import {
 import { formatCompactMoney, getInitials } from "@/lib/utils";
 
 import { buildTeamRows, seesWholeTeam } from "./team-rows";
-
-interface TeamPerformanceTableProps {
-  currentUserId: number;
-  permissionCodes: string[];
-  commercialAccess: boolean;
-}
 
 const RECRUITING_BAND = "bg-electric/[0.04]";
 const COMMERCIAL_BAND = "bg-violet-500/[0.05]";
@@ -36,11 +33,11 @@ const HEADER_CELL =
  * with a recruiting column group and, for users with commercial access, a
  * commercial one.
  */
-export function TeamPerformanceTable({
-  currentUserId,
-  permissionCodes,
-  commercialAccess,
-}: TeamPerformanceTableProps) {
+export function TeamPerformanceTable() {
+  const session = useSession();
+  const currentUserId = Number(session.data?.userId ?? 0);
+  const { permissionCodes } = usePermissions();
+  const commercialAccess = hasCommercialAccess(permissionCodes);
   const recruiters = useQuery<RecruiterStats[]>({
     queryKey: [RECRUITER_STATS_API_KEY],
     queryFn: getRecruiterStats,

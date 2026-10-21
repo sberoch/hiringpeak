@@ -6,6 +6,8 @@ import {
 
 import api from ".";
 
+export const DASHBOARD_SUMMARY_API_KEY = "dashboard-summary";
+
 export const RECRUITER_STATS_API_KEY = "recruiter-stats";
 
 export async function getDashboardSummary() {

@@ -18,11 +18,14 @@ export function showWidget(area: SavedLayout, key: string): SavedLayout {
   const widget = area.find((item) => item.key === key);
   if (!widget) return area;
   const rest = area.filter((item) => item.key !== key);
-  const lastShown = rest.findLastIndex((item) => item.visible);
+  const shownCount = rest.reduce(
+    (last, item, index) => (item.visible ? index + 1 : last),
+    0,
+  );
   return [
-    ...rest.slice(0, lastShown + 1),
+    ...rest.slice(0, shownCount),
     { ...widget, visible: true },
-    ...rest.slice(lastShown + 1),
+    ...rest.slice(shownCount),
   ];
 }
 
