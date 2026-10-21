@@ -171,6 +171,8 @@ export function fixtures(db: DrizzleDatabase) {
       fields: {
         companyId: number;
         createdBy: number;
+        /** Vacancy Owner; defaults to `createdBy`. */
+        assignedTo?: number;
         title?: string;
         opportunityId?: number | null;
         vacancyContactId?: number | null;
