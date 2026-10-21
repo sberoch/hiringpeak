@@ -1,0 +1,7 @@
+import { createZodDto } from 'nestjs-zod';
+import { UpdateBrandingLogoSchema } from '@workspace/shared/dtos';
+
+/** Request DTO: the Organization comes from the request context. */
+export class UpdateBrandingLogoDto extends createZodDto(
+  UpdateBrandingLogoSchema,
+) {}

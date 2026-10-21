@@ -15,15 +15,19 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { ComponentProps } from "react";
 
 import { SidebarDialogs } from "@/components/sidebar/dialogs";
+import {
+  SidebarBrand,
+  SidebarProductMark,
+} from "@/components/sidebar/sidebar-brand";
 import { usePermissions } from "@/contexts/permission-context";
 import { DialogsIdsEnum, REDIRECT_UNAUTHORIZED } from "@/lib/consts";
+import { BRANDING_API_KEY, getBranding } from "@/lib/api/branding";
 import { getMyOpenTaskCount, TASK_API_KEY } from "@/lib/api/tasks";
 import { getInitials } from "@/lib/utils";
 import { PermissionCode } from "@workspace/shared/enums";
@@ -187,6 +191,12 @@ const ADMIN_SECTION: SidebarSection = {
           url: "/organization-settings/audit-log",
           requiredPermissions: [PermissionCode.AUDIT_LOG_READ],
         },
+        {
+          id: "org-branding",
+          title: "Branding",
+          url: "/organization-settings/branding",
+          requiredPermissions: [PermissionCode.ORGANIZATION_MANAGE],
+        },
       ],
     },
     {
@@ -241,7 +251,13 @@ interface SidebarContentProps {
 
 export function AppSidebarContent({ otherProps }: SidebarContentProps) {
   const pathname = usePathname();
-  const { hasAnyPermission, permissionCodes, isLoading } = usePermissions();
+  const { hasAnyPermission, permissionCodes, organizationName, isLoading } =
+    usePermissions();
+  const { data: branding, isPending: brandingPending } = useQuery({
+    queryKey: [BRANDING_API_KEY],
+    queryFn: getBranding,
+    staleTime: 5 * 60 * 1000,
+  });
   const sections = buildSidebarSections(hasCommercialAccess(permissionCodes));
   const { collapsible = "icon", ...sidebarProps } = otherProps;
   const { toggleSidebar, state, isMobile, openMobile } = useSidebar();
@@ -267,28 +283,15 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
     return pathname.startsWith(subItemUrl);
   };
 
-  if (isLoading) return null;
+  if (isLoading || brandingPending) return null;
 
   return (
     <Sidebar collapsible={collapsible} {...sidebarProps}>
       <SidebarHeader className="p-0">
-        <div className="flex items-center border-b border-sidebar-border px-5 py-6 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-4">
-          <Link
-            href="/dashboard"
-            className="group flex items-center gap-2.5 group-data-[collapsible=icon]:gap-0"
-          >
-            <Image
-              src="/images/logo.png"
-              alt="HiringPeak"
-              width={36}
-              height={36}
-              className="h-9 w-auto transition-transform duration-200 group-hover:scale-105 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-contain"
-            />
-            <span className="font-sans text-lg font-bold tracking-tight text-ink group-data-[collapsible=icon]:sr-only">
-              HiringPeak
-            </span>
-          </Link>
-        </div>
+        <SidebarBrand
+          logoUrl={branding?.logoUrl ?? null}
+          organizationName={organizationName}
+        />
       </SidebarHeader>
       <SidebarContent className="gap-0 overflow-x-hidden pt-4 group-data-[collapsible=icon]:pt-2">
         {sections.map((section) => {
@@ -488,6 +491,7 @@ export function AppSidebarContent({ otherProps }: SidebarContentProps) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <SidebarProductMark logoUrl={branding?.logoUrl ?? null} />
       </SidebarFooter>
       <SidebarRail />
       <SidebarDialogs />

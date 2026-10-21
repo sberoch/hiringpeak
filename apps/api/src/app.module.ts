@@ -41,6 +41,7 @@ import { NotificationModule } from './notification/notification.module';
 import { OpportunityStageModule } from './opportunitystage/opportunitystage.module';
 import { LostReasonModule } from './lostreason/lostreason.module';
 import { OpportunityModule } from './opportunity/opportunity.module';
+import { BrandingModule } from './branding/branding.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { OpportunityModule } from './opportunity/opportunity.module';
     OpportunityStageModule,
     LostReasonModule,
     OpportunityModule,
+    BrandingModule,
   ],
   controllers: [AppController],
   providers: [
