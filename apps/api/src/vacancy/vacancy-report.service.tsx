@@ -44,6 +44,7 @@ export class VacancyReportService {
     const report = buildVacancyReportData({
       generatedAt,
       organizationName: organization.name,
+      branding: organization,
       vacancy,
     });
 

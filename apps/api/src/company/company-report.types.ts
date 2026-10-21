@@ -1,3 +1,5 @@
+import type { ReportBrand } from '../common/reports/report-brand';
+
 export interface CompanyReportVacancyRow {
   id: number;
   title: string;
@@ -39,6 +41,8 @@ export interface CompanyReportSummary {
 }
 
 export interface CompanyReportDocumentData {
+  /** Header mark: the Organization's logo, or its name as a wordmark. */
+  brand: ReportBrand;
   organizationName: string;
   companyName: string;
   companyDescription?: string;
