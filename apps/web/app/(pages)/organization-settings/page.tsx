@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getMePermissions } from "@/lib/api/auth";
-import { Users, Shield, FileText, Building2, ChevronRight } from "lucide-react";
+import { Building2, ChevronRight } from "lucide-react";
 import { PageHeading } from "@workspace/ui/components/page-heading";
-import { PermissionCode } from "@workspace/shared/enums";
+import { organizationSettingsCards } from "@/components/organization-settings/hub-cards";
 
 export const metadata: Metadata = {
   title: "Configuración de organización",
@@ -15,46 +15,15 @@ export default async function OrganizationSettingsPage() {
   const session = await auth();
   if (!session?.accessToken) redirect("/login");
   const permissions = await getMePermissions(session.accessToken);
-  const canManageRoles = permissions.permissionCodes.includes(PermissionCode.ROLE_MANAGE);
-  const canReadUsers = permissions.permissionCodes.includes(PermissionCode.USER_READ);
-
-  if (!canManageRoles && !canReadUsers) redirect("/dashboard");
-
-  const cards = [
-    ...(canReadUsers
-      ? [
-          {
-            href: "/organization-settings/users",
-            icon: Users,
-            title: "Usuarios",
-            description: "Gestionar usuarios de la organización",
-          },
-        ]
-      : []),
-    ...(canManageRoles
-      ? [
-          {
-            href: "/organization-settings/roles",
-            icon: Shield,
-            title: "Roles y permisos",
-            description: "Gestionar roles y asignar permisos",
-          },
-          {
-            href: "/organization-settings/audit-log",
-            icon: FileText,
-            title: "Registro de auditoría",
-            description: "Ver historial de acciones de la organización",
-          },
-        ]
-      : []),
-  ];
+  const cards = organizationSettingsCards(permissions.permissionCodes);
+  if (cards.length === 0) redirect("/dashboard");
 
   return (
     <div className="flex flex-col mb-12">
       <PageHeading
         icon={Building2}
         title="Configuración de la organización"
-        description="Gestiona usuarios, roles y permisos de tu organización."
+        description="Gestiona usuarios, roles, permisos y branding de tu organización."
         className="mb-8"
       />
 
