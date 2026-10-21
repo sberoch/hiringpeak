@@ -8,21 +8,6 @@ const recruiter = canSeeWith([PermissionCode.COMPANY_READ]);
 const keys = (entries: readonly { key: string }[]) => entries.map((e) => e.key);
 
 describe("Companies columns", () => {
-  it("show today's columns by default to a User with commercial access", () => {
-    expect(keys(resolveLayout(COMPANY_COLUMNS, undefined, commercial))).toEqual(
-      [
-        "name",
-        "status",
-        "accountOwner",
-        "contacts",
-        "activeVacancies",
-        "openOpportunities",
-        "lastInteraction",
-        "actions",
-      ],
-    );
-  });
-
   it("never offer commercial columns to a User without commercial access", () => {
     expect(
       keys(

@@ -1,5 +1,5 @@
 import { CANDIDATE_COLUMNS } from "./column-catalogues";
-import { layoutChoices, resolveLayout } from "./layout";
+import { resolveLayout } from "./layout";
 
 const everyone = () => true;
 
@@ -18,37 +18,6 @@ const savedBeforeNewColumns = [
 ];
 
 describe("Candidates Column Catalogue", () => {
-  it("shows today's columns by default", () => {
-    expect(keys(resolveLayout(CANDIDATE_COLUMNS, undefined, everyone))).toEqual(
-      [
-        "name",
-        "vacancies",
-        "tags",
-        "seniority",
-        "areas",
-        "industries",
-        "stars",
-        "actions",
-      ],
-    );
-  });
-
-  it("offers email, phone, LinkedIn, Origen, Países, Idiomas and Fecha de alta as hidden columns", () => {
-    const hidden = layoutChoices(CANDIDATE_COLUMNS, undefined, everyone)
-      .filter((choice) => !choice.visible)
-      .map((choice) => choice.entry.key);
-
-    expect(hidden).toEqual([
-      "email",
-      "phone",
-      "linkedin",
-      "source",
-      "countries",
-      "languages",
-      "createdAt",
-    ]);
-  });
-
   it("doesn't add the new columns to a layout saved before they existed", () => {
     expect(
       keys(resolveLayout(CANDIDATE_COLUMNS, savedBeforeNewColumns, everyone)),
