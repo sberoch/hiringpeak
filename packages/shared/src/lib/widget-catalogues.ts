@@ -1,7 +1,6 @@
 import { PermissionCode } from "../enums";
+import { COMMERCIAL_ACCESS_CODES } from "./commercial-access";
 import type { LayoutCatalogueEntry } from "./layout";
-
-const COMMERCIAL = [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE];
 
 /**
  * Widget catalogues, one per dashboard Widget Area (Stat, Wide, Rail): the
@@ -11,7 +10,7 @@ const COMMERCIAL = [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE];
  *
  * Keys are stored in Users' saved layouts, so never rename one. New Widgets
  * go in hidden by default; commercial ones declare
- * `requires: [PermissionCode.CRM_READ, PermissionCode.CRM_MANAGE]`.
+ * `requires: COMMERCIAL_ACCESS_CODES`.
  *
  * Only keys, defaults and Permissions live here; the Web app maps each key
  * to its label and component.
@@ -29,8 +28,16 @@ export const STAT_WIDGETS = [
     requires: [PermissionCode.TASK_READ],
   },
   { key: "candidatesAddedLast30Days", shownByDefault: false },
-  { key: "openOpportunities", shownByDefault: false, requires: COMMERCIAL },
-  { key: "pipelineFee", shownByDefault: false, requires: COMMERCIAL },
+  {
+    key: "openOpportunities",
+    shownByDefault: false,
+    requires: COMMERCIAL_ACCESS_CODES,
+  },
+  {
+    key: "pipelineFee",
+    shownByDefault: false,
+    requires: COMMERCIAL_ACCESS_CODES,
+  },
 ] as const satisfies readonly LayoutCatalogueEntry[];
 
 /** Wide: the main column. */
@@ -46,7 +53,7 @@ export const RAIL_WIDGETS = [
   {
     key: "noNextStepOpportunities",
     shownByDefault: false,
-    requires: COMMERCIAL,
+    requires: COMMERCIAL_ACCESS_CODES,
   },
 ] as const satisfies readonly LayoutCatalogueEntry[];
 
