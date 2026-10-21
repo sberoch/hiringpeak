@@ -1,6 +1,6 @@
 import { type Company } from '@workspace/shared/types/company';
+import { readableAccent } from '@workspace/shared/lib/accent-color';
 import {
-  buildReportAccent,
   buildReportBrand,
   type ReportBranding,
 } from '../common/reports/report-brand';
@@ -67,7 +67,7 @@ export function buildCompanyReportData(params: {
 
   return {
     brand: buildReportBrand(params.organizationName, params.branding),
-    accent: buildReportAccent(params.branding),
+    accent: readableAccent(params.branding.accentColor),
     organizationName: params.organizationName,
     companyName: params.company.name,
     companyDescription: params.company.description?.trim() || undefined,

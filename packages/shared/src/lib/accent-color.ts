@@ -50,6 +50,32 @@ export function accentTextColor(color: string): AccentReadability {
   return { ok: true, textColor: onWhite >= onBlack ? WHITE : BLACK };
 }
 
+/** An accent color with the text color (black or white) that reads on it. */
+export type ReadableAccent = { color: string; textColor: AccentTextColor };
+
+/**
+ * The Organization's accent color, or the default blue when it has none. A
+ * stored color that fails the readability rule (the API never saves one) also
+ * falls back to the default rather than ship something unreadable.
+ */
+export function readableAccent(accentColor: string | null): ReadableAccent {
+  const color = accentColor ?? DEFAULT_ACCENT_COLOR;
+  const readability = accentTextColor(color);
+  if (readability.ok === true) {
+    return { color, textColor: readability.textColor };
+  }
+  return readableAccent(null);
+}
+
+/**
+ * The color for text drawn in the accent on a white page. The accent reads
+ * on white exactly when white text reads on the accent; a light accent would
+ * fade into the page, so that text falls back to `ink`.
+ */
+export function accentTextOnWhite(accent: ReadableAccent, ink: string): string {
+  return accent.textColor === WHITE ? accent.color : ink;
+}
+
 function contrastRatio(a: number, b: number): number {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
