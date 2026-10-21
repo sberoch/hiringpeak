@@ -51,6 +51,37 @@ describe('BrandingService', () => {
     });
   });
 
+  it('records every change, including removing the logo, in the audit log', async () => {
+    await services.branding.update(admin, logoOf(org));
+    await services.branding.removeLogo(admin);
+
+    const page = await services.auditLog.findAll({
+      organizationId: org,
+      commercialAccess: false,
+    });
+    expect(
+      page.items.map(({ eventType, entityType, entityId, actorUserId }) => ({
+        eventType,
+        entityType,
+        entityId,
+        actorUserId,
+      })),
+    ).toEqual([
+      {
+        eventType: 'update_branding',
+        entityType: 'organization',
+        entityId: org,
+        actorUserId: admin.userId,
+      },
+      {
+        eventType: 'update_branding',
+        entityType: 'organization',
+        entityId: org,
+        actorUserId: admin.userId,
+      },
+    ]);
+  });
+
   describe('across Organizations', () => {
     let other: number;
 

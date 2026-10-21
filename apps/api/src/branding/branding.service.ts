@@ -10,6 +10,7 @@ import type { UpdateBrandingLogoDto } from '@workspace/shared/dtos';
 import { organizations } from '@workspace/shared/schemas';
 import type { Branding } from '@workspace/shared/types/branding';
 import { eq } from 'drizzle-orm';
+import { AuditService } from '../audit-log/audit.service';
 import { DrizzleProvider } from '../common/database/drizzle.module';
 import type { DrizzleDatabase } from '../common/database/types/drizzle';
 
@@ -26,10 +27,17 @@ const BRANDING_COLUMNS = {
   accentColor: organizations.accentColor,
 };
 
-/** An Organization's Branding: read by any of its End Users. */
+/**
+ * An Organization's Branding: read by any of its End Users, changed only with
+ * `ORGANIZATION_MANAGE`. Every change is recorded as an `update_branding`
+ * Audit Event.
+ */
 @Injectable()
 export class BrandingService {
-  constructor(@Inject(DrizzleProvider) private readonly db: DrizzleDatabase) {}
+  constructor(
+    @Inject(DrizzleProvider) private readonly db: DrizzleDatabase,
+    private readonly audit: AuditService,
+  ) {}
 
   async get(organizationId: number): Promise<Branding> {
     const [row] = await this.db
@@ -75,6 +83,13 @@ export class BrandingService {
       .set({ ...fields, updatedAt: new Date() })
       .where(eq(organizations.id, actor.organizationId))
       .returning(BRANDING_COLUMNS);
+    await this.audit.record({
+      eventType: 'update_branding',
+      entityType: 'organization',
+      entityId: actor.organizationId,
+      organizationId: actor.organizationId,
+      actorUserId: actor.userId,
+    });
     return row;
   }
 }

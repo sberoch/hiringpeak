@@ -94,6 +94,7 @@ export const AUDIT_EVENT_LABELS: Record<string, string> = {
   create_lost_reason: "Motivo de pérdida creado",
   update_lost_reason: "Motivo de pérdida actualizado",
   delete_lost_reason: "Motivo de pérdida eliminado",
+  update_branding: "Branding actualizado",
 };
 
 /** Spanish display label for each audited entity type. */
@@ -115,6 +116,7 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   opportunity: "Oportunidad",
   opportunity_stage: "Etapa de oportunidad",
   lost_reason: "Motivo de pérdida",
+  organization: "Organización",
 };
 
 /**
