@@ -5,7 +5,9 @@ import {
   candidates,
   companies,
   contacts,
+  lostReasons,
   opportunities,
+  opportunityContacts,
   opportunityStages,
   organizations,
   permissions,
@@ -128,6 +130,9 @@ export function fixtures(db: DrizzleDatabase) {
         ownerId: number;
         stageId: number;
         title?: string;
+        closeDate?: string | null;
+        lostReasonId?: number | null;
+        createdAt?: Date;
       },
     ) =>
       insertId(opportunities, {
@@ -136,6 +141,14 @@ export function fixtures(db: DrizzleDatabase) {
         title: fields.title ?? `Opportunity ${next()}`,
         ...fields,
       }),
+
+    /** Makes a Contact part of an Opportunity. */
+    async opportunityContact(opportunityId: number, contactId: number) {
+      await db.insert(opportunityContacts).values({ opportunityId, contactId });
+    },
+
+    lostReason: (organizationId: number, name = `Reason ${next()}`) =>
+      insertId(lostReasons, { organizationId, name, sort: next() }),
 
     vacancy: (
       organizationId: number,

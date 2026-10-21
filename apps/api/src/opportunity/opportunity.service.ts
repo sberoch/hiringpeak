@@ -81,13 +81,19 @@ export class OpportunityService {
 
   /**
    * Every matching Opportunity (not paginated: the list is grouped by stage),
-   * each with its last Interaction and its next step. `noNextStep` keeps only
-   * those with No Next Step.
+   * each with its last Interaction, its next step, its Contacts and how many
+   * Vacancies it produced. `noNextStep` keeps only those with No Next Step.
    */
   async findAll(params: OpportunityFindAllServiceParams) {
     const rows = await this.db.query.opportunities.findMany({
       where: this.buildWhereClause(params),
-      with: OPPORTUNITY_RELATIONS,
+      with: {
+        ...OPPORTUNITY_RELATIONS,
+        opportunityContacts: {
+          with: { contact: { columns: { id: true, name: true } } },
+        },
+        vacancies: { columns: { id: true } },
+      },
       orderBy: [desc(opportunities.createdAt), desc(opportunities.id)],
     });
     const recent = await this.findInteractionStamps(
@@ -95,9 +101,13 @@ export class OpportunityService {
       params.organizationId,
     );
     const withNextSteps = await this.withNextSteps(
-      rows.map((row) => ({
+      rows.map(({ opportunityContacts: links, vacancies: linked, ...row }) => ({
         ...toResponse(row),
         lastInteraction: lastInteractionOfOpportunity(row, recent),
+        contacts: links
+          .map((link) => link.contact)
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        vacancyCount: linked.length,
       })),
       params.organizationId,
     );
