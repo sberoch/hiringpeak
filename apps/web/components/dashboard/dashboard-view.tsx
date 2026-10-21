@@ -114,7 +114,7 @@ export function DashboardView({
                 </Button>
                 <Button
                   onClick={() => setEditing(false)}
-                  className="gap-2 rounded-xl"
+                  className="gap-2 rounded-xl bg-electric text-white hover:bg-electric-light"
                 >
                   <Check className="h-4 w-4" />
                   Listo
