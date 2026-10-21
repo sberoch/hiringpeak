@@ -1,3 +1,6 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Briefcase, Clock, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
@@ -5,43 +8,10 @@ import type { ReactNode } from "react";
 
 import type { Dashboard } from "@workspace/shared/types/dashboard";
 
-interface DashboardStatCardsProps {
-  data: Dashboard;
-}
-
-const cards = [
-  {
-    key: "vacancies",
-    label: "Búsquedas activas",
-    icon: Briefcase,
-    image: "/images/stat-search.png",
-    imagePosition: "-right-12 -top-4",
-    accent: "electric" as const,
-    getValue: (d: Dashboard) => d.activeVacancies,
-    getVariation: (d: Dashboard) => d.monthlyVacancies,
-  },
-  {
-    key: "candidates",
-    label: "Postulantes activos",
-    icon: Users,
-    image: "/images/stat-ideal-candidate.jpeg",
-    imagePosition: "-right-8 top-0",
-    accent: "violet" as const,
-    getValue: (d: Dashboard) => d.activeCandidates,
-    getVariation: (d: Dashboard) => d.monthlyCandidates,
-  },
-  {
-    key: "days",
-    label: "Prom. días de gestión",
-    icon: Clock,
-    image: "/images/stat-time.png",
-    imagePosition: "-right-10 -top-6",
-    accent: "teal" as const,
-    suffix: "días",
-    getValue: (d: Dashboard) => d.avgDaysOpen,
-    getVariation: () => undefined as number | undefined,
-  },
-] as const;
+import {
+  DASHBOARD_SUMMARY_API_KEY,
+  getDashboardSummary,
+} from "@/lib/api/dashboard";
 
 const VARIATION_POSITIVE = "text-emerald-600";
 const VARIATION_NEGATIVE = "text-red-500";
@@ -73,7 +43,7 @@ const accentStyles = {
 type StatAccent = keyof typeof accentStyles;
 
 /** "+N este mes" line under a stat value. */
-function MonthlyVariation({ variation }: { variation: number }) {
+export function MonthlyVariation({ variation }: { variation: number }) {
   return (
     <div className="flex items-center gap-1 text-sm font-medium text-slate-brand">
       <span
@@ -100,7 +70,7 @@ interface DashboardStatCardProps {
   footer?: ReactNode;
 }
 
-function DashboardStatCard({
+export function DashboardStatCard({
   label,
   icon: Icon,
   accent,
@@ -166,29 +136,70 @@ function DashboardStatCard({
   );
 }
 
-export function DashboardStatCards({ data }: DashboardStatCardsProps) {
-  return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-      {cards.map((card) => {
-        const variation = card.getVariation(data);
-
-        return (
-          <DashboardStatCard
-            key={card.key}
-            label={card.label}
-            icon={card.icon}
-            accent={card.accent}
-            value={card.getValue(data)}
-            suffix={"suffix" in card ? card.suffix : undefined}
-            image={{ src: card.image, position: card.imagePosition }}
-            footer={
-              variation !== undefined && (
-                <MonthlyVariation variation={variation} />
-              )
-            }
-          />
-        );
-      })}
-    </div>
-  );
+interface SummaryStatConfig {
+  label: string;
+  icon: LucideIcon;
+  image: { src: string; position: string };
+  accent: StatAccent;
+  suffix?: string;
+  getValue: (d: Dashboard) => number | null;
+  getVariation?: (d: Dashboard) => number;
 }
+
+/**
+ * A stat Widget read from the dashboard summary. The summary loads once
+ * for every stat on screen, and only when one is shown.
+ */
+function summaryStat(config: SummaryStatConfig) {
+  return function SummaryStat() {
+    const { data } = useQuery({
+      queryKey: [DASHBOARD_SUMMARY_API_KEY],
+      queryFn: getDashboardSummary,
+    });
+    const variation = data && config.getVariation?.(data);
+
+    return (
+      <DashboardStatCard
+        label={config.label}
+        icon={config.icon}
+        accent={config.accent}
+        value={data ? config.getValue(data) : undefined}
+        suffix={config.suffix}
+        image={config.image}
+        footer={
+          variation !== undefined && <MonthlyVariation variation={variation} />
+        }
+      />
+    );
+  };
+}
+
+export const ActiveVacanciesStat = summaryStat({
+  label: "Búsquedas activas",
+  icon: Briefcase,
+  image: { src: "/images/stat-search.png", position: "-right-12 -top-4" },
+  accent: "electric",
+  getValue: (d) => d.activeVacancies,
+  getVariation: (d) => d.monthlyVacancies,
+});
+
+export const ActiveCandidatesStat = summaryStat({
+  label: "Postulantes activos",
+  icon: Users,
+  image: {
+    src: "/images/stat-ideal-candidate.jpeg",
+    position: "-right-8 top-0",
+  },
+  accent: "violet",
+  getValue: (d) => d.activeCandidates,
+  getVariation: (d) => d.monthlyCandidates,
+});
+
+export const AvgDaysOpenStat = summaryStat({
+  label: "Prom. días de gestión",
+  icon: Clock,
+  image: { src: "/images/stat-time.png", position: "-right-10 -top-6" },
+  accent: "teal",
+  suffix: "días",
+  getValue: (d) => d.avgDaysOpen,
+});

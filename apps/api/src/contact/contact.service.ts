@@ -25,6 +25,9 @@ import {
   companies,
   contacts,
   contactSources,
+  opportunities,
+  opportunityContacts,
+  opportunityStages,
   taskContacts,
   tasks,
   users,
@@ -118,22 +121,55 @@ export class ContactService {
       itemsQuery,
       countQuery,
     ]);
-    const lastInteractions = await findLastInteractions(
-      this.db,
-      params.organizationId,
-      { contactIds: items.map((item) => item.id) },
-    );
+    const contactIds = items.map((item) => item.id);
+    const [lastInteractions, openOpportunityCounts] = await Promise.all([
+      findLastInteractions(this.db, params.organizationId, { contactIds }),
+      this.countOpenOpportunities(contactIds, params.organizationId),
+    ]);
     return paginatedResponse(
       await this.withNextFollowUps(
         items.map((item) => ({
           ...this.toNetworkContact(item),
           lastInteraction: lastInteractions.get(item.id) ?? null,
+          openOpportunityCount: openOpportunityCounts.get(item.id) ?? 0,
         })),
         params,
       ),
       totalItems,
       paginationQuery,
     );
+  }
+
+  /** How many open (neither won nor lost) Opportunities each Contact is in. */
+  private async countOpenOpportunities(
+    contactIds: number[],
+    organizationId: number,
+  ): Promise<Map<number, number>> {
+    if (contactIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({
+        contactId: opportunityContacts.contactId,
+        count: count(opportunityContacts.opportunityId),
+      })
+      .from(opportunityContacts)
+      .innerJoin(
+        opportunities,
+        eq(opportunities.id, opportunityContacts.opportunityId),
+      )
+      .innerJoin(
+        opportunityStages,
+        eq(opportunityStages.id, opportunities.stageId),
+      )
+      .where(
+        and(
+          inArray(opportunityContacts.contactId, contactIds),
+          eq(opportunities.organizationId, organizationId),
+          eq(opportunityStages.isWon, false),
+          eq(opportunityStages.isLost, false),
+        ),
+      )
+      .groupBy(opportunityContacts.contactId);
+    return new Map(rows.map((row) => [row.contactId, row.count]));
   }
 
   /**

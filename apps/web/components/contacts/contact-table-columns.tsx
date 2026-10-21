@@ -18,12 +18,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import type { ContactColumnKey } from "@workspace/shared/lib/column-catalogues";
 import { canManageContacts } from "@workspace/shared/lib/contact-access";
 import type {
   NetworkContact,
   NetworkContactListItem,
 } from "@workspace/shared/types/contact";
 
+import type { ColumnDefinition } from "@/components/column-layout/use-column-layout";
 import { LastInteractionLabel } from "@/components/interactions/interaction-format";
 import { usePermissions } from "@/contexts/permission-context";
 import { ContactAvatar } from "@/components/contacts/contact-avatar-and-links";
@@ -173,97 +175,221 @@ function OwnerCell({ contact }: { contact: NetworkContact }) {
   );
 }
 
-export const columns: ColumnDef<NetworkContactListItem>[] = [
-  {
-    id: "name",
-    accessorKey: "name",
-    header: ({ column }) => <SortHeader column={column} label="Contacto" />,
-    cell: ({ row }) => {
-      const contact = row.original;
-      return (
-        <div className="flex items-center gap-2.5">
-          <ContactAvatar name={contact.name} className="h-10 w-10" />
-          <div className="min-w-0">
-            <div className="flex items-center">
-              <Link
-                href={`/contacts/${contact.id}`}
-                className="truncate font-medium text-ink transition-colors hover:text-electric"
-              >
-                {contact.name}
-              </Link>
-              {contact.linkedin && (
+const Muted = ({ children }: { children: string }) => (
+  <span className="text-muted-brand">{children}</span>
+);
+
+/** How the Contacts list draws each column of its Column Catalogue. */
+export const contactColumns: Record<
+  ContactColumnKey,
+  ColumnDefinition<ColumnDef<NetworkContactListItem>>
+> = {
+  name: {
+    label: "Contacto",
+    column: {
+      id: "name",
+      accessorKey: "name",
+      header: ({ column }) => <SortHeader column={column} label="Contacto" />,
+      cell: ({ row }) => {
+        const contact = row.original;
+        return (
+          <div className="flex items-center gap-2.5">
+            <ContactAvatar name={contact.name} className="h-10 w-10" />
+            <div className="min-w-0">
+              <div className="flex items-center">
                 <Link
-                  href={linkedinUrl(contact.linkedin)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0"
+                  href={`/contacts/${contact.id}`}
+                  className="truncate font-medium text-ink transition-colors hover:text-electric"
                 >
-                  <Image
-                    src="/images/linkedin.svg"
-                    alt="LinkedIn"
-                    width={18}
-                    height={18}
-                    className="ml-2 inline-block"
-                  />
+                  {contact.name}
                 </Link>
+                {contact.linkedin && (
+                  <Link
+                    href={linkedinUrl(contact.linkedin)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0"
+                  >
+                    <Image
+                      src="/images/linkedin.svg"
+                      alt="LinkedIn"
+                      width={18}
+                      height={18}
+                      className="ml-2 inline-block"
+                    />
+                  </Link>
+                )}
+              </div>
+              {contact.role && (
+                <p className="mt-0.5 max-w-[220px] truncate text-xs text-slate-brand">
+                  {contact.role}
+                </p>
               )}
             </div>
-            {contact.role && (
-              <p className="mt-0.5 max-w-[220px] truncate text-xs text-slate-brand">
-                {contact.role}
-              </p>
-            )}
           </div>
-        </div>
-      );
+        );
+      },
     },
   },
-  {
-    id: "company",
-    header: () => <PlainHeader label="Empresa" />,
-    cell: ({ row }) => {
-      const company = row.original.company;
-      if (!company)
-        return <span className="text-muted-brand">Sin empresa</span>;
-      return (
-        <Link
-          href={`/companies/${company.id}`}
-          className="text-ink transition-colors hover:text-electric"
-        >
-          {company.name}
-        </Link>
-      );
+  company: {
+    label: "Empresa",
+    column: {
+      id: "company",
+      header: () => <PlainHeader label="Empresa" />,
+      cell: ({ row }) => {
+        const company = row.original.company;
+        if (!company)
+          return <span className="text-muted-brand">Sin empresa</span>;
+        return (
+          <Link
+            href={`/companies/${company.id}`}
+            className="text-ink transition-colors hover:text-electric"
+          >
+            {company.name}
+          </Link>
+        );
+      },
     },
   },
-  {
-    id: "source",
-    header: () => <PlainHeader label="Origen" />,
-    cell: ({ row }) => <SourceBadge source={row.original.source} />,
+  source: {
+    label: "Origen",
+    column: {
+      id: "source",
+      header: () => <PlainHeader label="Origen" />,
+      cell: ({ row }) => <SourceBadge source={row.original.source} />,
+    },
   },
-  {
-    id: "owner",
-    header: () => <PlainHeader label="Responsable" />,
-    cell: ({ row }) => <OwnerCell contact={row.original} />,
+  owner: {
+    label: "Responsable",
+    column: {
+      id: "owner",
+      header: () => <PlainHeader label="Responsable" />,
+      cell: ({ row }) => <OwnerCell contact={row.original} />,
+    },
   },
-  {
-    id: "lastInteraction",
-    header: () => <PlainHeader label="Últ. interacción" />,
-    cell: ({ row }) => (
-      <LastInteractionLabel last={row.original.lastInteraction} />
-    ),
+  lastInteraction: {
+    label: "Últ. interacción",
+    column: {
+      id: "lastInteraction",
+      header: () => <PlainHeader label="Últ. interacción" />,
+      cell: ({ row }) => (
+        <LastInteractionLabel last={row.original.lastInteraction} />
+      ),
+    },
   },
-  {
-    id: "followUp",
-    header: () => <PlainHeader label="Próximo seguimiento" />,
-    cell: ({ row }) => (
-      <NextFollowUpCell followUp={row.original.nextFollowUp} />
-    ),
+  followUp: {
+    label: "Próximo seguimiento",
+    column: {
+      id: "followUp",
+      header: () => <PlainHeader label="Próximo seguimiento" />,
+      cell: ({ row }) => (
+        <NextFollowUpCell followUp={row.original.nextFollowUp} />
+      ),
+    },
   },
-  {
-    id: "actions",
-    cell: ({ row }) => <CellActions contact={row.original} />,
+  role: {
+    label: "Cargo",
+    column: {
+      id: "role",
+      accessorKey: "role",
+      header: ({ column }) => <SortHeader column={column} label="Cargo" />,
+      cell: ({ row }) =>
+        row.original.role ? (
+          <span className="text-ink">{row.original.role}</span>
+        ) : (
+          <Muted>Sin cargo</Muted>
+        ),
+    },
   },
-];
+  email: {
+    label: "Email",
+    column: {
+      id: "email",
+      accessorKey: "email",
+      header: ({ column }) => <SortHeader column={column} label="Email" />,
+      cell: ({ row }) =>
+        row.original.email ? (
+          <a
+            href={`mailto:${row.original.email}`}
+            className="text-ink transition-colors hover:text-electric"
+          >
+            {row.original.email}
+          </a>
+        ) : (
+          <Muted>Sin email</Muted>
+        ),
+    },
+  },
+  phone: {
+    label: "Teléfono",
+    column: {
+      id: "phone",
+      header: () => <PlainHeader label="Teléfono" />,
+      cell: ({ row }) =>
+        row.original.phone ? (
+          <span className="whitespace-nowrap text-ink">
+            {row.original.phone}
+          </span>
+        ) : (
+          <Muted>Sin teléfono</Muted>
+        ),
+    },
+  },
+  linkedin: {
+    label: "LinkedIn",
+    column: {
+      id: "linkedin",
+      header: () => <PlainHeader label="LinkedIn" />,
+      cell: ({ row }) =>
+        row.original.linkedin ? (
+          <Link
+            href={linkedinUrl(row.original.linkedin)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block max-w-[220px] truncate text-ink transition-colors hover:text-electric"
+          >
+            {row.original.linkedin.replace(/^https?:\/\/(www\.)?/, "")}
+          </Link>
+        ) : (
+          <Muted>Sin LinkedIn</Muted>
+        ),
+    },
+  },
+  openOpportunities: {
+    label: "Oportunidades abiertas",
+    column: {
+      id: "openOpportunities",
+      header: () => <PlainHeader label="Oportunidades abiertas" />,
+      cell: ({ row }) => (
+        <span className="tabular-nums text-ink">
+          {row.original.openOpportunityCount}
+        </span>
+      ),
+    },
+  },
+  createdAt: {
+    label: "Fecha de alta",
+    column: {
+      id: "createdAt",
+      accessorKey: "createdAt",
+      header: ({ column }) => (
+        <SortHeader column={column} label="Fecha de alta" />
+      ),
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap text-ink">
+          {new Date(row.original.createdAt).toLocaleDateString("es-AR")}
+        </span>
+      ),
+    },
+  },
+  actions: {
+    label: "Acciones",
+    column: {
+      id: "actions",
+      cell: ({ row }) => <CellActions contact={row.original} />,
+    },
+  },
+};
 
 export function SourceBadge({
   source,

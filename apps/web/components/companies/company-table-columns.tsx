@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +16,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import type { CompanyColumnKey } from "@workspace/shared/lib/column-catalogues";
 import type { Company } from "@workspace/shared/types/company";
+import type { ColumnDefinition } from "@/components/column-layout/use-column-layout";
 import { formatMoney } from "@/lib/utils";
 import { downloadFile } from "@/lib/download";
 import {
@@ -130,129 +133,186 @@ const headerLabel = (label: string, className = "") => (
   <span className={`font-semibold text-slate-brand ${className}`}>{label}</span>
 );
 
-const nameColumn: ColumnDef<Company> = {
-  accessorKey: "name",
-  header: ({ column }) => (
-    <Button
-      variant="ghost"
-      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
-    >
-      Nombre
-      <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
-    </Button>
-  ),
-  cell: ({ row }) => (
-    <Link
-      href={`/companies/${row.original.id}`}
-      className="font-medium text-ink hover:text-electric transition-colors"
-    >
-      {row.original.name}
-    </Link>
-  ),
-};
-
-const baseColumns: ColumnDef<Company>[] = [
-  {
-    id: "status",
-    header: () => headerLabel("Estado"),
-    cell: ({ row }) => <CompanyStatusBadge status={row.original.status} />,
-  },
-  {
-    id: "accountOwner",
-    header: () => headerLabel("Responsable de cuenta"),
-    cell: ({ row }) => <AccountOwnerControl company={row.original} size="sm" />,
-  },
-  {
-    id: "contacts",
-    header: () => headerLabel("Contactos"),
-    cell: ({ row }) => {
-      const contacts = row.original.contacts;
-      if (contacts.length === 0) {
-        return <span className="text-muted-brand">—</span>;
-      }
-      return (
-        <span
-          className="text-slate-brand"
-          title={contacts
-            .map((c) => (c.role ? `${c.name} (${c.role})` : c.name))
-            .join("\n")}
-        >
-          <span className="font-semibold text-ink">{contacts.length}</span>{" "}
-          <span className="text-xs">
-            ·{" "}
-            {contacts
-              .slice(0, 2)
-              .map((c) => c.name.split(" ")[0])
-              .join(", ")}
-            {contacts.length > 2 && "…"}
-          </span>
-        </span>
-      );
-    },
-  },
-  {
-    id: "activeVacancies",
-    header: () => headerLabel("Vacantes activas"),
-    cell: ({ row }) => (
-      <span
-        className={
-          row.original.activeVacancyCount
-            ? "tabular-nums text-ink"
-            : "tabular-nums text-muted-brand"
-        }
+/** A header that sorts the list on the server by its column id. */
+function sortableHeader(label: string): ColumnDef<Company>["header"] {
+  return function SortableHeader({ column }) {
+    return (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="h-auto font-semibold text-slate-brand hover:text-ink hover:bg-transparent transition-colors"
       >
-        {row.original.activeVacancyCount}
-      </span>
-    ),
-  },
-];
+        {label}
+        <ArrowUpDown className="ml-2 h-3 w-3 opacity-60" />
+      </Button>
+    );
+  };
+}
 
-/** Only for users with commercial access. */
-const commercialColumns: ColumnDef<Company>[] = [
-  {
-    id: "openOpportunities",
-    header: () => headerLabel("Oportunidades abiertas"),
-    cell: ({ row }) => {
-      const summary = row.original.commercial;
-      if (!summary?.openOpportunityCount) {
-        return <span className="text-muted-brand">—</span>;
-      }
-      return (
-        <span className="text-ink">
-          <span className="font-semibold">{summary.openOpportunityCount}</span>
-          <span className="mx-1.5 text-muted-brand">·</span>
-          <span className="tabular-nums text-slate-brand">
-            {summary.openOpportunityFee > 0
-              ? formatMoney(summary.openOpportunityFee)
-              : "Sin estimar"}
-          </span>
-        </span>
-      );
+const count = (value: number) => (
+  <span
+    className={
+      value ? "tabular-nums text-ink" : "tabular-nums text-muted-brand"
+    }
+  >
+    {value}
+  </span>
+);
+
+/** How the Companies list draws each column of its Column Catalogue. */
+export const companyColumns: Record<
+  CompanyColumnKey,
+  ColumnDefinition<ColumnDef<Company>>
+> = {
+  name: {
+    label: "Nombre",
+    column: {
+      accessorKey: "name",
+      header: sortableHeader("Nombre"),
+      cell: ({ row }) => (
+        <Link
+          href={`/companies/${row.original.id}`}
+          className="font-medium text-ink hover:text-electric transition-colors"
+        >
+          {row.original.name}
+        </Link>
+      ),
     },
   },
-  {
-    id: "lastInteraction",
-    header: () => headerLabel("Última interacción"),
-    cell: ({ row }) => (
-      <LastInteractionLabel
-        last={row.original.commercial?.lastInteraction ?? null}
-      />
-    ),
+  status: {
+    label: "Estado",
+    column: {
+      id: "status",
+      header: () => headerLabel("Estado"),
+      cell: ({ row }) => <CompanyStatusBadge status={row.original.status} />,
+    },
   },
-];
-
-const actionsColumn: ColumnDef<Company> = {
-  id: "actions",
-  cell: ({ row }) => <CellActions company={row.original} />,
+  accountOwner: {
+    label: "Responsable de cuenta",
+    column: {
+      id: "accountOwner",
+      header: () => headerLabel("Responsable de cuenta"),
+      cell: ({ row }) => (
+        <AccountOwnerControl company={row.original} size="sm" />
+      ),
+    },
+  },
+  contacts: {
+    label: "Contactos",
+    column: {
+      id: "contacts",
+      header: () => headerLabel("Contactos"),
+      cell: ({ row }) => {
+        const contacts = row.original.contacts;
+        if (contacts.length === 0) {
+          return <span className="text-muted-brand">—</span>;
+        }
+        return (
+          <span
+            className="text-slate-brand"
+            title={contacts
+              .map((c) => (c.role ? `${c.name} (${c.role})` : c.name))
+              .join("\n")}
+          >
+            <span className="font-semibold text-ink">{contacts.length}</span>{" "}
+            <span className="text-xs">
+              ·{" "}
+              {contacts
+                .slice(0, 2)
+                .map((c) => c.name.split(" ")[0])
+                .join(", ")}
+              {contacts.length > 2 && "…"}
+            </span>
+          </span>
+        );
+      },
+    },
+  },
+  activeVacancies: {
+    label: "Vacantes activas",
+    column: {
+      id: "activeVacancies",
+      header: () => headerLabel("Vacantes activas"),
+      cell: ({ row }) => count(row.original.activeVacancyCount),
+    },
+  },
+  openOpportunities: {
+    label: "Oportunidades abiertas",
+    column: {
+      id: "openOpportunities",
+      header: () => headerLabel("Oportunidades abiertas"),
+      cell: ({ row }) => {
+        const summary = row.original.commercial;
+        if (!summary?.openOpportunityCount) {
+          return <span className="text-muted-brand">—</span>;
+        }
+        return (
+          <span className="text-ink">
+            <span className="font-semibold">
+              {summary.openOpportunityCount}
+            </span>
+            <span className="mx-1.5 text-muted-brand">·</span>
+            <span className="tabular-nums text-slate-brand">
+              {summary.openOpportunityFee > 0
+                ? formatMoney(summary.openOpportunityFee)
+                : "Sin estimar"}
+            </span>
+          </span>
+        );
+      },
+    },
+  },
+  lastInteraction: {
+    label: "Última interacción",
+    column: {
+      id: "lastInteraction",
+      header: () => headerLabel("Última interacción"),
+      cell: ({ row }) => (
+        <LastInteractionLabel
+          last={row.original.commercial?.lastInteraction ?? null}
+        />
+      ),
+    },
+  },
+  totalVacancies: {
+    label: "Vacantes totales",
+    column: {
+      id: "totalVacancies",
+      header: () => headerLabel("Vacantes totales"),
+      cell: ({ row }) => count(row.original.vacancyCount),
+    },
+  },
+  openOpportunityFee: {
+    label: "Fee estimado abierto",
+    column: {
+      id: "openOpportunityFee",
+      header: () => headerLabel("Fee estimado abierto"),
+      cell: ({ row }) => {
+        const fee = row.original.commercial?.openOpportunityFee ?? 0;
+        if (fee <= 0) return <span className="text-muted-brand">—</span>;
+        return (
+          <span className="tabular-nums text-ink">{formatMoney(fee)}</span>
+        );
+      },
+    },
+  },
+  createdAt: {
+    label: "Fecha de alta",
+    column: {
+      accessorKey: "createdAt",
+      header: sortableHeader("Fecha de alta"),
+      cell: ({ row }) => (
+        <span className="tabular-nums text-slate-brand">
+          {dayjs(row.original.createdAt).format("DD/MM/YYYY")}
+        </span>
+      ),
+    },
+  },
+  actions: {
+    label: "Acciones",
+    column: {
+      id: "actions",
+      cell: ({ row }) => <CellActions company={row.original} />,
+    },
+  },
 };
-
-/** The Companies list columns; commercial-only ones need `commercial`. */
-export function companyColumns(commercial: boolean): ColumnDef<Company>[] {
-  return [
-    nameColumn,
-    ...baseColumns,
-    ...(commercial ? commercialColumns : []),
-    actionsColumn,
-  ];
-}

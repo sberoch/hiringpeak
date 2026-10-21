@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
@@ -13,11 +13,14 @@ import {
   CompanyFilterPanel,
 } from "@/components/companies/company-filter-panel";
 import { companyColumns } from "@/components/companies/company-table-columns";
+import { ColumnLayoutPopover } from "@/components/column-layout/column-layout-popover";
+import { useColumnLayout } from "@/components/column-layout/use-column-layout";
 import { NewCompanySheet } from "@/components/companies/new-company-sheet";
 import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import { DataTable } from "@workspace/ui/components/data-table";
 import { useCompanyFilters } from "@/hooks/use-company-filters";
 import { COMPANIES_API_KEY, getAllCompanies } from "@/lib/api/company";
+import { COMPANY_COLUMNS } from "@workspace/shared/lib/column-catalogues";
 
 export default function Companies() {
   const { canRead: commercial } = useCommercialAccess();
@@ -26,7 +29,11 @@ export default function Companies() {
     useCompanyFilters({
       initialValues: { limit: 10, page: 1, order: "name:asc" },
     });
-  const columns = useMemo(() => companyColumns(commercial), [commercial]);
+  const { columns, menu } = useColumnLayout(
+    "companies",
+    COMPANY_COLUMNS,
+    companyColumns,
+  );
   const filterCount = activeFilterCount(filters);
 
   const { data, isLoading } = useQuery({
@@ -70,6 +77,7 @@ export default function Companies() {
             </span>
           )}
         </Button>
+        <ColumnLayoutPopover {...menu} />
       </div>
 
       {filterCount > 0 && (

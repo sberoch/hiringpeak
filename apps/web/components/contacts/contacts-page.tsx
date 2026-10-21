@@ -9,8 +9,11 @@ import { DataTable } from "@workspace/ui/components/data-table";
 import { Input } from "@workspace/ui/components/input";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import { hasCommercialAccess } from "@workspace/shared/lib/commercial-access";
+import { CONTACT_COLUMNS } from "@workspace/shared/lib/column-catalogues";
 import { canManageContacts } from "@workspace/shared/lib/contact-access";
 
+import { ColumnLayoutPopover } from "@/components/column-layout/column-layout-popover";
+import { useColumnLayout } from "@/components/column-layout/use-column-layout";
 import { usePermissions } from "@/contexts/permission-context";
 import { useContactFilters } from "@/hooks/use-contact-filters";
 import { CONTACT_API_KEY, getContacts } from "@/lib/api/contact";
@@ -20,7 +23,7 @@ import {
   ContactFilterPanel,
   useActiveFilterCount,
 } from "./contact-filter-panel";
-import { columns } from "./contact-table-columns";
+import { contactColumns } from "./contact-table-columns";
 
 /** Shown instead of a commercial-only page to users without commercial access. */
 export function NoCommercialAccess() {
@@ -48,6 +51,11 @@ export function ContactsPage() {
 function ContactsList({ canManage }: { canManage: boolean }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const { columns, menu } = useColumnLayout(
+    "contacts",
+    CONTACT_COLUMNS,
+    contactColumns,
+  );
   const { filters, params, setFilters, onPaginationChange, onSortingChange } =
     useContactFilters({
       initialValues: { limit: 50, order: "name:asc" },
@@ -104,6 +112,7 @@ function ContactsList({ canManage }: { canManage: boolean }) {
             </span>
           )}
         </Button>
+        <ColumnLayoutPopover {...menu} />
       </div>
 
       {activeFilterCount > 0 && (

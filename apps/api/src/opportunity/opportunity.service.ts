@@ -13,6 +13,7 @@ import {
   inArray,
   isNull,
   or,
+  sql,
   SQL,
 } from 'drizzle-orm';
 import {
@@ -81,23 +82,33 @@ export class OpportunityService {
 
   /**
    * Every matching Opportunity (not paginated: the list is grouped by stage),
-   * each with its last Interaction and its next step. `noNextStep` keeps only
-   * those with No Next Step.
+   * each with its last Interaction, its next step, its Contacts and how many
+   * Vacancies it produced. `noNextStep` keeps only those with No Next Step.
    */
   async findAll(params: OpportunityFindAllServiceParams) {
     const rows = await this.db.query.opportunities.findMany({
       where: this.buildWhereClause(params),
-      with: OPPORTUNITY_RELATIONS,
-      orderBy: [desc(opportunities.createdAt), desc(opportunities.id)],
+      with: {
+        ...OPPORTUNITY_RELATIONS,
+        opportunityContacts: {
+          with: { contact: { columns: { id: true, name: true } } },
+        },
+        vacancies: { columns: { id: true } },
+      },
+      orderBy: buildOrderBy(params.order),
     });
     const recent = await this.findInteractionStamps(
       rows,
       params.organizationId,
     );
     const withNextSteps = await this.withNextSteps(
-      rows.map((row) => ({
+      rows.map(({ opportunityContacts: links, vacancies: linked, ...row }) => ({
         ...toResponse(row),
         lastInteraction: lastInteractionOfOpportunity(row, recent),
+        contacts: links
+          .map((link) => link.contact)
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        vacancyCount: linked.length,
       })),
       params.organizationId,
     );
@@ -604,6 +615,27 @@ export class OpportunityService {
 }
 
 /** pg returns numeric as a string; the API speaks plain numbers. */
+/** The sortable fields of the list; anything else is a 400. */
+const SORTABLE = {
+  closeDate: opportunities.closeDate,
+  createdAt: opportunities.createdAt,
+} as const;
+
+/** `"field:asc|desc"`; newest first when omitted. Undated sort last. */
+function buildOrderBy(order: string | undefined): SQL[] {
+  if (!order) return [desc(opportunities.createdAt), desc(opportunities.id)];
+  const [sortBy, direction] = order.split(':');
+  if (!Object.hasOwn(SORTABLE, sortBy)) {
+    throw new BadRequestException('Invalid sortBy parameter');
+  }
+  const column = SORTABLE[sortBy as keyof typeof SORTABLE];
+  const descending = direction?.toLowerCase() === 'desc';
+  return [
+    sql`${column} ${descending ? sql`desc` : sql`asc`} nulls last`,
+    desc(opportunities.id),
+  ];
+}
+
 function toResponse<T extends { estimatedFee: string | null }>(row: T) {
   return {
     ...row,

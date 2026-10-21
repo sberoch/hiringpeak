@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { formatMoney } from "@/lib/utils";
+import type { OpportunityColumnKey } from "@workspace/shared/lib/column-catalogues";
 import type {
   OpportunityListItem,
   OpportunityStage,
@@ -17,8 +18,12 @@ import {
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 
+import type { ColumnDefinition } from "@/components/column-layout/use-column-layout";
 import { LastInteractionLabel } from "@/components/interactions/interaction-format";
-import { opportunityHref } from "@/components/opportunities/opportunity-format";
+import {
+  formatDay,
+  opportunityHref,
+} from "@/components/opportunities/opportunity-format";
 import { StageBadge, stageTone } from "@/components/opportunities/stage-badge";
 import { NextStepCell } from "./opportunity-next-step";
 
@@ -29,13 +34,21 @@ export interface OpportunityCellContext {
   onMove: (stage: OpportunityStage) => void;
 }
 
+/** The list fields the server can sort Opportunities by. */
+export type OpportunitySortField = "closeDate" | "createdAt";
+
 /** One column of the grouped Opportunities table. */
 export interface OpportunityColumn {
-  key: string;
+  key: OpportunityColumnKey;
   header: string;
-  /** Tailwind width class for the column's `<col>`. */
-  width: string;
+  /**
+   * Relative width. The visible columns share the table in proportion; the
+   * default layout's widths add up to 100.
+   */
+  width: number;
   align?: "left" | "right";
+  /** Sortable on the server by this field; its header toggles the order. */
+  sortField?: OpportunitySortField;
   /** Classes for the `<td>`, beyond alignment. */
   cellClassName: string | ((opportunity: OpportunityListItem) => string);
   cell: (
@@ -44,12 +57,11 @@ export interface OpportunityColumn {
   ) => ReactNode;
 }
 
-/** The Opportunities table's columns, in display order. */
-export const opportunityColumns: OpportunityColumn[] = [
+const columnList: OpportunityColumn[] = [
   {
     key: "title",
     header: "Oportunidad",
-    width: "w-[20%]",
+    width: 20,
     cellClassName: "py-3 pl-9 pr-3",
     cell: (opportunity) => (
       <Link
@@ -64,7 +76,7 @@ export const opportunityColumns: OpportunityColumn[] = [
   {
     key: "company",
     header: "Empresa",
-    width: "w-[13%]",
+    width: 13,
     cellClassName: "px-3 py-3",
     cell: (opportunity) => (
       <Link
@@ -78,7 +90,7 @@ export const opportunityColumns: OpportunityColumn[] = [
   {
     key: "estimatedFee",
     header: "Fee estimado",
-    width: "w-[11%]",
+    width: 11,
     align: "right",
     cellClassName: (opportunity) =>
       cn(
@@ -95,21 +107,21 @@ export const opportunityColumns: OpportunityColumn[] = [
   {
     key: "nextStep",
     header: "Próximo paso",
-    width: "w-[18%]",
+    width: 18,
     cellClassName: "px-3 py-3",
     cell: (opportunity) => <NextStepCell opportunity={opportunity} />,
   },
   {
     key: "owner",
     header: "Responsable",
-    width: "w-[11%]",
+    width: 11,
     cellClassName: "truncate px-3 py-3 text-slate-brand",
     cell: (opportunity) => opportunity.owner.name,
   },
   {
     key: "lastInteraction",
     header: "Últ. interacción",
-    width: "w-[11%]",
+    width: 11,
     cellClassName: "px-3 py-3",
     cell: (opportunity) => (
       <LastInteractionLabel last={opportunity.lastInteraction} />
@@ -118,7 +130,7 @@ export const opportunityColumns: OpportunityColumn[] = [
   {
     key: "stage",
     header: "Etapa",
-    width: "w-[16%]",
+    width: 16,
     cellClassName: "px-3 py-2",
     cell: (opportunity, { stages, canManage, onMove }) =>
       canManage ? (
@@ -157,4 +169,64 @@ export const opportunityColumns: OpportunityColumn[] = [
         <StageBadge stage={opportunity.stage} />
       ),
   },
+  {
+    key: "closeDate",
+    header: "Fecha de cierre",
+    width: 10,
+    sortField: "closeDate",
+    cellClassName: (opportunity) =>
+      cn(
+        "whitespace-nowrap px-3 py-3",
+        opportunity.closeDate ? "text-slate-brand" : "text-muted-brand",
+      ),
+    cell: (opportunity) =>
+      opportunity.closeDate ? formatDay(opportunity.closeDate) : "—",
+  },
+  {
+    key: "contacts",
+    header: "Contactos",
+    width: 14,
+    cellClassName: (opportunity) =>
+      cn(
+        "truncate px-3 py-3",
+        opportunity.contacts.length ? "text-slate-brand" : "text-muted-brand",
+      ),
+    cell: (opportunity) => {
+      if (opportunity.contacts.length === 0) return "—";
+      const names = opportunity.contacts.map((c) => c.name).join(", ");
+      return <span title={names}>{names}</span>;
+    },
+  },
+  {
+    key: "linkedVacancies",
+    header: "Vacantes vinculadas",
+    width: 9,
+    align: "right",
+    cellClassName: "whitespace-nowrap px-3 py-3 tabular-nums text-slate-brand",
+    cell: (opportunity) => opportunity.vacancyCount,
+  },
+  {
+    key: "createdAt",
+    header: "Fecha de creación",
+    width: 10,
+    sortField: "createdAt",
+    cellClassName: "whitespace-nowrap px-3 py-3 text-slate-brand",
+    cell: (opportunity) => formatDay(opportunity.createdAt),
+  },
+  {
+    key: "lostReason",
+    header: "Motivo de pérdida",
+    width: 12,
+    cellClassName: (opportunity) =>
+      cn(
+        "truncate px-3 py-3",
+        opportunity.lostReason ? "text-slate-brand" : "text-muted-brand",
+      ),
+    cell: (opportunity) => opportunity.lostReason?.name ?? "—",
+  },
 ];
+
+/** Every catalogue column of the Opportunities table, by key. */
+export const opportunityColumns = Object.fromEntries(
+  columnList.map((column) => [column.key, { label: column.header, column }]),
+) as Record<OpportunityColumnKey, ColumnDefinition<OpportunityColumn>>;
