@@ -20,6 +20,15 @@ export type ReportBrand =
  */
 export type ReportAccent = { color: string; textColor: AccentTextColor };
 
+/**
+ * The color for text drawn in the accent on the white page. The accent reads
+ * on white exactly when white text reads on the accent; a light accent would
+ * fade into the page, so that text falls back to `ink`.
+ */
+export function accentTextOnWhite(accent: ReportAccent, ink: string): string {
+  return accent.textColor === '#ffffff' ? accent.color : ink;
+}
+
 /** What the report data builders need to know about the Organization's brand. */
 export type ReportBranding = Pick<Branding, 'logoUrl' | 'accentColor'>;
 
