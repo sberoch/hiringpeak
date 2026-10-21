@@ -2,7 +2,7 @@
  * Whether a Lost Reason can be removed. The list is never emptied (entering the
  * lost stage requires a Lost Reason), and a reason that lost Opportunities
  * still carry stays, so their outcome keeps its explanation. Pure: no I/O, no
- * throw. See CONTEXT.md (`Lost Reason`).
+ * throw. See GLOSSARY.md (`Lost Reason`).
  */
 export type LostReasonRemovalResult =
   | { ok: true }

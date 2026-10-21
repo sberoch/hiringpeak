@@ -413,7 +413,7 @@ export class VacancyService {
    * surface as `findAll` (reuses `buildWhereClause`/`buildOrderBy` so the
    * exported set exactly matches the screen) but UNPAGINATED and WITHOUT
    * hydrating the candidacy graph — the candidate count comes from a single
-   * grouped aggregate. No row cap (see CONTEXT.md accepted-risk note).
+   * grouped aggregate. No row cap (see GLOSSARY.md accepted-risk note).
    */
   async findAllForListReport(
     params: VacancyListReportServiceParams,

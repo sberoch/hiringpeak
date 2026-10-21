@@ -17,7 +17,7 @@ import {
 } from '../common/excel/excel.utils';
 
 /**
- * Excel rendering of the **Vacancy Report** (see CONTEXT.md → "Report Format").
+ * Excel rendering of the **Vacancy Report** (see GLOSSARY.md → "Report Format").
  * Two sheets: `Resumen` (metadata + aggregate tables, reusing the PDF's view
  * model) and `Candidatos` (the full per-candidacy dump — every column,
  * including the internal-only Rejection Note, Blacklist and Comments the PDF

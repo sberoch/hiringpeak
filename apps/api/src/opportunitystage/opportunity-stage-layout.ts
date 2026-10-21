@@ -13,7 +13,7 @@ import {
  * well-formed while they are configured — exactly one won and one lost stage,
  * both sorted after every open stage, and outcome flags that only move between
  * stages holding no Opportunity. Pure: no I/O, no throw — callers decide how to
- * surface violations. See CONTEXT.md (`Opportunity Stage`).
+ * surface violations. See GLOSSARY.md (`Opportunity Stage`).
  *
  * Every successful result is the full, re-numbered layout (sort 0..n-1: open
  * stages in their order, then won, then lost); callers persist what changed.

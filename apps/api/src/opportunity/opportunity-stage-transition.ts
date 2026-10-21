@@ -7,7 +7,7 @@ import {
  * Opportunity stage transition: given the target Opportunity Stage, an optional
  * Lost Reason and an optional Close Date, returns the outcome fields the
  * Opportunity ends up with, or the violated rule. Pure: no I/O, no throw —
- * callers decide how to surface violations. See CONTEXT.md (`Opportunity Stage`,
+ * callers decide how to surface violations. See GLOSSARY.md (`Opportunity Stage`,
  * `Lost Reason`, `Opportunity Close Date`).
  */
 export type TargetStage = { id: number; isWon: boolean; isLost: boolean };

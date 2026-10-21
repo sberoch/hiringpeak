@@ -2,7 +2,7 @@
  * Commercial dashboard metrics: the «Comercial» Dashboard section computed from
  * plain Opportunity rows for a given "now". Pure: no I/O, no throw. Always the
  * current calendar year (no period parameter), matching "Rendimiento por
- * reclutador". See CONTEXT.md (`Opportunity`, `Estimated Fee`,
+ * reclutador". See GLOSSARY.md (`Opportunity`, `Estimated Fee`,
  * `Opportunity Close Date`).
  */
 import type {

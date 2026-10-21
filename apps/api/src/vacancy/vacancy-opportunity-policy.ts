@@ -3,7 +3,7 @@ import { hasCommercialAccess } from '@workspace/shared/lib/commercial-access';
 
 /**
  * Vacancy from Opportunity — pure, no I/O, no throw (callers decide how to
- * surface a violation). See CONTEXT.md (`Opportunity`).
+ * surface a violation). See GLOSSARY.md (`Opportunity`).
  *
  * - Only a won Opportunity can produce, or be linked to, a Vacancy: if work
  *   has started, the Opportunity is won.

@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 
 /**
- * Shared helpers for the Excel **Report Format** (see CONTEXT.md → "Report
+ * Shared helpers for the Excel **Report Format** (see GLOSSARY.md → "Report
  * Format"). Unlike the PDF renderings — which prioritise styling for a
  * client-facing deliverable — the Excel renderings prioritise *completeness*:
  * dense, structured tables a recruiter can sort/filter/pivot. These helpers

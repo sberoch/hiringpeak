@@ -15,7 +15,7 @@ import {
 } from '../common/excel/excel.utils';
 
 /**
- * Excel rendering of the internal **Vacancy List Report** (see CONTEXT.md →
+ * Excel rendering of the internal **Vacancy List Report** (see GLOSSARY.md →
  * "Report Format"). Inherently one flat table — one row per Vacancy across the
  * filtered set — plus a `Resumen` sheet echoing the active filters and the
  * by-status tally. Mirrors the same filtered, unpaginated set as the PDF.

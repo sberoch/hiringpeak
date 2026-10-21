@@ -2,7 +2,7 @@
  * Vacancy List Report — an INTERNAL PDF listing of Vacancies across the
  * Organization, scoped by the active list-screen filters. Distinct from the
  * client-facing per-Vacancy Vacancy Report / per-Company Company Report: it
- * spans Companies and may surface internal data. See CONTEXT.md → "Vacancy
+ * spans Companies and may surface internal data. See GLOSSARY.md → "Vacancy
  * List Report". One block per Vacancy; never the per-Vacancy shortlist.
  */
 

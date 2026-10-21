@@ -21,7 +21,7 @@ import { buildCompanyReportData } from './company-report.utils';
 import type { CompanyReportVacancyRow } from './company-report.types';
 
 /**
- * Excel rendering of the **Company Report** (see CONTEXT.md → "Report Format").
+ * Excel rendering of the **Company Report** (see GLOSSARY.md → "Report Format").
  * Three sheets: `Resumen` (company metadata + aggregates), `Vacantes` (one row
  * per Vacancy) and `Candidatos` — a per-candidacy dump across ALL the Company's
  * Vacancies that the PDF never surfaces (the Excel is a deeper dump). Internal
