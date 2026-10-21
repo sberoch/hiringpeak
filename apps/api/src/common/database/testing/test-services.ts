@@ -14,6 +14,7 @@ import { NotificationService } from '../../../notification/notification.service'
 import { OpportunityService } from '../../../opportunity/opportunity.service';
 import { OpportunityStageService } from '../../../opportunitystage/opportunitystage.service';
 import { PermissionService } from '../../../permission/permission.service';
+import { PreferencesService } from '../../../preferences/preferences.service';
 import { RoleService } from '../../../role/role.service';
 import { TaskService } from '../../../task/task.service';
 import { UserService } from '../../../user/user.service';
@@ -37,6 +38,7 @@ const SERVICES = [
   OpportunityService,
   OpportunityStageService,
   PermissionService,
+  PreferencesService,
   RoleService,
   TaskService,
   UserService,
@@ -61,6 +63,7 @@ export async function testServices(db: DrizzleDatabase) {
     lostReasons: module.get(LostReasonService),
     notifications: module.get(NotificationService),
     opportunities: module.get(OpportunityService),
+    preferences: module.get(PreferencesService),
     roles: module.get(RoleService),
     stages: module.get(OpportunityStageService),
     tasks: module.get(TaskService),

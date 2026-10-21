@@ -30,3 +30,4 @@ export * from "./opportunity.schema";
 export * from "./opportunitystage.schema";
 export * from "./opportunitycontact.schema";
 export * from "./interaction.schema";
+export * from "./user-layout.schema";
