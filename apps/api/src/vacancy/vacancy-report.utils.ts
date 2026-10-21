@@ -1,4 +1,5 @@
 import {
+  buildReportAccent,
   buildReportBrand,
   type ReportBranding,
 } from '../common/reports/report-brand';
@@ -48,6 +49,7 @@ export function buildVacancyReportData(params: {
 
   return {
     brand: buildReportBrand(params.organizationName, params.branding),
+    accent: buildReportAccent(params.branding),
     candidates,
     description: params.vacancy.description || undefined,
     hiredCandidates,

@@ -12,9 +12,12 @@ import { apiErrorMessage } from "@/lib/api/api-error";
 import {
   BRANDING_API_KEY,
   getBranding,
+  removeBrandingAccent,
   removeBrandingLogo,
+  updateBrandingAccent,
   updateBrandingLogo,
 } from "@/lib/api/branding";
+import { AccentColorSettings } from "./accent-color-settings";
 import { firebaseLogoStorage } from "@/lib/branding/firebase-logo-storage";
 import {
   LOGO_ACCEPT,
@@ -26,11 +29,16 @@ const ACCEPT_ATTRIBUTE = Object.entries(LOGO_ACCEPT)
   .flatMap(([type, extensions]) => [type, ...extensions])
   .join(",");
 
-/** The Branding card: upload or remove the Organization's logo. */
+/**
+ * The Branding card: upload or remove the Organization's logo, and pick the
+ * accent color for its client PDFs.
+ */
 export function BrandingSettings({
   organizationId,
+  organizationName,
 }: {
   organizationId: number;
+  organizationName: string;
 }) {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -71,14 +79,29 @@ export function BrandingSettings({
     if (!error) upload.mutate(file);
   };
 
+  const saveAccent = useMutation({
+    mutationFn: (accentColor: string) => updateBrandingAccent({ accentColor }),
+    onSuccess: () => onSaved("Color actualizado"),
+    onError: (error) =>
+      toast.error(apiErrorMessage(error, "No se pudo guardar el color")),
+  });
+
+  const clearAccent = useMutation({
+    mutationFn: removeBrandingAccent,
+    onSuccess: () => onSaved("Se volvió al color predeterminado"),
+    onError: (error) =>
+      toast.error(apiErrorMessage(error, "No se pudo quitar el color")),
+  });
+
   const busy = upload.isPending || remove.isPending;
+  const accentBusy = saveAccent.isPending || clearAccent.isPending;
 
   return (
     <div className="flex flex-col mb-12">
       <PageHeading
         icon={Palette}
         title="Branding"
-        description="El logo de tu organización reemplaza al de HiringPeak en el menú lateral."
+        description="El logo de tu organización reemplaza al de HiringPeak en el menú lateral, y junto con el color de acento identifica los reportes que enviás a tus clientes."
         className="mb-8"
       />
 
@@ -145,6 +168,19 @@ export function BrandingSettings({
           </p>
         )}
       </section>
+
+      {branding && (
+        <AccentColorSettings
+          // Remount on a saved change so the picker starts from the new color.
+          key={branding.accentColor ?? "default"}
+          accentColor={branding.accentColor}
+          logoUrl={branding.logoUrl}
+          organizationName={organizationName}
+          busy={accentBusy}
+          onSave={(color) => saveAccent.mutate(color)}
+          onClear={() => clearAccent.mutate()}
+        />
+      )}
     </div>
   );
 }

@@ -8,6 +8,10 @@ import {
   Text,
   View,
 } from '@react-pdf/renderer';
+import {
+  accentTextOnWhite,
+  type ReportAccent,
+} from '../common/reports/report-brand';
 import { ReportBrandMark } from '../common/reports/report-brand-mark';
 import { stringToColor } from '@workspace/shared/utils';
 import type {
@@ -33,7 +37,6 @@ const COLORS = {
   muted: '#94a3b8',
   border: '#e2e8f0',
   borderLight: '#f1f5f9',
-  electric: '#0066ff',
   hiredBg: '#f0fdf4',
   hiredBorder: '#bbf7d0',
   hiredText: '#166534',
@@ -83,7 +86,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: COLORS.electric,
   },
 
   // ── Title block (page 1) ─────────────────────────────────────
@@ -96,7 +98,6 @@ const styles = StyleSheet.create({
   titleEyebrow: {
     fontSize: 9,
     fontWeight: 700,
-    color: COLORS.electric,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 6,
@@ -164,7 +165,6 @@ const styles = StyleSheet.create({
     width: 3,
     height: 12,
     borderRadius: 2,
-    backgroundColor: COLORS.electric,
     marginRight: 8,
   },
   sectionTitle: {
@@ -378,12 +378,24 @@ export function VacancyReportDocument({
           <Text style={styles.pageHeaderMeta}>
             Reporte · {generationDateLabel}
           </Text>
-          <View style={styles.pageHeaderAccent} />
+          <View
+            style={[
+              styles.pageHeaderAccent,
+              { backgroundColor: report.accent.color },
+            ]}
+          />
         </View>
 
         {/* Title block (page 1 only) */}
         <View style={styles.titleBlock}>
-          <Text style={styles.titleEyebrow}>{report.organizationName}</Text>
+          <Text
+            style={[
+              styles.titleEyebrow,
+              { color: accentTextOnWhite(report.accent, COLORS.ink) },
+            ]}
+          >
+            {report.organizationName}
+          </Text>
           <View style={styles.titleRow}>
             <Text style={styles.vacancyTitle}>
               {report.metadata.vacancyTitle}
@@ -444,7 +456,7 @@ export function VacancyReportDocument({
         {/* Description */}
         {report.description ? (
           <View style={styles.section}>
-            <SectionHeader title="Descripción" />
+            <SectionHeader accent={report.accent} title="Descripción" />
             <Text style={styles.descriptionText}>{report.description}</Text>
           </View>
         ) : null}
@@ -452,7 +464,7 @@ export function VacancyReportDocument({
         {/* Motivos de rechazo */}
         {report.rejectionBreakdown.length > 0 ? (
           <View style={styles.section} wrap={false}>
-            <SectionHeader title="Motivos de rechazo" />
+            <SectionHeader accent={report.accent} title="Motivos de rechazo" />
             <View style={styles.breakdownCard}>
               {report.rejectionBreakdown.map((reason, index) => (
                 <View
@@ -473,6 +485,7 @@ export function VacancyReportDocument({
         {/* Postulantes */}
         <View style={styles.section}>
           <SectionHeader
+            accent={report.accent}
             title="Postulantes"
             count={report.summary.totalCandidates}
           />
@@ -519,14 +532,17 @@ function MetaCell({ label, value }: MetaCellProps) {
 }
 
 interface SectionHeaderProps {
+  accent: ReportAccent;
   title: string;
   count?: number;
 }
 
-function SectionHeader({ title, count }: SectionHeaderProps) {
+function SectionHeader({ accent, title, count }: SectionHeaderProps) {
   return (
     <View style={styles.sectionHeader}>
-      <View style={styles.sectionAccent} />
+      <View
+        style={[styles.sectionAccent, { backgroundColor: accent.color }]}
+      />
       <Text style={styles.sectionTitle}>{title}</Text>
       {typeof count === 'number' ? (
         <Text style={styles.sectionCount}>({count})</Text>
