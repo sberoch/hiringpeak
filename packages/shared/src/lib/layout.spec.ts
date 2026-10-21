@@ -16,7 +16,8 @@ const catalogue: LayoutCatalogueEntry[] = [
   { key: "actions", shownByDefault: true, lock: "last" },
 ];
 
-const keys = (entries: readonly LayoutCatalogueEntry[]) => entries.map((e) => e.key);
+const keys = (entries: readonly LayoutCatalogueEntry[]) =>
+  entries.map((e) => e.key);
 
 describe("resolveLayout", () => {
   it("shows the default-shown entries in catalogue order when nothing is saved", () => {

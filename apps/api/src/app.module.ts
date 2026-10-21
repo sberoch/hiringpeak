@@ -40,6 +40,7 @@ import { TaskModule } from './task/task.module';
 import { NotificationModule } from './notification/notification.module';
 import { OpportunityStageModule } from './opportunitystage/opportunitystage.module';
 import { LostReasonModule } from './lostreason/lostreason.module';
+import { PreferencesModule } from './preferences/preferences.module';
 import { OpportunityModule } from './opportunity/opportunity.module';
 
 @Module({
@@ -85,6 +86,7 @@ import { OpportunityModule } from './opportunity/opportunity.module';
     NotificationModule,
     OpportunityStageModule,
     LostReasonModule,
+    PreferencesModule,
     OpportunityModule,
   ],
   controllers: [AppController],
