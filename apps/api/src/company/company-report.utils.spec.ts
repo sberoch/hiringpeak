@@ -37,7 +37,7 @@ describe('company-report.utils', () => {
       company: baseCompany,
       generatedAt,
       organizationName: 'Organización Demo',
-      branding: { logoUrl: null },
+      branding: { logoUrl: null, accentColor: null },
       vacancies: [
         createVacancy({
           id: 1,
@@ -124,7 +124,7 @@ describe('company-report.utils', () => {
       company: baseCompany,
       generatedAt,
       organizationName: 'Organización Demo',
-      branding: { logoUrl: null },
+      branding: { logoUrl: null, accentColor: null },
       vacancies: [],
     });
 
@@ -265,7 +265,7 @@ describe('company-report.utils', () => {
       company: baseCompany,
       generatedAt,
       organizationName: 'Acme Talent',
-      branding: { logoUrl: ACME_LOGO_URL },
+      branding: { logoUrl: ACME_LOGO_URL, accentColor: null },
       vacancies: [],
     });
 
@@ -277,11 +277,41 @@ describe('company-report.utils', () => {
       company: baseCompany,
       generatedAt,
       organizationName: 'Acme Talent',
-      branding: { logoUrl: null },
+      branding: { logoUrl: null, accentColor: null },
       vacancies: [],
     });
 
     expect(report.brand).toEqual({ kind: 'wordmark', text: 'Acme Talent' });
+  });
+
+  it.each([
+    ['a dark', '#1a1a2e', '#ffffff'],
+    ['a light', '#ffd400', '#000000'],
+  ])(
+    'accents the report with %s accent color and the text color that reads on it',
+    (_variant, accentColor, textColor) => {
+      const report = buildCompanyReportData({
+        company: baseCompany,
+        generatedAt,
+        organizationName: 'Acme Talent',
+        branding: { logoUrl: ACME_LOGO_URL, accentColor },
+        vacancies: [],
+      });
+
+      expect(report.accent).toEqual({ color: accentColor, textColor });
+    },
+  );
+
+  it('accents the report with the default blue and white text without an accent color', () => {
+    const report = buildCompanyReportData({
+      company: baseCompany,
+      generatedAt,
+      organizationName: 'Acme Talent',
+      branding: { logoUrl: null, accentColor: null },
+      vacancies: [],
+    });
+
+    expect(report.accent).toEqual({ color: '#0066ff', textColor: '#ffffff' });
   });
 
   it.each([
@@ -292,7 +322,7 @@ describe('company-report.utils', () => {
       company: baseCompany,
       generatedAt,
       organizationName: 'Acme Talent',
-      branding: { logoUrl },
+      branding: { logoUrl, accentColor: null },
       vacancies: [],
     });
 

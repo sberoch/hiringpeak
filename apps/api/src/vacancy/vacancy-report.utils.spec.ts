@@ -22,7 +22,7 @@ describe('vacancy-report.utils', () => {
     const report = buildVacancyReportData({
       generatedAt: new Date('2026-04-08T10:00:00.000Z'),
       organizationName: 'Organización Demo',
-      branding: { logoUrl: null },
+      branding: { logoUrl: null, accentColor: null },
       vacancy: createVacancy({
         candidates: [
           {
@@ -83,7 +83,7 @@ describe('vacancy-report.utils', () => {
     const report = buildVacancyReportData({
       generatedAt: new Date('2026-04-08T10:00:00.000Z'),
       organizationName: 'Acme Talent',
-      branding: { logoUrl: ACME_LOGO_URL },
+      branding: { logoUrl: ACME_LOGO_URL, accentColor: null },
       vacancy: createVacancy({ candidates: [] }),
     });
 
@@ -94,11 +94,39 @@ describe('vacancy-report.utils', () => {
     const report = buildVacancyReportData({
       generatedAt: new Date('2026-04-08T10:00:00.000Z'),
       organizationName: 'Acme Talent',
-      branding: { logoUrl: null },
+      branding: { logoUrl: null, accentColor: null },
       vacancy: createVacancy({ candidates: [] }),
     });
 
     expect(report.brand).toEqual({ kind: 'wordmark', text: 'Acme Talent' });
+  });
+
+  it.each([
+    ['a dark', '#1a1a2e', '#ffffff'],
+    ['a light', '#ffd400', '#000000'],
+  ])(
+    'accents the report with %s accent color and the text color that reads on it',
+    (_variant, accentColor, textColor) => {
+      const report = buildVacancyReportData({
+        generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+        organizationName: 'Acme Talent',
+        branding: { logoUrl: ACME_LOGO_URL, accentColor },
+        vacancy: createVacancy({ candidates: [] }),
+      });
+
+      expect(report.accent).toEqual({ color: accentColor, textColor });
+    },
+  );
+
+  it('accents the report with the default blue and white text without an accent color', () => {
+    const report = buildVacancyReportData({
+      generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      organizationName: 'Acme Talent',
+      branding: { logoUrl: null, accentColor: null },
+      vacancy: createVacancy({ candidates: [] }),
+    });
+
+    expect(report.accent).toEqual({ color: '#0066ff', textColor: '#ffffff' });
   });
 
   it.each([
@@ -108,7 +136,7 @@ describe('vacancy-report.utils', () => {
     const report = buildVacancyReportData({
       generatedAt: new Date('2026-04-08T10:00:00.000Z'),
       organizationName: 'Acme Talent',
-      branding: { logoUrl },
+      branding: { logoUrl, accentColor: null },
       vacancy: createVacancy({ candidates: [] }),
     });
 

@@ -82,6 +82,58 @@ describe('BrandingService', () => {
     ]);
   });
 
+  describe('accent color', () => {
+    it('reads back a readable accent color an administrator set', async () => {
+      await services.branding.updateAccent(admin, { accentColor: '#1A1A2E' });
+
+      expect((await services.branding.get(org)).accentColor).toBe('#1a1a2e');
+    });
+
+    it('rejects an accent color readable with neither black nor white text', async () => {
+      await expect(
+        services.branding.updateAccent(admin, { accentColor: '#777777' }),
+      ).rejects.toThrow(/ni con texto negro ni con texto blanco/);
+      expect((await services.branding.get(org)).accentColor).toBeNull();
+    });
+
+    it('rejects an accent color that is not #RRGGBB', async () => {
+      await expect(
+        services.branding.updateAccent(admin, { accentColor: 'blue' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('goes back to no accent color once it is cleared', async () => {
+      await services.branding.updateAccent(admin, { accentColor: '#ffd400' });
+
+      await services.branding.removeAccent(admin);
+
+      expect((await services.branding.get(org)).accentColor).toBeNull();
+    });
+
+    it('records saving and clearing the accent color in the audit log', async () => {
+      await services.branding.updateAccent(admin, { accentColor: '#ffd400' });
+      await services.branding.removeAccent(admin);
+
+      const page = await services.auditLog.findAll({
+        organizationId: org,
+        commercialAccess: false,
+      });
+      expect(page.items.map((event) => event.eventType)).toEqual([
+        'update_branding',
+        'update_branding',
+      ]);
+    });
+
+    it('cannot be set without ORGANIZATION_MANAGE', async () => {
+      await expect(
+        services.branding.updateAccent(
+          { ...admin, codes: [PermissionCode.SETTINGS_MANAGE] },
+          { accentColor: '#ffd400' },
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
   describe('across Organizations', () => {
     let other: number;
 
