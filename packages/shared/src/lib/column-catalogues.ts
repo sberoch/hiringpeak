@@ -70,3 +70,21 @@ export const COMPANY_COLUMNS = [
 ] as const satisfies readonly LayoutCatalogueEntry[];
 
 export type CompanyColumnKey = (typeof COMPANY_COLUMNS)[number]["key"];
+
+/** The whole Opportunities screen already needs commercial access. */
+export const OPPORTUNITY_COLUMNS = [
+  { key: "title", shownByDefault: true, lock: "first" },
+  { key: "company", shownByDefault: true },
+  { key: "estimatedFee", shownByDefault: true },
+  { key: "nextStep", shownByDefault: true },
+  { key: "owner", shownByDefault: true },
+  { key: "lastInteraction", shownByDefault: true },
+  { key: "stage", shownByDefault: true },
+  { key: "closeDate", shownByDefault: false },
+  { key: "contacts", shownByDefault: false },
+  { key: "linkedVacancies", shownByDefault: false },
+  { key: "createdAt", shownByDefault: false },
+  { key: "lostReason", shownByDefault: false },
+] as const satisfies readonly LayoutCatalogueEntry[];
+
+export type OpportunityColumnKey = (typeof OPPORTUNITY_COLUMNS)[number]["key"];

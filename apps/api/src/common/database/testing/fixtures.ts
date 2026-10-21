@@ -5,6 +5,7 @@ import {
   candidates,
   companies,
   contacts,
+  lostReasons,
   opportunities,
   opportunityContacts,
   opportunityStages,
@@ -149,6 +150,9 @@ export function fixtures(db: DrizzleDatabase) {
         stageId: number;
         title?: string;
         estimatedFee?: string | null;
+        closeDate?: string | null;
+        lostReasonId?: number | null;
+        createdAt?: Date;
       },
     ) =>
       insertId(opportunities, {
@@ -157,6 +161,9 @@ export function fixtures(db: DrizzleDatabase) {
         title: fields.title ?? `Opportunity ${next()}`,
         ...fields,
       }),
+
+    lostReason: (organizationId: number, name = `Reason ${next()}`) =>
+      insertId(lostReasons, { organizationId, name, sort: next() }),
 
     vacancy: (
       organizationId: number,

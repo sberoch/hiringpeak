@@ -2,6 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   ChevronDown,
   ChevronRight,
   Handshake,
@@ -13,6 +16,7 @@ import { useEffect, useState } from "react";
 
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
+import { OPPORTUNITY_COLUMNS } from "@workspace/shared/lib/column-catalogues";
 import { groupOpportunitiesByStage } from "@workspace/shared/lib/opportunities-by-stage";
 import type {
   OpportunityFilters,
@@ -25,6 +29,8 @@ import { LoadingSpinner } from "@workspace/ui/components/loading-spinner";
 import { PageHeading } from "@workspace/ui/components/page-heading";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { ColumnLayoutPopover } from "@/components/column-layout/column-layout-popover";
+import { useColumnLayout } from "@/components/column-layout/use-column-layout";
 import { NewOpportunityButton } from "./new-opportunity-sheet";
 import { stageTone } from "@/components/opportunities/stage-badge";
 import { useCommercialAccess } from "@/components/opportunities/commercial-access";
@@ -39,6 +45,7 @@ import {
   opportunityColumns,
   type OpportunityCellContext,
   type OpportunityColumn,
+  type OpportunitySortField,
 } from "./opportunity-table-columns";
 import { useStageChange } from "./stage-change";
 
@@ -67,10 +74,29 @@ export function OpportunitiesPage() {
     Record<number, boolean>
   >({});
 
+  const [sort, setSort] = useState<{
+    field: OpportunitySortField;
+    direction: "asc" | "desc";
+  } | null>(null);
+  const { columns, menu } = useColumnLayout(
+    "opportunities",
+    OPPORTUNITY_COLUMNS,
+    opportunityColumns,
+  );
+  /** Sorting by a hidden column is dropped: the headers wouldn't show it. */
+  const activeSort =
+    sort && columns.some((column) => column.sortField === sort.field)
+      ? sort
+      : null;
+  const totalWidth = columns.reduce((sum, column) => sum + column.width, 0);
+
   const debouncedSearch = useDebounced(search);
   const filters: OpportunityFilters = {
     ...panelFilters,
     search: debouncedSearch.trim() || undefined,
+    order: activeSort
+      ? `${activeSort.field}:${activeSort.direction}`
+      : undefined,
   };
   const panelFilterCount = activeFilterCount(panelFilters);
 
@@ -81,7 +107,6 @@ export function OpportunitiesPage() {
     placeholderData: (previous) => previous,
   });
   const { requestMove, dialog } = useStageChange();
-  const columns = opportunityColumns;
 
   const summary = groupOpportunitiesByStage(stages ?? [], opportunities ?? []);
   const filtering = !!filters.search || panelFilterCount > 0;
@@ -124,6 +149,7 @@ export function OpportunitiesPage() {
             </span>
           )}
         </Button>
+        <ColumnLayoutPopover {...menu} />
         <div className="ml-auto flex items-center gap-3 text-xs text-slate-brand">
           <button
             type="button"
@@ -175,7 +201,10 @@ export function OpportunitiesPage() {
           <table className="w-full table-fixed text-sm">
             <colgroup>
               {columns.map((column) => (
-                <col key={column.key} className={column.width} />
+                <col
+                  key={column.key}
+                  style={{ width: `${(column.width / totalWidth) * 100}%` }}
+                />
               ))}
             </colgroup>
             <thead className="sticky top-0 z-10">
@@ -188,7 +217,21 @@ export function OpportunitiesPage() {
                       column.align === "right" && "text-right",
                     )}
                   >
-                    {column.header}
+                    {column.sortField ? (
+                      <SortableHeader
+                        label={column.header}
+                        direction={
+                          activeSort?.field === column.sortField
+                            ? activeSort.direction
+                            : null
+                        }
+                        onSort={(direction) =>
+                          setSort({ field: column.sortField!, direction })
+                        }
+                      />
+                    ) : (
+                      column.header
+                    )}
                   </th>
                 ))}
               </tr>
@@ -287,6 +330,37 @@ export function OpportunitiesPage() {
 
       {dialog}
     </div>
+  );
+}
+
+/** A header that orders the list by its column on the server. */
+function SortableHeader({
+  label,
+  direction,
+  onSort,
+}: {
+  label: string;
+  direction: "asc" | "desc" | null;
+  onSort: (direction: "asc" | "desc") => void;
+}) {
+  const Icon =
+    direction === "asc"
+      ? ArrowUp
+      : direction === "desc"
+        ? ArrowDown
+        : ArrowUpDown;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(direction === "asc" ? "desc" : "asc")}
+      className={cn(
+        "inline-flex items-center gap-1 uppercase tracking-wide hover:text-ink",
+        direction && "text-ink",
+      )}
+    >
+      {label}
+      <Icon className={cn("h-3 w-3", !direction && "opacity-60")} />
+    </button>
   );
 }
 
