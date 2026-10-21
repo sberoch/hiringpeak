@@ -25,19 +25,8 @@ export default async function Dashboard() {
   const spreadsheetUrl = process.env.NEXT_PUBLIC_SPREADSHEET_URL;
   const vacancyStatuses = await getAllVacancyStatuses({ limit: 1e9, page: 1 });
 
-  const openStatus = vacancyStatuses.items.find(
-    (status) =>
-      status.name.toLowerCase().includes("abierto") ||
-      status.name.toLowerCase().includes("abierta") ||
-      status.name.toLowerCase().includes("open"),
-  );
-  const closedStatus = vacancyStatuses.items.find(
-    (status) =>
-      status.name.toLowerCase().includes("cerrado") ||
-      status.name.toLowerCase().includes("cubierta") ||
-      status.name.toLowerCase().includes("closed") ||
-      status.name.toLowerCase().includes("finalizado"),
-  );
+  const openStatus = vacancyStatuses.items.find((status) => !status.isFinal);
+  const closedStatus = vacancyStatuses.items.find((status) => status.isFinal);
 
   const currentHour = new Date().getHours();
   const greeting =
@@ -104,8 +93,8 @@ export default async function Dashboard() {
             )}
           />
           <LatestVacancies
-            openStatusId={String(openStatus?.id || "abierta")}
-            closedStatusId={String(closedStatus?.id || "cubierta")}
+            openStatusId={openStatus?.id}
+            closedStatusId={closedStatus?.id}
           />
         </div>
 
