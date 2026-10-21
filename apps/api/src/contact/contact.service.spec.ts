@@ -357,4 +357,50 @@ describe('ContactService.findAll — Column Catalogue fields', () => {
       ['Zoe', 0],
     ]);
   });
+
+  describe('sorting on the server', () => {
+    beforeEach(async () => {
+      await f.contact(org, {
+        name: 'Ana',
+        role: 'CTO',
+        email: 'b@acme.com',
+        createdAt: new Date('2026-02-01T00:00:00Z'),
+      });
+      await f.contact(org, {
+        name: 'Bruno',
+        role: 'CEO',
+        email: 'c@acme.com',
+        createdAt: new Date('2026-03-01T00:00:00Z'),
+      });
+      await f.contact(org, {
+        name: 'Carla',
+        role: 'CFO',
+        email: 'a@acme.com',
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      });
+    });
+    const names = async (order: string) =>
+      (await listAll(order)).map((c) => c.name);
+
+    it('by Cargo', async () => {
+      expect(await names('role:asc')).toEqual(['Bruno', 'Carla', 'Ana']);
+      expect(await names('role:desc')).toEqual(['Ana', 'Carla', 'Bruno']);
+    });
+
+    it('by email', async () => {
+      expect(await names('email:asc')).toEqual(['Carla', 'Ana', 'Bruno']);
+      expect(await names('email:desc')).toEqual(['Bruno', 'Ana', 'Carla']);
+    });
+
+    it('by created date', async () => {
+      expect(await names('createdAt:asc')).toEqual(['Carla', 'Ana', 'Bruno']);
+      expect(await names('createdAt:desc')).toEqual(['Bruno', 'Ana', 'Carla']);
+    });
+
+    it('not by the open Opportunities count', async () => {
+      await expect(listAll('openOpportunityCount:asc')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
 });
