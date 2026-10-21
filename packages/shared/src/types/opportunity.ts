@@ -116,6 +116,8 @@ export type OpportunityFilters = {
   companyStatus?: CompanyStatus;
   /** "Solo sin próximo paso": only open Opportunities with No Next Step. */
   noNextStep?: boolean;
+  /** `"closeDate:asc|desc"` or `"createdAt:asc|desc"`. */
+  order?: string;
 };
 
 export type CreateOpportunityPayload = {

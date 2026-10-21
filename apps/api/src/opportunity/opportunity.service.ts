@@ -13,6 +13,7 @@ import {
   inArray,
   isNull,
   or,
+  sql,
   SQL,
 } from 'drizzle-orm';
 import {
@@ -94,7 +95,7 @@ export class OpportunityService {
         },
         vacancies: { columns: { id: true } },
       },
-      orderBy: [desc(opportunities.createdAt), desc(opportunities.id)],
+      orderBy: buildOrderBy(params.order),
     });
     const recent = await this.findInteractionStamps(
       rows,
@@ -614,6 +615,27 @@ export class OpportunityService {
 }
 
 /** pg returns numeric as a string; the API speaks plain numbers. */
+/** The sortable fields of the list; anything else is a 400. */
+const SORTABLE = {
+  closeDate: opportunities.closeDate,
+  createdAt: opportunities.createdAt,
+} as const;
+
+/** `"field:asc|desc"`; newest first when omitted. Undated sort last. */
+function buildOrderBy(order: string | undefined): SQL[] {
+  if (!order) return [desc(opportunities.createdAt), desc(opportunities.id)];
+  const [sortBy, direction] = order.split(':');
+  if (!Object.hasOwn(SORTABLE, sortBy)) {
+    throw new BadRequestException('Invalid sortBy parameter');
+  }
+  const column = SORTABLE[sortBy as keyof typeof SORTABLE];
+  const descending = direction?.toLowerCase() === 'desc';
+  return [
+    sql`${column} ${descending ? sql`desc` : sql`asc`} nulls last`,
+    desc(opportunities.id),
+  ];
+}
+
 function toResponse<T extends { estimatedFee: string | null }>(row: T) {
   return {
     ...row,

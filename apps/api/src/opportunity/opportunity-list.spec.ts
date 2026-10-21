@@ -79,3 +79,46 @@ describe('OpportunityService.findAll — catalogue fields', () => {
     });
   });
 });
+
+describe('OpportunityService.findAll — sorting', () => {
+  const titles = async (order: string) =>
+    (await opportunities.findAll({ organizationId: org, order })).map(
+      (o) => o.title,
+    );
+
+  it('sorts by Close Date, Opportunities without one last', async () => {
+    await opportunity({ title: 'Open' });
+    await opportunity({
+      title: 'October',
+      stageId: stages.won,
+      closeDate: '2026-10-01',
+    });
+    await opportunity({
+      title: 'August',
+      stageId: stages.won,
+      closeDate: '2026-08-01',
+    });
+
+    expect({
+      asc: await titles('closeDate:asc'),
+      desc: await titles('closeDate:desc'),
+    }).toEqual({
+      asc: ['August', 'October', 'Open'],
+      desc: ['October', 'August', 'Open'],
+    });
+  });
+
+  it('sorts by created date', async () => {
+    await opportunity({ title: 'March', createdAt: new Date('2026-03-01') });
+    await opportunity({ title: 'January', createdAt: new Date('2026-01-01') });
+    await opportunity({ title: 'May', createdAt: new Date('2026-05-01') });
+
+    expect(await titles('createdAt:asc')).toEqual(['January', 'March', 'May']);
+  });
+
+  it('rejects sorting by a field that is not sortable', async () => {
+    await expect(titles('estimatedFee:asc')).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+});
