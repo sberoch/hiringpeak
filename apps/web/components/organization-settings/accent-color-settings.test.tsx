@@ -32,7 +32,7 @@ describe("AccentColorSettings", () => {
     expect(screen.getByTestId("preview-accent-bar")).toHaveStyle({
       backgroundColor: "#0066ff",
     });
-    expect(screen.getByText("Texto sobre el acento")).toHaveStyle({
+    expect(screen.getByText("Texto de ejemplo")).toHaveStyle({
       color: "#ffffff",
     });
   });
@@ -45,7 +45,7 @@ describe("AccentColorSettings", () => {
     expect(screen.getByTestId("preview-accent-bar")).toHaveStyle({
       backgroundColor: "#ffd400",
     });
-    expect(screen.getByText("Texto sobre el acento")).toHaveStyle({
+    expect(screen.getByText("Texto de ejemplo")).toHaveStyle({
       color: "#000000",
     });
   });

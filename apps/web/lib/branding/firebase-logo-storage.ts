@@ -27,6 +27,13 @@ async function downscale(file: File, maxHeight: number): Promise<Blob> {
 export const firebaseLogoStorage: LogoStorage = {
   downscale,
   async upload(blob, path) {
+    // Without a bucket the Firebase SDK fails in ways that read as nothing
+    // happening, e.g. on a local setup with no NEXT_PUBLIC_FIREBASE_* vars.
+    if (!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
+      throw new Error(
+        "No se pudo subir el logo: el almacenamiento de archivos no está configurado.",
+      );
+    }
     const name = path.split("/").pop() ?? "logo";
     const file = new File([blob], name, { type: blob.type });
     const uploaded = await uploadFile(file, path);

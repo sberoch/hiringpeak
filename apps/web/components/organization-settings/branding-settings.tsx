@@ -61,7 +61,14 @@ export function BrandingSettings({
       ),
     onSuccess: () => onSaved("Logo actualizado"),
     onError: (error) =>
-      toast.error(apiErrorMessage(error, "No se pudo subir el logo")),
+      toast.error(
+        apiErrorMessage(
+          error,
+          error instanceof Error && error.message
+            ? error.message
+            : "No se pudo subir el logo",
+        ),
+      ),
   });
 
   const remove = useMutation({
@@ -140,6 +147,7 @@ export function BrandingSettings({
               type="button"
               disabled={busy}
               onClick={() => inputRef.current?.click()}
+              className="bg-electric text-white hover:bg-electric-light"
             >
               <Upload className="h-4 w-4" />
               {upload.isPending

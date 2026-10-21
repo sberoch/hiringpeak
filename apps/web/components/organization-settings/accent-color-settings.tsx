@@ -81,6 +81,7 @@ export function AccentColorSettings({
           type="button"
           disabled={busy || !readability.ok || unchanged}
           onClick={() => onSave(draft.toLowerCase())}
+          className="bg-electric text-white hover:bg-electric-light"
         >
           <Save className="h-4 w-4" />
           Guardar color
@@ -93,7 +94,7 @@ export function AccentColorSettings({
             onClick={onClear}
           >
             <RotateCcw className="h-4 w-4" />
-            Volver al azul
+            Restablecer
           </Button>
         )}
       </div>
@@ -173,7 +174,7 @@ function PdfHeaderPreview({
           className="rounded-md px-2.5 py-1 text-xs font-semibold"
           style={{ backgroundColor: accent.color, color: accent.textColor }}
         >
-          Texto sobre el acento
+          Texto de ejemplo
         </span>
       </div>
     </figure>
