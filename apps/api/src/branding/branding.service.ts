@@ -52,7 +52,7 @@ export class BrandingService {
   }
 
   /** Sets the Organization's logo (downscaled copy plus original). */
-  async update(
+  async updateLogo(
     actor: BrandingActor,
     logo: UpdateBrandingLogoDto,
   ): Promise<Branding> {

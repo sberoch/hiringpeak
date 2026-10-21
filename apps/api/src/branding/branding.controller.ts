@@ -56,7 +56,7 @@ export class BrandingController {
     @CurrentUserId() userId: number,
     @OrganizationId() organizationId: number,
   ): Promise<Branding> {
-    return this.brandingService.update(
+    return this.brandingService.updateLogo(
       await this.actor(userId, organizationId),
       dto,
     );
