@@ -1,4 +1,7 @@
-import type { UpdateBrandingLogoDto } from "@workspace/shared/dtos";
+import type {
+  UpdateBrandingAccentDto,
+  UpdateBrandingLogoDto,
+} from "@workspace/shared/dtos";
 import type { Branding } from "@workspace/shared/types/branding";
 
 import api from ".";
@@ -18,5 +21,15 @@ export async function updateBrandingLogo(logo: UpdateBrandingLogoDto) {
 
 export async function removeBrandingLogo() {
   const response = await api.delete<Branding>("/branding/logo");
+  return response.data;
+}
+
+export async function updateBrandingAccent(accent: UpdateBrandingAccentDto) {
+  const response = await api.patch<Branding>("/branding/accent", accent);
+  return response.data;
+}
+
+export async function removeBrandingAccent() {
+  const response = await api.delete<Branding>("/branding/accent");
   return response.data;
 }

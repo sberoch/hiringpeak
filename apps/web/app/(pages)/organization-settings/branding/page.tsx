@@ -20,5 +20,10 @@ export default async function OrganizationBrandingPage() {
   ) {
     redirect("/organization-settings");
   }
-  return <BrandingSettings organizationId={permissions.organizationId} />;
+  return (
+    <BrandingSettings
+      organizationId={permissions.organizationId}
+      organizationName={permissions.organizationName ?? ""}
+    />
+  );
 }
