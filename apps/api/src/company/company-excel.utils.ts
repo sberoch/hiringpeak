@@ -38,6 +38,8 @@ export function buildCompanyReportWorkbook(params: {
     company,
     generatedAt,
     organizationName,
+    // The workbook is unbranded, so the brand and accent are never read.
+    branding: { logoUrl: null, accentColor: null },
     vacancies,
   });
 

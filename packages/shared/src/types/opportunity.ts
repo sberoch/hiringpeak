@@ -1,5 +1,7 @@
 import type { LastInteraction } from "./interaction";
 import type { CompanyStatus } from "../enums";
+import type { OpportunitySortField } from "../dtos/opportunity.dto";
+import type { SortOrderParam } from "../lib/sort-order";
 
 export type OpportunityStage = {
   id: number;
@@ -77,6 +79,10 @@ export type OpportunityNextStep = {
  */
 export type OpportunityListItem = Opportunity & {
   lastInteraction: LastInteraction | null;
+  /** The Contacts that are part of it, by name. */
+  contacts: { id: number; name: string }[];
+  /** How many Vacancies it produced (Vacantes vinculadas). */
+  vacancyCount: number;
 };
 
 /** A Vacancy produced by the Opportunity, as listed on its page. */
@@ -112,6 +118,7 @@ export type OpportunityFilters = {
   companyStatus?: CompanyStatus;
   /** "Solo sin próximo paso": only open Opportunities with No Next Step. */
   noNextStep?: boolean;
+  order?: SortOrderParam<OpportunitySortField>;
 };
 
 export type CreateOpportunityPayload = {

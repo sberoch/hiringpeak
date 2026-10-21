@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import {
   Document,
   Image,
@@ -10,6 +8,11 @@ import {
   Text,
   View,
 } from '@react-pdf/renderer';
+import {
+  accentTextOnWhite,
+  type ReadableAccent,
+} from '@workspace/shared/lib/accent-color';
+import { ReportBrandMark } from '../common/reports/report-brand-mark';
 import { stringToColor } from '@workspace/shared/utils';
 import type {
   VacancyReportCandidateRow,
@@ -25,10 +28,6 @@ interface VacancyReportDocumentProps {
   report: VacancyReportDocumentData;
 }
 
-const LOGO_BUFFER = readFileSync(
-  join(__dirname, '../common/assets/logo.png'),
-);
-
 const COLORS = {
   bg: '#fafbfc',
   surface: '#ffffff',
@@ -38,7 +37,6 @@ const COLORS = {
   muted: '#94a3b8',
   border: '#e2e8f0',
   borderLight: '#f1f5f9',
-  electric: '#0066ff',
   hiredBg: '#f0fdf4',
   hiredBorder: '#bbf7d0',
   hiredText: '#166534',
@@ -75,21 +73,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderBottom: `1 solid ${COLORS.border}`,
   },
-  pageHeaderBrand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pageHeaderLogo: {
-    width: 22,
-    height: 22,
-    marginRight: 8,
-  },
-  pageHeaderTitle: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: COLORS.ink,
-    letterSpacing: 0.2,
-  },
   pageHeaderMeta: {
     fontSize: 8,
     color: COLORS.muted,
@@ -103,7 +86,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: COLORS.electric,
   },
 
   // ── Title block (page 1) ─────────────────────────────────────
@@ -116,7 +98,6 @@ const styles = StyleSheet.create({
   titleEyebrow: {
     fontSize: 9,
     fontWeight: 700,
-    color: COLORS.electric,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 6,
@@ -184,7 +165,6 @@ const styles = StyleSheet.create({
     width: 3,
     height: 12,
     borderRadius: 2,
-    backgroundColor: COLORS.electric,
     marginRight: 8,
   },
   sectionTitle: {
@@ -394,19 +374,28 @@ export function VacancyReportDocument({
       <Page size="A4" style={styles.page} wrap>
         {/* Repeating slim header */}
         <View style={styles.pageHeader} fixed>
-          <View style={styles.pageHeaderBrand}>
-            <Image src={LOGO_BUFFER} style={styles.pageHeaderLogo} />
-            <Text style={styles.pageHeaderTitle}>HiringPeak</Text>
-          </View>
+          <ReportBrandMark brand={report.brand} />
           <Text style={styles.pageHeaderMeta}>
             Reporte · {generationDateLabel}
           </Text>
-          <View style={styles.pageHeaderAccent} />
+          <View
+            style={[
+              styles.pageHeaderAccent,
+              { backgroundColor: report.accent.color },
+            ]}
+          />
         </View>
 
         {/* Title block (page 1 only) */}
         <View style={styles.titleBlock}>
-          <Text style={styles.titleEyebrow}>{report.organizationName}</Text>
+          <Text
+            style={[
+              styles.titleEyebrow,
+              { color: accentTextOnWhite(report.accent, COLORS.ink) },
+            ]}
+          >
+            {report.organizationName}
+          </Text>
           <View style={styles.titleRow}>
             <Text style={styles.vacancyTitle}>
               {report.metadata.vacancyTitle}
@@ -467,7 +456,7 @@ export function VacancyReportDocument({
         {/* Description */}
         {report.description ? (
           <View style={styles.section}>
-            <SectionHeader title="Descripción" />
+            <SectionHeader accent={report.accent} title="Descripción" />
             <Text style={styles.descriptionText}>{report.description}</Text>
           </View>
         ) : null}
@@ -475,7 +464,7 @@ export function VacancyReportDocument({
         {/* Motivos de rechazo */}
         {report.rejectionBreakdown.length > 0 ? (
           <View style={styles.section} wrap={false}>
-            <SectionHeader title="Motivos de rechazo" />
+            <SectionHeader accent={report.accent} title="Motivos de rechazo" />
             <View style={styles.breakdownCard}>
               {report.rejectionBreakdown.map((reason, index) => (
                 <View
@@ -496,6 +485,7 @@ export function VacancyReportDocument({
         {/* Postulantes */}
         <View style={styles.section}>
           <SectionHeader
+            accent={report.accent}
             title="Postulantes"
             count={report.summary.totalCandidates}
           />
@@ -542,14 +532,17 @@ function MetaCell({ label, value }: MetaCellProps) {
 }
 
 interface SectionHeaderProps {
+  accent: ReadableAccent;
   title: string;
   count?: number;
 }
 
-function SectionHeader({ title, count }: SectionHeaderProps) {
+function SectionHeader({ accent, title, count }: SectionHeaderProps) {
   return (
     <View style={styles.sectionHeader}>
-      <View style={styles.sectionAccent} />
+      <View
+        style={[styles.sectionAccent, { backgroundColor: accent.color }]}
+      />
       <Text style={styles.sectionTitle}>{title}</Text>
       {typeof count === 'number' ? (
         <Text style={styles.sectionCount}>({count})</Text>

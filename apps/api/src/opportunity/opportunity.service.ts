@@ -13,6 +13,7 @@ import {
   inArray,
   isNull,
   or,
+  sql,
   SQL,
 } from 'drizzle-orm';
 import {
@@ -28,6 +29,8 @@ import {
   users,
   vacancies,
 } from '@workspace/shared/schemas';
+import type { OpportunitySortField } from '@workspace/shared/dtos';
+import type { SortOrder } from '@workspace/shared/lib/sort-order';
 import type { OpportunityNextStep } from '@workspace/shared/types/opportunity';
 import { AuthzService } from '../auth/authz/authz.service';
 import { companyStatusCondition } from '../company/company-status-filter';
@@ -81,23 +84,33 @@ export class OpportunityService {
 
   /**
    * Every matching Opportunity (not paginated: the list is grouped by stage),
-   * each with its last Interaction and its next step. `noNextStep` keeps only
-   * those with No Next Step.
+   * each with its last Interaction, its next step, its Contacts and how many
+   * Vacancies it produced. `noNextStep` keeps only those with No Next Step.
    */
   async findAll(params: OpportunityFindAllServiceParams) {
     const rows = await this.db.query.opportunities.findMany({
       where: this.buildWhereClause(params),
-      with: OPPORTUNITY_RELATIONS,
-      orderBy: [desc(opportunities.createdAt), desc(opportunities.id)],
+      with: {
+        ...OPPORTUNITY_RELATIONS,
+        opportunityContacts: {
+          with: { contact: { columns: { id: true, name: true } } },
+        },
+        vacancies: { columns: { id: true } },
+      },
+      orderBy: buildOrderBy(params.order),
     });
     const recent = await this.findInteractionStamps(
       rows,
       params.organizationId,
     );
     const withNextSteps = await this.withNextSteps(
-      rows.map((row) => ({
+      rows.map(({ opportunityContacts: links, vacancies: linked, ...row }) => ({
         ...toResponse(row),
         lastInteraction: lastInteractionOfOpportunity(row, recent),
+        contacts: links
+          .map((link) => link.contact)
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        vacancyCount: linked.length,
       })),
       params.organizationId,
     );
@@ -601,6 +614,25 @@ export class OpportunityService {
     }
     return and(...filters);
   }
+}
+
+/** The column behind each sortable field (see `OPPORTUNITY_SORT_FIELDS`). */
+const SORTABLE = {
+  closeDate: opportunities.closeDate,
+  createdAt: opportunities.createdAt,
+} as const satisfies Record<OpportunitySortField, unknown>;
+
+/** Newest first when no order is given. Undated sort last. */
+function buildOrderBy(
+  order: SortOrder<OpportunitySortField> | undefined,
+): SQL[] {
+  if (!order) return [desc(opportunities.createdAt), desc(opportunities.id)];
+  const column = SORTABLE[order.field];
+  const descending = order.direction === 'desc';
+  return [
+    sql`${column} ${descending ? sql`desc` : sql`asc`} nulls last`,
+    desc(opportunities.id),
+  ];
 }
 
 /** pg returns numeric as a string; the API speaks plain numbers. */

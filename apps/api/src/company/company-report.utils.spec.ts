@@ -28,12 +28,16 @@ const baseCompany: Company = {
 
 const generatedAt = new Date('2026-04-08T10:00:00.000Z');
 
+const ACME_LOGO_URL =
+  'https://firebasestorage.googleapis.com/v0/b/demo/o/organizations%2F7%2Fbranding%2Flogo.png?alt=media';
+
 describe('company-report.utils', () => {
   it('aggregates vacancy rows, summary and hires for a company', () => {
     const report = buildCompanyReportData({
       company: baseCompany,
       generatedAt,
       organizationName: 'Organización Demo',
+      branding: { logoUrl: null, accentColor: null },
       vacancies: [
         createVacancy({
           id: 1,
@@ -120,6 +124,7 @@ describe('company-report.utils', () => {
       company: baseCompany,
       generatedAt,
       organizationName: 'Organización Demo',
+      branding: { logoUrl: null, accentColor: null },
       vacancies: [],
     });
 
@@ -253,6 +258,21 @@ describe('company-report.utils', () => {
     expect(closedOnly.averageDaysOpen).toBe(0);
     expect(closedOnly.activeVacancies).toBe(0);
     expect(closedOnly.closedVacancies).toBe(1);
+  });
+
+  it("passes the Organization's brand and accent color through", () => {
+    const report = buildCompanyReportData({
+      company: baseCompany,
+      generatedAt,
+      organizationName: 'Acme Talent',
+      branding: { logoUrl: ACME_LOGO_URL, accentColor: '#1a1a2e' },
+      vacancies: [],
+    });
+
+    expect({ brand: report.brand, accent: report.accent }).toEqual({
+      brand: { kind: 'logo', logoUrl: ACME_LOGO_URL },
+      accent: { color: '#1a1a2e', textColor: '#ffffff' },
+    });
   });
 
   it('builds a deterministic filename slug', () => {

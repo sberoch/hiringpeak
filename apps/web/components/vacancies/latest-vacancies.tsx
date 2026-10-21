@@ -11,22 +11,28 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import type { PaginatedResponse } from "@workspace/shared/types/api";
 import type { VacancyListItem } from "@workspace/shared/types/vacancy";
+import type { VacancyStatus } from "@workspace/shared/types/vacancy-status";
 import { VACANCY_API_KEY, getAllVacancies } from "@/lib/api/vacancy";
-import { CATALOG_TYPE_COLORS, getVacancyFilterTags, stringToColor, vacancyDisplayLabel } from "@/lib/utils";
+import {
+  VACANCY_STATUS_API_KEY,
+  getAllVacancyStatuses,
+} from "@/lib/api/vacancy-status";
+import {
+  CATALOG_TYPE_COLORS,
+  getVacancyFilterTags,
+  stringToColor,
+  vacancyDisplayLabel,
+} from "@/lib/utils";
 import { CandidateAvatarStack } from "@/components/ui/candidate-avatar-stack";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
-interface LatestVacanciesProps {
-  openStatusId?: string;
-  closedStatusId?: string;
+function vacanciesWithStatus(statusId?: number) {
+  return statusId ? `/vacancies?status=${statusId}` : "/vacancies";
 }
 
-export function LatestVacancies({
-  openStatusId,
-  closedStatusId,
-}: LatestVacanciesProps) {
+export function LatestVacancies() {
   const { data, isLoading } = useQuery<PaginatedResponse<VacancyListItem>>({
     queryKey: [VACANCY_API_KEY, { page: 1, limit: 5, order: "createdAt:desc" }],
     queryFn: () =>
@@ -34,6 +40,15 @@ export function LatestVacancies({
   });
 
   const vacancies = data?.items ?? [];
+
+  // The header links filter the Vacancies list by an open and a closed
+  // status, told apart by the final flag.
+  const { data: statuses } = useQuery<PaginatedResponse<VacancyStatus>>({
+    queryKey: [VACANCY_STATUS_API_KEY, { page: 1, limit: 1e9 }],
+    queryFn: () => getAllVacancyStatuses({ page: 1, limit: 1e9 }),
+  });
+  const openStatusId = statuses?.items.find((status) => !status.isFinal)?.id;
+  const closedStatusId = statuses?.items.find((status) => status.isFinal)?.id;
 
   return (
     <div className="rounded-2xl border border-brand-border bg-surface overflow-hidden">
@@ -48,7 +63,7 @@ export function LatestVacancies({
           </h3>
         </div>
         <div className="flex items-center gap-1">
-          <Link href={`/vacancies?status=${openStatusId || "abierta"}`}>
+          <Link href={vacanciesWithStatus(openStatusId)}>
             <Button
               variant="ghost"
               size="sm"
@@ -57,7 +72,7 @@ export function LatestVacancies({
               Abiertas
             </Button>
           </Link>
-          <Link href={`/vacancies?status=${closedStatusId || "cubierta"}`}>
+          <Link href={vacanciesWithStatus(closedStatusId)}>
             <Button
               variant="ghost"
               size="sm"
@@ -145,10 +160,12 @@ export function LatestVacancies({
                 <div className="flex items-center gap-2.5 shrink-0">
                   {candidateCount > 0 && (
                     <div className="hidden sm:block">
-                      <CandidateAvatarStack candidates={vacancy.recentCandidates} total={candidateCount} />
+                      <CandidateAvatarStack
+                        candidates={vacancy.recentCandidates}
+                        total={candidateCount}
+                      />
                     </div>
                   )}
-
 
                   <div className="flex flex-col items-end gap-1">
                     <div className="flex items-center gap-1 text-muted-brand">

@@ -1,3 +1,6 @@
+import type { ReadableAccent } from '@workspace/shared/lib/accent-color';
+import type { ReportBrand } from '../common/reports/report-brand';
+
 export interface VacancyReportSummary {
   totalCandidates: number;
   hiredCandidates: number;
@@ -41,6 +44,10 @@ export interface VacancyReportMetadata {
 }
 
 export interface VacancyReportDocumentData {
+  /** Header mark: the Organization's logo, or its name as a wordmark. */
+  brand: ReportBrand;
+  /** The Organization's accent color (or the default blue) and its text color. */
+  accent: ReadableAccent;
   candidates: VacancyReportCandidateRow[];
   description?: string;
   hiredCandidates: VacancyReportCandidateRow[];

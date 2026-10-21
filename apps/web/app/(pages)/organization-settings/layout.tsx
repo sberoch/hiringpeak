@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMePermissions } from "@/lib/api/auth";
+import { ORGANIZATION_SETTINGS_CODES } from "@/components/organization-settings/hub-cards";
 
 export const metadata: Metadata = {
   title: {
@@ -9,9 +10,6 @@ export const metadata: Metadata = {
     template: "%s | HiringPeak",
   },
 };
-
-const ROLE_MANAGE = "ROLE_MANAGE";
-const USER_READ = "USER_READ";
 
 export default async function OrganizationSettingsLayout({
   children,
@@ -21,9 +19,9 @@ export default async function OrganizationSettingsLayout({
   const session = await auth();
   if (!session?.accessToken) redirect("/login");
   const permissions = await getMePermissions(session.accessToken);
-  const canAccess =
-    permissions.permissionCodes.includes(ROLE_MANAGE) ||
-    permissions.permissionCodes.includes(USER_READ);
+  const canAccess = ORGANIZATION_SETTINGS_CODES.some((code) =>
+    permissions.permissionCodes.includes(code),
+  );
   if (!canAccess) redirect("/dashboard");
   return <>{children}</>;
 }

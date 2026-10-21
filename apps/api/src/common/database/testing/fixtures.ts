@@ -1,11 +1,14 @@
 import { inArray } from 'drizzle-orm';
 import {
+  candidateSources,
   candidateVacancies,
   candidateVacancyStatuses,
   candidates,
   companies,
   contacts,
+  lostReasons,
   opportunities,
+  opportunityContacts,
   opportunityStages,
   organizations,
   permissions,
@@ -72,26 +75,57 @@ export function fixtures(db: DrizzleDatabase) {
       });
     },
 
+    /** A User holding an existing Role (e.g. a default Role). */
+    member(organizationId: number, roleId: number) {
+      const n = next();
+      return insertId(users, {
+        organizationId,
+        roleId,
+        name: `User ${n}`,
+        email: `user${n}@example.com`,
+        password: 'x',
+      });
+    },
+
     company: (
       organizationId: number,
-      fields: { name?: string; accountOwnerId?: number | null } = {},
+      fields: {
+        name?: string;
+        accountOwnerId?: number | null;
+        createdAt?: Date;
+      } = {},
     ) =>
       insertId(companies, {
         organizationId,
-        name: fields.name ?? `Company ${next()}`,
         description: '',
+        ...fields,
+        name: fields.name ?? `Company ${next()}`,
         accountOwnerId: fields.accountOwnerId ?? null,
       }),
 
     contact: (
       organizationId: number,
-      fields: { name?: string; companyId?: number | null } = {},
+      fields: {
+        name?: string;
+        companyId?: number | null;
+        role?: string;
+        email?: string | null;
+        phone?: string | null;
+        linkedin?: string | null;
+        createdAt?: Date;
+      } = {},
     ) =>
       insertId(contacts, {
+        ...fields,
         organizationId,
         name: fields.name ?? `Contact ${next()}`,
         companyId: fields.companyId ?? null,
       }),
+
+    /** Names a Contact as involved in an Opportunity. */
+    async opportunityContact(opportunityId: number, contactId: number) {
+      await db.insert(opportunityContacts).values({ opportunityId, contactId });
+    },
 
     /** Two open stages, then won and lost. */
     async stages(organizationId: number) {
@@ -116,6 +150,10 @@ export function fixtures(db: DrizzleDatabase) {
         ownerId: number;
         stageId: number;
         title?: string;
+        estimatedFee?: string | null;
+        closeDate?: string | null;
+        lostReasonId?: number | null;
+        createdAt?: Date;
       },
     ) =>
       insertId(opportunities, {
@@ -125,14 +163,22 @@ export function fixtures(db: DrizzleDatabase) {
         ...fields,
       }),
 
+    lostReason: (organizationId: number, name = `Reason ${next()}`) =>
+      insertId(lostReasons, { organizationId, name, sort: next() }),
+
     vacancy: (
       organizationId: number,
       fields: {
         companyId: number;
         createdBy: number;
+        /** Vacancy Owner; defaults to `createdBy`. */
+        assignedTo?: number;
         title?: string;
         opportunityId?: number | null;
         vacancyContactId?: number | null;
+        statusId?: number | null;
+        createdAt?: Date;
+        updatedAt?: Date;
       },
     ) =>
       insertId(vacancies, {
@@ -143,14 +189,38 @@ export function fixtures(db: DrizzleDatabase) {
         ...fields,
       }),
 
-    vacancyStatus: (organizationId: number, name = 'Abierta') =>
-      insertId(vacancyStatuses, { organizationId, name }),
+    vacancyStatus: (
+      organizationId: number,
+      name = 'Abierta',
+      fields: { isFinal?: boolean } = {},
+    ) =>
+      insertId(vacancyStatuses, {
+        organizationId,
+        name,
+        isFinal: fields.isFinal ?? false,
+      }),
 
-    candidate: (organizationId: number, name = `Candidate ${next()}`) =>
+    candidateSource: (organizationId: number, name = `Source ${next()}`) =>
+      insertId(candidateSources, { organizationId, name }),
+
+    candidate: (
+      organizationId: number,
+      name = `Candidate ${next()}`,
+      fields: {
+        email?: string;
+        phone?: string;
+        linkedin?: string;
+        sourceId?: number;
+        countries?: string[];
+        languages?: string[];
+        createdAt?: Date;
+      } = {},
+    ) =>
       insertId(candidates, {
         organizationId,
         name,
         email: `c${next()}@example.com`,
+        ...fields,
       }),
 
     async candidacy(

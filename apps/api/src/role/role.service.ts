@@ -38,8 +38,11 @@ const READ_ONLY_CODES = [
   PermissionCode.TASK_READ,
   PermissionCode.TASK_MANAGE,
 ];
+/** Administrador-only codes stay out of the Manager's defaults. */
 const MANAGER_CODES = ALL_PERMISSION_CODES.filter(
-  (c) => c !== PermissionCode.ROLE_MANAGE,
+  (c) =>
+    c !== PermissionCode.ROLE_MANAGE &&
+    c !== PermissionCode.ORGANIZATION_MANAGE,
 );
 
 @Injectable()

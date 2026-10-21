@@ -18,7 +18,7 @@ export type TaskAccessFacts = {
   commercial: boolean;
 };
 
-export function hasTaskReadAll(codes: string[]): boolean {
+export function hasTaskReadAll(codes: readonly string[]): boolean {
   return codes.includes(PermissionCode.TASK_READ_ALL);
 }
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PaginationParamsSchema } from "./pagination.dto";
 import { CompanyStatus } from "../enums";
+import { sortOrderSchema } from "../lib/sort-order";
 
 /** Day-granular date string `YYYY-MM-DD`. */
 const DayDateSchema = z
@@ -67,6 +68,10 @@ export const CreateVacancyFromOpportunitySchema = z.object({
   vacancyContactId: z.number().int().nullable().optional(),
 });
 
+/** The fields the Opportunities list can be sorted by. */
+export const OPPORTUNITY_SORT_FIELDS = ["closeDate", "createdAt"] as const;
+export type OpportunitySortField = (typeof OPPORTUNITY_SORT_FIELDS)[number];
+
 export const OpportunityQueryParamsSchema = z.object({
   search: z.string().optional(),
   ownerId: z.coerce.number().int().optional(),
@@ -81,6 +86,11 @@ export const OpportunityQueryParamsSchema = z.object({
     .union([z.boolean(), z.enum(["true", "false"])])
     .transform((v) => (typeof v === "string" ? v === "true" : v))
     .optional(),
+  /**
+   * `"closeDate:asc|desc"` or `"createdAt:asc|desc"`, parsed into a
+   * `SortOrder`; newest first when omitted. Groups by stage keep this order.
+   */
+  order: sortOrderSchema(OPPORTUNITY_SORT_FIELDS).optional(),
 });
 
 export const OpportunityStageQueryParamsSchema = PaginationParamsSchema;

@@ -2,6 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   ChevronDown,
   ChevronRight,
   Handshake,
@@ -9,11 +12,11 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { getOpportunities, OPPORTUNITY_API_KEY } from "@/lib/api/opportunity";
 import { formatMoney } from "@/lib/utils";
+import { OPPORTUNITY_COLUMNS } from "@workspace/shared/lib/column-catalogues";
 import { groupOpportunitiesByStage } from "@workspace/shared/lib/opportunities-by-stage";
 import type {
   OpportunityFilters,
@@ -24,20 +27,12 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { LoadingSpinner } from "@workspace/ui/components/loading-spinner";
 import { PageHeading } from "@workspace/ui/components/page-heading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 
-import { LastInteractionLabel } from "@/components/interactions/interaction-format";
+import { ColumnLayoutPopover } from "@/components/column-layout/column-layout-popover";
+import { useColumnLayout } from "@/components/column-layout/use-column-layout";
 import { NewOpportunityButton } from "./new-opportunity-sheet";
-import { NextStepCell } from "./opportunity-next-step";
-import { opportunityHref } from "@/components/opportunities/opportunity-format";
-import { StageBadge, stageTone } from "@/components/opportunities/stage-badge";
+import { stageTone } from "@/components/opportunities/stage-badge";
 import { useCommercialAccess } from "@/components/opportunities/commercial-access";
 import { useOpportunityStages } from "@/components/opportunities/commercial-queries";
 import {
@@ -46,10 +41,13 @@ import {
   OpportunityFilterPanel,
   type OpportunityPanelFilters,
 } from "./opportunity-filter-panel";
+import {
+  opportunityColumns,
+  type OpportunityCellContext,
+  type OpportunityColumn,
+  type OpportunitySortField,
+} from "./opportunity-table-columns";
 import { useStageChange } from "./stage-change";
-
-/** Table columns, for the full-width group header and empty rows. */
-const COLUMN_COUNT = 7;
 
 function useDebounced<T>(value: T, delayMs = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -76,10 +74,29 @@ export function OpportunitiesPage() {
     Record<number, boolean>
   >({});
 
+  const [sort, setSort] = useState<{
+    field: OpportunitySortField;
+    direction: "asc" | "desc";
+  } | null>(null);
+  const { columns, menu } = useColumnLayout(
+    "opportunities",
+    OPPORTUNITY_COLUMNS,
+    opportunityColumns,
+  );
+  /** Sorting by a hidden column is dropped: the headers wouldn't show it. */
+  const activeSort =
+    sort && columns.some((column) => column.sortField === sort.field)
+      ? sort
+      : null;
+  const totalWidth = columns.reduce((sum, column) => sum + column.width, 0);
+
   const debouncedSearch = useDebounced(search);
   const filters: OpportunityFilters = {
     ...panelFilters,
     search: debouncedSearch.trim() || undefined,
+    order: activeSort
+      ? `${activeSort.field}:${activeSort.direction}`
+      : undefined,
   };
   const panelFilterCount = activeFilterCount(panelFilters);
 
@@ -132,6 +149,7 @@ export function OpportunitiesPage() {
             </span>
           )}
         </Button>
+        <ColumnLayoutPopover {...menu} />
         <div className="ml-auto flex items-center gap-3 text-xs text-slate-brand">
           <button
             type="button"
@@ -182,23 +200,40 @@ export function OpportunitiesPage() {
         ) : (
           <table className="w-full table-fixed text-sm">
             <colgroup>
-              <col className="w-[20%]" />
-              <col className="w-[13%]" />
-              <col className="w-[11%]" />
-              <col className="w-[18%]" />
-              <col className="w-[11%]" />
-              <col className="w-[11%]" />
-              <col className="w-[16%]" />
+              {columns.map((column) => (
+                <col
+                  key={column.key}
+                  style={{ width: `${(column.width / totalWidth) * 100}%` }}
+                />
+              ))}
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-brand-border bg-canvas text-left text-[11px] font-semibold uppercase tracking-wide text-slate-brand">
-                <th className="px-3 py-2">Oportunidad</th>
-                <th className="px-3 py-2">Empresa</th>
-                <th className="px-3 py-2 text-right">Fee estimado</th>
-                <th className="px-3 py-2">Próximo paso</th>
-                <th className="px-3 py-2">Responsable</th>
-                <th className="px-3 py-2">Últ. interacción</th>
-                <th className="px-3 py-2">Etapa</th>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className={cn(
+                      "px-3 py-2",
+                      column.align === "right" && "text-right",
+                    )}
+                  >
+                    {column.sortField ? (
+                      <SortableHeader
+                        label={column.header}
+                        direction={
+                          activeSort?.field === column.sortField
+                            ? activeSort.direction
+                            : null
+                        }
+                        onSort={(direction) =>
+                          setSort({ field: column.sortField!, direction })
+                        }
+                      />
+                    ) : (
+                      column.header
+                    )}
+                  </th>
+                ))}
               </tr>
             </thead>
             {summary.groups.map((group) => {
@@ -222,7 +257,7 @@ export function OpportunitiesPage() {
                       }))
                     }
                   >
-                    <td colSpan={COLUMN_COUNT} className="px-3 py-3">
+                    <td colSpan={columns.length} className="px-3 py-3">
                       <div className="flex items-center gap-2.5">
                         {collapsed ? (
                           <ChevronRight className="h-5 w-5 text-slate-brand" />
@@ -263,15 +298,18 @@ export function OpportunitiesPage() {
                       <OpportunityRow
                         key={opportunity.id}
                         opportunity={opportunity}
-                        stages={stages ?? []}
-                        canManage={canManage}
-                        onMove={(stage) => requestMove(opportunity, stage)}
+                        columns={columns}
+                        context={{
+                          stages: stages ?? [],
+                          canManage,
+                          onMove: (stage) => requestMove(opportunity, stage),
+                        }}
                       />
                     ))}
                   {!collapsed && group.count === 0 && (
                     <tr className="border-b border-brand-border-light">
                       <td
-                        colSpan={COLUMN_COUNT}
+                        colSpan={columns.length}
                         className="px-10 py-2 text-xs text-muted-brand"
                       >
                         Sin oportunidades en esta etapa.
@@ -295,6 +333,37 @@ export function OpportunitiesPage() {
   );
 }
 
+/** A header that orders the list by its column on the server. */
+function SortableHeader({
+  label,
+  direction,
+  onSort,
+}: {
+  label: string;
+  direction: "asc" | "desc" | null;
+  onSort: (direction: "asc" | "desc") => void;
+}) {
+  const Icon =
+    direction === "asc"
+      ? ArrowUp
+      : direction === "desc"
+        ? ArrowDown
+        : ArrowUpDown;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(direction === "asc" ? "desc" : "asc")}
+      className={cn(
+        "inline-flex items-center gap-1 uppercase tracking-wide hover:text-ink",
+        direction && "text-ink",
+      )}
+    >
+      {label}
+      <Icon className={cn("h-3 w-3", !direction && "opacity-60")} />
+    </button>
+  );
+}
+
 function FeeTotal({ total, className }: { total: number; className?: string }) {
   if (!total) return <span className="text-muted-brand">—</span>;
   return (
@@ -303,17 +372,14 @@ function FeeTotal({ total, className }: { total: number; className?: string }) {
     </span>
   );
 }
-
 function OpportunityRow({
   opportunity,
-  stages,
-  canManage,
-  onMove,
+  columns,
+  context,
 }: {
   opportunity: OpportunityListItem;
-  stages: OpportunityStage[];
-  canManage: boolean;
-  onMove: (stage: OpportunityStage) => void;
+  columns: OpportunityColumn[];
+  context: OpportunityCellContext;
 }) {
   const closed = opportunity.stage.isWon || opportunity.stage.isLost;
   return (
@@ -323,81 +389,19 @@ function OpportunityRow({
         closed && "text-slate-brand",
       )}
     >
-      <td className="py-3 pl-9 pr-3">
-        <Link
-          href={opportunityHref(opportunity.id)}
-          className="line-clamp-2 text-sm font-semibold leading-snug text-ink hover:text-electric"
-          title={opportunity.title}
+      {columns.map((column) => (
+        <td
+          key={column.key}
+          className={cn(
+            typeof column.cellClassName === "function"
+              ? column.cellClassName(opportunity)
+              : column.cellClassName,
+            column.align === "right" && "text-right",
+          )}
         >
-          {opportunity.title}
-        </Link>
-      </td>
-      <td className="px-3 py-3">
-        <Link
-          href={`/companies/${opportunity.company.id}`}
-          className="block truncate text-slate-brand hover:text-electric"
-        >
-          {opportunity.company.name}
-        </Link>
-      </td>
-      <td
-        className={cn(
-          "whitespace-nowrap px-3 py-3 text-right tabular-nums",
-          opportunity.estimatedFee != null
-            ? "font-semibold text-ink"
-            : "text-muted-brand",
-        )}
-      >
-        {opportunity.estimatedFee != null
-          ? formatMoney(opportunity.estimatedFee)
-          : "—"}
-      </td>
-      <td className="px-3 py-3">
-        <NextStepCell opportunity={opportunity} />
-      </td>
-      <td className="truncate px-3 py-3 text-slate-brand">
-        {opportunity.owner.name}
-      </td>
-      <td className="px-3 py-3">
-        <LastInteractionLabel last={opportunity.lastInteraction} />
-      </td>
-      <td className="px-3 py-2">
-        {canManage ? (
-          <Select
-            value={String(opportunity.stageId)}
-            onValueChange={(value) => {
-              const stage = stages.find((s) => s.id === Number(value));
-              if (stage) onMove(stage);
-            }}
-          >
-            <SelectTrigger
-              size="sm"
-              className="h-8 w-full border-transparent bg-transparent px-1.5 text-sm shadow-none hover:border-brand-border"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {stages.map((stage) => (
-                <SelectItem
-                  key={stage.id}
-                  value={String(stage.id)}
-                  className="text-sm"
-                >
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 shrink-0 rounded-full",
-                      stageTone(stage).dot,
-                    )}
-                  />
-                  <span className="truncate">{stage.name}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <StageBadge stage={opportunity.stage} />
-        )}
-      </td>
+          {column.cell(opportunity, context)}
+        </td>
+      ))}
     </tr>
   );
 }

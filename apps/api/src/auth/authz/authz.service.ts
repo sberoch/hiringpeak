@@ -42,6 +42,7 @@ export class AuthzService {
    * Returns role and permission codes for the current user (for GET /auth/me/permissions).
    */
   async getMePermissions(userId: number): Promise<{
+    organizationId: number | null;
     roleId: number | null;
     roleName: string | null;
     organizationName: string | null;
@@ -50,6 +51,7 @@ export class AuthzService {
     const user = await this.userService.findById(userId);
     if (!user?.organizationId) {
       return {
+        organizationId: null,
         roleId: null,
         roleName: null,
         organizationName: null,
@@ -66,6 +68,7 @@ export class AuthzService {
 
     if (!user.roleId) {
       return {
+        organizationId: user.organizationId,
         roleId: null,
         roleName: null,
         organizationName,
@@ -82,6 +85,7 @@ export class AuthzService {
         role.permissionIds,
       );
       return {
+        organizationId: user.organizationId,
         roleId: user.roleId,
         roleName: role.name,
         organizationName,
@@ -90,6 +94,7 @@ export class AuthzService {
     } catch (err) {
       if (err instanceof NotFoundException) {
         return {
+          organizationId: user.organizationId,
           roleId: null,
           roleName: null,
           organizationName,

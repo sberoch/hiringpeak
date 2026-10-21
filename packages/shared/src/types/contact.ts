@@ -64,12 +64,14 @@ export type ContactFollowUp = {
 };
 
 /**
- * A row of the Contactos list, with the Contact's last Interaction and next
- * follow-up (with "Para contactar", the next one owned by the caller).
+ * A row of the Contactos list, with the Contact's last Interaction, next
+ * follow-up (with "Para contactar", the next one owned by the caller) and
+ * how many open Opportunities they are involved in.
  */
 export type NetworkContactListItem = NetworkContact & {
   lastInteraction: LastInteraction | null;
   nextFollowUp: ContactFollowUp | null;
+  openOpportunityCount: number;
 };
 
 export type ContactDuplicateReason = "email" | "linkedin" | "name";

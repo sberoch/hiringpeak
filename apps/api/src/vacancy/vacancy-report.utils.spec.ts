@@ -7,6 +7,9 @@ import {
   isNoProfileCandidateStatus,
 } from './vacancy-report.utils';
 
+const ACME_LOGO_URL =
+  'https://firebasestorage.googleapis.com/v0/b/demo/o/organizations%2F7%2Fbranding%2Flogo.png?alt=media';
+
 describe('vacancy-report.utils', () => {
   it('keeps only exact status names for contratado and no es el perfil', () => {
     expect(isHiredCandidateStatus('Contratado')).toBe(true);
@@ -19,6 +22,7 @@ describe('vacancy-report.utils', () => {
     const report = buildVacancyReportData({
       generatedAt: new Date('2026-04-08T10:00:00.000Z'),
       organizationName: 'Organización Demo',
+      branding: { logoUrl: null, accentColor: null },
       vacancy: createVacancy({
         candidates: [
           {
@@ -73,6 +77,20 @@ describe('vacancy-report.utils', () => {
       { name: 'Contratado', count: 1, sort: 6 },
     ]);
     expect(report.metadata.compensation).toBeUndefined();
+  });
+
+  it("passes the Organization's brand and accent color through", () => {
+    const report = buildVacancyReportData({
+      generatedAt: new Date('2026-04-08T10:00:00.000Z'),
+      organizationName: 'Acme Talent',
+      branding: { logoUrl: ACME_LOGO_URL, accentColor: '#1a1a2e' },
+      vacancy: createVacancy({ candidates: [] }),
+    });
+
+    expect({ brand: report.brand, accent: report.accent }).toEqual({
+      brand: { kind: 'logo', logoUrl: ACME_LOGO_URL },
+      accent: { color: '#1a1a2e', textColor: '#ffffff' },
+    });
   });
 
   it('builds a deterministic filename slug', () => {

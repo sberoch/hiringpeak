@@ -14,7 +14,9 @@ import {
   CandidateFilterPanel,
   useActiveFilterCount,
 } from "@/components/candidates/candidate-filter-panel";
-import { columns } from "@/components/candidates/candidate-table-columns";
+import { candidateColumns } from "@/components/candidates/candidate-table-columns";
+import { ColumnLayoutPopover } from "@/components/column-layout/column-layout-popover";
+import { useColumnLayout } from "@/components/column-layout/use-column-layout";
 import { useCandidatesFilters } from "@/hooks/use-candidate-filters";
 import { CANDIDATE_API_KEY, getAllCandidates } from "@/lib/api/candidate";
 import {
@@ -22,9 +24,15 @@ import {
   getCandidateVacancies,
 } from "@/lib/api/candidate-vacancy";
 import { mergeCandidatesWithVacancies } from "@/lib/utils";
+import { CANDIDATE_COLUMNS } from "@workspace/shared/lib/column-catalogues";
 
 export const CandidatesPage = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const { columns, menu } = useColumnLayout(
+    "candidates",
+    CANDIDATE_COLUMNS,
+    candidateColumns,
+  );
 
   const {
     filters,
@@ -86,7 +94,7 @@ export const CandidatesPage = () => {
         </div>
       </div>
 
-      {/* Toolbar: search + filters button */}
+      {/* Toolbar: search, filters and columns */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-brand" />
@@ -111,6 +119,7 @@ export const CandidatesPage = () => {
             </span>
           )}
         </Button>
+        <ColumnLayoutPopover {...menu} />
       </div>
 
       {/* Active filter chips */}
