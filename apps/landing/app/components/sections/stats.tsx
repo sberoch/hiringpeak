@@ -55,10 +55,6 @@ function CountUp({
 
   useEffect(() => {
     if (!active) return;
-    if (target === 0) {
-      setValue(0);
-      return;
-    }
     const duration = 1600;
     let raf = 0;
     let start: number | null = null;

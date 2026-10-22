@@ -9,6 +9,7 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.ts'],
     // Service specs run on an in-memory Postgres (PGlite), slower under load.
     testTimeout: 20_000,
+    hookTimeout: 60_000,
   },
   plugins: [
     swc.vite({

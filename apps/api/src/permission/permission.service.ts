@@ -8,7 +8,6 @@ import type {
   PermissionQueryParamsDto,
   UpdatePermissionDto,
 } from '@workspace/shared/dtos';
-import { PermissionCode } from '@workspace/shared/enums';
 import { permissions } from '@workspace/shared/schemas';
 import { and, asc, count, desc, eq, ilike, inArray, SQL } from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -20,30 +19,7 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
-
-const PERMISSION_SEED: { code: string; label: string; description: string }[] = [
-  { code: PermissionCode.CANDIDATE_READ, label: 'Ver postulantes', description: 'Permite ver listado y detalle de postulantes' },
-  { code: PermissionCode.CANDIDATE_MANAGE, label: 'Gestionar postulantes', description: 'Crear, editar y eliminar postulantes' },
-  { code: PermissionCode.VACANCY_READ, label: 'Ver vacantes', description: 'Permite ver listado y detalle de vacantes' },
-  { code: PermissionCode.VACANCY_MANAGE, label: 'Gestionar vacantes', description: 'Crear, editar y eliminar vacantes' },
-  { code: PermissionCode.USER_READ, label: 'Ver usuarios', description: 'Ver usuarios de la organización' },
-  { code: PermissionCode.USER_MANAGE, label: 'Gestionar usuarios', description: 'Crear y editar usuarios' },
-  { code: PermissionCode.ROLE_MANAGE, label: 'Gestionar roles', description: 'Crear y asignar roles y permisos' },
-  { code: PermissionCode.COMPANY_READ, label: 'Ver empresas', description: 'Ver empresas' },
-  { code: PermissionCode.COMPANY_MANAGE, label: 'Gestionar empresas', description: 'Crear y editar empresas' },
-  { code: PermissionCode.AREA_READ, label: 'Ver áreas', description: 'Ver áreas' },
-  { code: PermissionCode.AREA_MANAGE, label: 'Gestionar áreas', description: 'Crear y editar áreas' },
-  { code: PermissionCode.SETTINGS_READ, label: 'Ver configuración', description: 'Ver configuración de la organización' },
-  { code: PermissionCode.SETTINGS_MANAGE, label: 'Gestionar configuración', description: 'Modificar configuración' },
-  { code: PermissionCode.AUDIT_LOG_READ, label: 'Ver auditoría', description: 'Ver registro de auditoría' },
-  { code: PermissionCode.TASK_READ, label: 'Ver tareas propias', description: 'Ver tareas asignadas al usuario' },
-  { code: PermissionCode.TASK_READ_ALL, label: 'Ver todas las tareas', description: 'Ver tareas de todos los usuarios de la organización' },
-  { code: PermissionCode.TASK_MANAGE, label: 'Gestionar tareas propias', description: 'Crear, editar, completar y eliminar tareas propias' },
-  { code: PermissionCode.TASK_MANAGE_ALL, label: 'Gestionar todas las tareas', description: 'Crear, editar, completar, reasignar y eliminar tareas de cualquier usuario' },
-  { code: PermissionCode.CRM_READ, label: 'Ver área comercial', description: 'Ver oportunidades, contactos, interacciones y tareas comerciales' },
-  { code: PermissionCode.CRM_MANAGE, label: 'Gestionar área comercial', description: 'Crear, editar y eliminar oportunidades, contactos e interacciones, y configurar el área comercial' },
-  { code: PermissionCode.ORGANIZATION_MANAGE, label: 'Gestionar organización', description: 'Configurar el branding de la organización (logo)' },
-];
+import { PERMISSION_SEED } from './permission-catalogue';
 
 @Injectable()
 export class PermissionService {

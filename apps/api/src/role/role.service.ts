@@ -9,7 +9,6 @@ import type {
   RoleQueryParamsDto,
   UpdateRoleDto,
 } from '@workspace/shared/dtos';
-import { PermissionCode } from '@workspace/shared/enums';
 import { rolePermissions, roles } from '@workspace/shared/schemas';
 import { and, asc, count, desc, eq, ilike, SQL } from 'drizzle-orm';
 import { DrizzleProvider } from '../common/database/drizzle.module';
@@ -21,29 +20,16 @@ import {
   buildPaginationQuery,
   paginatedResponse,
 } from '../common/pagination/pagination.utils';
+import {
+  ADMINISTRADOR_CODES,
+  BASIC_CODES,
+  MANAGER_CODES,
+} from '../permission/permission-catalogue';
 import { PermissionService } from '../permission/permission.service';
 
 export type RoleFindAllServiceParams = RoleQueryParamsDto & {
   organizationId: number;
 };
-
-const ALL_PERMISSION_CODES = Object.values(PermissionCode);
-const READ_ONLY_CODES = [
-  PermissionCode.CANDIDATE_READ,
-  PermissionCode.VACANCY_READ,
-  PermissionCode.USER_READ,
-  PermissionCode.COMPANY_READ,
-  PermissionCode.AREA_READ,
-  PermissionCode.SETTINGS_READ,
-  PermissionCode.TASK_READ,
-  PermissionCode.TASK_MANAGE,
-];
-/** Administrador-only codes stay out of the Manager's defaults. */
-const MANAGER_CODES = ALL_PERMISSION_CODES.filter(
-  (c) =>
-    c !== PermissionCode.ROLE_MANAGE &&
-    c !== PermissionCode.ORGANIZATION_MANAGE,
-);
 
 @Injectable()
 export class RoleService {
@@ -175,7 +161,7 @@ export class RoleService {
       .returning({ id: roles.id });
     if (!adminRole) throw new Error('Failed to create Administrador role');
     await db.insert(rolePermissions).values(
-      getIds(ALL_PERMISSION_CODES).map((permissionId) => ({
+      getIds(ADMINISTRADOR_CODES).map((permissionId) => ({
         roleId: adminRole.id,
         permissionId,
       })),
@@ -199,7 +185,7 @@ export class RoleService {
       .returning({ id: roles.id });
     if (!basicRole) throw new Error('Failed to create Basic role');
     await db.insert(rolePermissions).values(
-      getIds(READ_ONLY_CODES).map((permissionId) => ({
+      getIds(BASIC_CODES).map((permissionId) => ({
         roleId: basicRole.id,
         permissionId,
       })),
