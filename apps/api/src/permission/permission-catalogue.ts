@@ -108,7 +108,9 @@ export const MANAGER_CODES = ADMINISTRADOR_CODES.filter(
 );
 export const BASIC_CODES: PermissionCode[] = [
   PermissionCode.CANDIDATE_READ,
+  PermissionCode.CANDIDATE_MANAGE,
   PermissionCode.VACANCY_READ,
+  PermissionCode.VACANCY_MANAGE,
   PermissionCode.USER_READ,
   PermissionCode.COMPANY_READ,
   PermissionCode.AREA_READ,
